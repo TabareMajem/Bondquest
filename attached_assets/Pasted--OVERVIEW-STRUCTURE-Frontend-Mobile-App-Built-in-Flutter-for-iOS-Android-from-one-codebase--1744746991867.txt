@@ -1,0 +1,290 @@
+🧱 OVERVIEW STRUCTURE
+Frontend (Mobile App)
+
+Built in: Flutter (for iOS & Android from one codebase) or React Native
+
+Backend (APIs + Database)
+
+Node.js + Express or Python FastAPI
+
+MongoDB or PostgreSQL
+
+Authentication
+
+Firebase Auth or Auth0
+
+Real-Time Multiplayer Logic
+
+Firebase Realtime DB or WebSockets (Socket.IO)
+
+AI Integration
+
+OpenAI GPT-4 API with custom prompt engineering
+
+Gamification Engine
+
+Custom service tracking points, streaks, badges, leaderboards
+
+Admin Panel
+
+For quiz management, moderation, analytics
+
+Analytics + Monitoring
+
+Mixpanel, Firebase Analytics, Sentry
+
+🌐 BACKEND FEATURES
+1. User Management
+POST /signup, POST /login, GET /me
+
+Couple linking logic:
+
+Upon sign-up, the user gets a unique Partner Code or Invitation Link
+
+POST /link-partner
+
+Couples are stored in a shared “CoupleRoom” document
+
+2. Quiz/Game Engine
+Activity Types:
+
+Synchronous Quiz
+
+Asynchronous Quiz
+
+Daily Challenges
+
+Custom Packs (e.g., “New Parents Pack”)
+
+Each quiz = collection of questions:
+
+json
+Copy
+Edit
+{
+  "quizId": "abc123",
+  "type": "synchronous",
+  "questions": [
+    {
+      "text": "What’s your partner’s favorite meal?",
+      "choices": ["Sushi", "Pizza", "Ramen", "Tacos"],
+      "correct_answer": null
+    }
+  ]
+}
+GameSession Model (Tracks state per couple):
+
+json
+Copy
+Edit
+{
+  "coupleId": "xyz",
+  "quizId": "abc123",
+  "playerA": { "answers": [...] },
+  "playerB": { "answers": [...] },
+  "score": { "matchPercentage": 85 },
+  "timestamp": "..."
+}
+3. Competition Engine
+Leaderboard Model:
+
+json
+Copy
+Edit
+{
+  "competitionId": "weekly001",
+  "start": "...",
+  "end": "...",
+  "entries": [
+    { "coupleId": "123", "points": 234, "verified": true }
+  ]
+}
+Entry via POST /join-competition
+
+Live updates via Firebase or Socket.IO
+
+4. AI Assistant (Casanova / Venus)
+POST /ai/prompt
+
+Input: current relationship context + mood + recent events
+
+GPT-4 prompt:
+
+"As Casanova, respond in a flirty tone. Based on recent score drops in communication and low mood from Partner B, suggest a playful way to reconnect."
+
+You can also fine-tune responses using prompt templates based on user type, gender, tone
+
+5. Check-In & Mood Tracking
+POST /daily-checkin
+
+Store mood (emoji / color scale), short reflection
+
+GET /checkin-history → timeline UI or line chart
+
+6. Points, Rewards & Gamification
+Triggered via completeQuiz(), joinCompetition(), inviteFriend()
+
+Backend updates:
+
+XP (daily)
+
+Badge triggers
+
+Streak counters
+
+7. Admin Portal Features
+Manage:
+
+Quiz Libraries
+
+Featured Challenges
+
+AI Personas (prompt templates)
+
+Leaderboard Moderation
+
+Tools: Retool, Forest Admin, or custom Next.js admin panel
+
+📱 FRONTEND (VIEW BY VIEW)
+1. Onboarding Screens
+Welcome > Login / Signup > Partner Linking
+
+Firebase Auth SDK
+
+Invite Link: bondquest.app/invite/abc123
+
+Show a "linking" success screen with couple avatars
+
+2. Home Dashboard
+Tabs: Home 🏠 / Play 🎮 / Compete 🏆 / AI 🤖 / Insights 📊 / Settings ⚙️
+
+Components:
+
+Bond Strength Meter
+
+Daily Quiz Card
+
+Recent Activity Feed
+
+Quick Access (FAB): Start Quiz / Invite Partner / Ask AI
+
+All pulled from: /couple/:id/summary
+
+3. Quiz Flow
+Select a quiz category: Memory Lane, Spicy, Daily Habits...
+
+UX: Animated card flip or scrollable tabs
+
+Real-time:
+
+Use Firebase or WebSocket to sync Q&A view
+
+Display both partners’ answers after submission
+
+Logic:
+
+startGameSession(), submitAnswer()
+
+matchScore() calculates match percentage
+
+4. Competition Flow
+Entry Page:
+
+Title, Description, Rules, Join Button
+
+Show countdown to start
+
+Game view:
+
+Synchronous timing enforced via backend or socket timestamp
+
+Anti-cheat = both answers submitted within 10s of each other
+
+Leaderboard View:
+
+Tabs: Friends / Regional / Global
+
+Filter by time period
+
+5. AI Assistant (Casanova / Venus)
+Chat View:
+
+Message bubbles (assistant & user)
+
+Pre-suggested buttons: “Plan a date,” “We had a fight,” “I’m bored”
+
+Mood / Context sent with chat to backend
+
+AI Avatars:
+
+Option to switch between tones:
+
+🤵 Casanova = playful & romantic
+
+🧠 Venus = calm & reflective
+
+6. Check-In & Emotion Tracker
+Mood Scale = Emoji or Color Wheel
+
+Optional journal entry (text area)
+
+Save → Animates mood icon with heart animation
+
+Show mood history with calendar heatmap or mood graph
+
+7. Relationship Insights
+Dashboard UI:
+
+Bond Strength % + Level
+
+Graphs:
+
+Quiz Scores Over Time
+
+Match Consistency
+
+Mood History
+
+Insight Cards:
+
+“You are best at creative tasks”
+
+“You have a communication drop this week – try this activity...”
+
+8. Avatar & Personalization
+Customizable profile:
+
+Couple name
+
+Theme color (from palette)
+
+Avatars or upload images
+
+Optional: pet mascots, nickname badges
+
+9. Timeline / Scrapbook
+Horizontal or vertical scroll of:
+
+Milestones: First Match, First 100%, First Challenge Win
+
+Check-ins
+
+Quizzes played
+
+Option to upload photo per memory
+
+🔐 SECURITY & PRIVACY
+All communication via HTTPS (TLS 1.3)
+
+Encrypted user data at rest (MongoDB Atlas or Firestore)
+
+AI prompts anonymized (no raw names sent to OpenAI)
+
+GDPR/CCPA compliance:
+
+Data download request
+
+Full deletion API
+
+Access control via Firebase or JWT
+

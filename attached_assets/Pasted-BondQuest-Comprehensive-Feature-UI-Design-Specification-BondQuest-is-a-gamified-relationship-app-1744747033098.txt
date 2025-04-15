@@ -1,0 +1,542 @@
+BondQuest – Comprehensive Feature & UI Design Specification
+BondQuest is a gamified relationship app that helps couples strengthen their bond through interactive quizzes, competitions, and AI-powered insights. The design must blend playful interactivity with genuine relationship improvement while ensuring privacy, personalization, and a smooth user experience.
+
+Below is the detailed design description of every feature and its corresponding UI view.
+
+Table of Contents
+Core Onboarding & User Setup
+
+Welcome Screen
+
+Sign-Up / Login & Partner Linking
+
+Profile Creation & Customization
+
+Home Dashboard & Navigation
+
+Main Dashboard Overview
+
+Daily/Weekly Challenges & Status Meter
+
+Quick Access Buttons
+
+Activities & Quizzes Module
+
+Activity & Quiz Selection Screen
+
+Quiz/Activity Details Screen
+
+Synchronized Answer Game View
+
+Asynchronous Answer Game View
+
+Additional Quiz Variants (Favorite Things, Daily Habits, Relationship Milestones, etc.)
+
+Competitions & Leaderboard Module
+
+Competition Details and Entry Screen
+
+Live Leaderboard & Ranking View
+
+Anti-Cheating Timer & Synchronous Verification UI
+
+AI Assistant & Daily Check-In
+
+Chat Interface (Casanova/Venus)
+
+Daily/Weekly Check-In Screen (Mood Tracking & Reminders)
+
+Conversation Starter/Advice Prompts
+
+Relationship Insights & Analytics
+
+Insights Dashboard with Compatibility Scores
+
+Activity History & Trend Graphs
+
+Personalized Relationship Health Reports
+
+Additional Features & Engagement Tools
+(Proposed Enhancements Beyond the MVP)
+
+Interactive Relationship Timeline / Memory Scrapbook
+
+Mood Tracking and Journal Entry
+
+Couple’s Bucket List & Virtual Date Planner
+
+Conflict Resolution Exercises & Guided Dialogues
+
+In-App Mini Games and Cooperative Challenges
+
+Audio/Video Date Mode (for Long-Distance Couples)
+
+Photo Enhancement & Profile Analyzer
+
+Avatar & Customization Options
+
+Community, Rewards, and Social Features
+
+Community Forum and Discussion Threads
+
+Achievements & Badge Collection
+
+Referral and Social Sharing UI
+
+Settings, Profile, & Help
+
+User Profile Management & Subscription Details
+
+Privacy, Notification, and Security Settings
+
+Help Center / FAQ / Contact Support
+
+1. Core Onboarding & User Setup
+1.1 Welcome Screen
+Purpose: Introduce the BondQuest ethos with an inviting, playful tone.
+
+Visual Elements:
+
+Full-screen background image or animation (e.g., subtle journey or heart animation).
+
+App logo and tagline (“Embark on your BondQuest”).
+
+Components:
+
+Prominent “Get Started” button.
+
+Brief description text of what the app offers.
+
+Secondary links for “Learn More” or “Watch Intro Video” (optional).
+
+1.2 Sign-Up / Login & Partner Linking
+Purpose: Seamlessly onboard both individuals and connect couples.
+
+UI Views:
+
+Login Screen: Options for email, Google, or Facebook authentication.
+
+Sign-Up Screen: Input fields (Name, Email, Password) with validations.
+
+Partner Invite:
+
+A step where after signing up, the user is prompted with “Invite Your Partner.”
+
+Input partner’s email/phone or choose from contacts.
+
+Visual cue: Two linked avatars/icons indicating “You + Your Partner.”
+
+Design Consideration: Clear instructions and friendly microcopy to emphasize that both partners must join to enjoy the full experience.
+
+1.3 Profile Creation & Customization
+Purpose: Gather couple details and personalize the experience.
+
+UI Components:
+
+Profile Setup Form:
+
+Fields for Partner Names, Relationship Start Date, Photo Upload (for each partner).
+
+Optional fields: Interests, Favorite Date Ideas, Love Language.
+
+Customization Options:
+
+Choose from a set of pre-designed themes (colors, background patterns) and avatars.
+
+Onboarding Tutorial:
+
+Animated walkthrough that highlights key app features with tooltips.
+
+2. Home Dashboard & Navigation
+2.1 Main Dashboard Overview
+Purpose: Serve as the central hub for navigation and display current statuses.
+
+UI Elements:
+
+Header Section: Display couple’s profile picture(s), names, and a “Bond Strength” meter (a progress bar or score reflecting engagement).
+
+Navigation Menu: Bottom navigation bar or side menu for quick access:
+
+Home, Activities, Competitions, Insights, AI Assistant, Community, and Settings.
+
+Widgets / Blocks:
+
+“Daily Challenge” widget: Shows the day’s quiz or activity, with a countdown timer.
+
+“Upcoming Competition” widget: Brief info (date, entry fee, current ranking) with a quick “Join” button.
+
+“Recent Activity” list: A scrollable timeline of quizzes played and achievements unlocked.
+
+2.2 Daily/Weekly Challenges & Status Meter
+Purpose: Encourage habitual use by gamifying routine engagement.
+
+UI Elements:
+
+Status Meter: Visual element (e.g. heart icon gradually filling up or a progress ring) showcasing engagement levels.
+
+Challenge List: Cards featuring challenges (e.g., “Today’s Quiz – How Well Do You Know Me?”) with badges indicating reward points.
+
+Notification Badges: Reminders for incomplete tasks or upcoming live competitions.
+
+2.3 Quick Access Buttons
+Purpose: Enable rapid navigation to key features.
+
+Design: Floating action button (FAB) or quick-access tabs for “Start Quiz,” “Invite Partner,” “Check-In,” and “Ask AI.”
+
+3. Activities & Quizzes Module
+3.1 Activity & Quiz Selection Screen
+Purpose: Let users choose from various categories of fun, engaging activities.
+
+UI Layout:
+
+Category Tabs/Filters: Tabs or a horizontal scroll list for categories like “Couple vs. Couple,” “Partner vs. Partner,” “Memory Lane,” “Daily Habits,” etc.
+
+Activity Cards:
+
+Each card displays an icon/image, a short title, and a brief description of the quiz or challenge.
+
+The card shows estimated time and point rewards.
+
+Interaction: Tapping on a card leads to the Activity Details Screen.
+
+3.2 Quiz/Activity Details Screen
+Purpose: Provide additional information and context before starting.
+
+UI Components:
+
+Header: Quiz title, category, and image.
+
+Description Section: Details on rules, expected duration, and objectives.
+
+Start Button: Prominently displayed with optional “Preview” or “How It Works” link.
+
+Timer/Rules Info: When applicable, rules (e.g., timed responses, simultaneous answer requirement).
+
+3.3 Synchronized Answer Game View
+Purpose: Present a real-time quiz where both partners answer simultaneously.
+
+UI Design:
+
+Question Display: At the top, large font text with the current question.
+
+Answer Options: Displayed as radio buttons or selectable cards (each option is clickable).
+
+Countdown Timer: A timer bar at the top (or a clock icon) indicating remaining time.
+
+Submit Button: Below the answer options.
+
+Feedback Animation: Upon submission, an animation (hearts, confetti) reveals results side by side, showing both partners’ answers.
+
+Example: A “Who Knows Me Better?” quiz view resembling the provided Flutter code snippet.
+
+3.4 Asynchronous Answer Game View
+Purpose: Enable quizzes where one partner’s answer is stored and then matched later.
+
+UI Layout:
+
+First Part (Initial Answer):
+
+Question prompt with a text input (or multiple choice) where Partner A submits an answer.
+
+A confirmation “Save Answer” button.
+
+Second Part (Delayed Matching):
+
+On a random day, Partner B receives the question again with a prompt, “Predict your partner’s answer.”
+
+On submission, the screen displays a match percentage with a fun graphic (e.g., puzzle pieces connecting).
+
+Design Consideration: Smooth transitions between question submission and later reveal ensure that users enjoy the element of surprise.
+
+3.5 Additional Quiz Variants
+Favorite Things Quiz & Daily Habits Quiz:
+
+UI: Similar to the synchronized quiz but with categories and icons indicating the topic (e.g., food, movies, morning routines).
+
+Relationship Milestones Quiz:
+
+UI: More narrative; open text input for memorable events (e.g., “First Date,” “First Trip Together”).
+
+Presentation: Use timeline visuals as the user inputs dates/memories, linking back to the interactive timeline feature discussed later.
+
+4. Competitions & Leaderboard Module
+4.1 Competition Details and Entry Screen
+Purpose: Provide an overview of upcoming weekly or seasonal couple competitions.
+
+UI Components:
+
+Competition Card: Display the competition title, entry fee (if any), prize information, start time, and a “Join” button.
+
+Rules & Anti-Cheating Info: Briefly list how the competition works (e.g., “both partners must answer within 30 seconds simultaneously”).
+
+Preview of Leaderboard: A small snippet (top 3 couples) with profile thumbnails and scores.
+
+4.2 Live Leaderboard & Ranking View
+Purpose: Create healthy competition among couples.
+
+UI Layout:
+
+Header: Title “Live Leaderboard” with filters (e.g., “This Week,” “Global,” “Friends”).
+
+Ranking List: A scrollable list showing ranks, couple profile pictures, names, and points earned.
+
+Live Updates: Real-time update indicators (a refresh icon or subtle animations when a rank changes).
+
+User Highlight: The current user’s couple is highlighted even if not in the top 5.
+
+Anti-Cheating Visual: A small icon or label (“Verified Synchronous Entry”) ensures fairness.
+
+5. AI Assistant & Daily Check-In
+5.1 AI Chat Interface (Casanova / Venus)
+Purpose: Offer personalized relationship advice, conversation starters, and daily check-ins.
+
+UI Design:
+
+Chat Window: Message bubbles with the assistant’s responses (using the chosen persona) alternating with user inputs.
+
+Input Field: Text box at the bottom with a “Send” button.
+
+Assistant Avatar: A small icon (Casanova/Venus) next to each AI message.
+
+Quick Reply Options: Buttons below some messages that let users quickly choose pre-set prompts (e.g., “Give me a date idea!”).
+
+Interaction: The conversation history is scrollable; new messages have subtle animations.
+
+5.2 Daily/Weekly Check-In Screen
+Purpose: Encourage couples to reflect and update their relationship mood.
+
+UI Components:
+
+Prompt Area: A daily check-in question (e.g., “How are you feeling about our relationship today?”).
+
+Mood Selection: A row of emoji icons or color-coded circles representing different moods.
+
+Short Journal Entry: Optional text box for a few words about their day.
+
+Submit & View History: A “Submit Check-In” button and a link to view past check-ins (which could be visualized as a simple line graph or calendar highlights).
+
+5.3 Conversation Starter Generator
+Purpose: Provide impromptu questions/topics based on the couple’s shared interests.
+
+UI Flow:
+
+Button Trigger: On the dashboard or within the chat, a prominent button “Need a Conversation Starter?”
+
+Display Panel: A card that appears with a conversation prompt and an option to “Generate New.”
+
+Share Option: A share button so couples can send it as a text message or save it in a “Conversation Log.”
+
+6. Relationship Insights & Analytics
+6.1 Insights Dashboard
+Purpose: Provide visual and textual feedback on relationship progress.
+
+UI Layout:
+
+Header: “Your Relationship Insights” with a summary statistic (e.g., “Bond Strength: 85%”).
+
+Graphical Charts:
+
+Bar charts or line graphs tracking quiz scores over time.
+
+Pie charts breaking down performance in categories (communication, shared interests, etc.).
+
+Insight Cards:
+
+Personalized tips based on data (“You tend to do best on creative questions—try a more reflective challenge for deeper insights.”).
+
+Historical analysis of improvements and areas for growth.
+
+Interactivity: Scrollable panels and clickable cards that expand to show detailed advice or data.
+
+6.2 Activity History & Trend Analysis
+Purpose: Let couples review past actions and celebrate wins.
+
+UI Elements:
+
+Timeline or List View: Chronologically organized logs of quizzes played, challenges won, and check-in moods.
+
+Milestone Highlights: Visual icons or badges attached to key dates (first quiz, highest score, longest streak).
+
+Advanced Analytics (Future Feature): Enable downloadable reports or shareable infographics summarizing relationship progress.
+
+7. Additional Features & Engagement Tools (Proposals Beyond MVP)
+7.1 Interactive Relationship Timeline / Memory Scrapbook
+Purpose: Create a visual journey of the couple’s shared experiences.
+
+UI Design:
+
+Scrollable Timeline: A horizontal (or vertical) line populated with “event cards” (e.g., first date, competitions won, check-in highlights).
+
+Event Cards: Each card includes a date, photo (optional), brief description, and “Add Memory” button.
+
+Share Button: Option to export or share a printed version of the timeline.
+
+7.2 Mood Tracking & Daily Journal
+Purpose: Track emotional trends over time.
+
+UI Elements:
+
+Mood Log Screen: Calendar view where each day shows a mood emoji.
+
+Journal Entry Popup: Tapping on a day brings up the option to write a short note.
+
+Graph View: A simple line graph showing mood trends over weeks or months.
+
+7.3 Couple’s Bucket List & Virtual Date Planner
+Purpose: Encourage planning of shared goals and dates.
+
+UI Features:
+
+Bucket List Screen: List items with checkboxes, deadlines, and optional photo attachments.
+
+Virtual Date Planner:
+
+Selection menus for date categories (e.g., cooking, outdoor adventure, cozy indoors)
+
+Calendar integration to schedule a date, with an option to “Suggest Date Ideas.”
+
+Confirmation & Reminder: After planning, a summary screen and reminder push notifications.
+
+7.4 Conflict Resolution & Guided Exercises
+Purpose: Offer structured exercises to resolve misunderstandings.
+
+UI Design:
+
+Module Landing Page: List of topics (e.g., “Communication,” “Understanding Triggers”).
+
+Exercise Screen: Step-by-step walkthrough with questions for each partner, visual prompts, and a “Discuss” button that encourages both to converse offline.
+
+Summary Screen: After completion, display actionable tips and a progress meter.
+
+7.5 In-App Mini Games & Cooperative Challenges
+Purpose: Provide alternative playful interactions beyond quizzes.
+
+UI Concepts:
+
+Game Lobby: A screen with various mini games available (e.g., “Memory Matching,” “Puzzle Solve Together”).
+
+Game Interface: Minimalistic, clean design ensuring both inputs sync (if cooperative) or show friendly competition.
+
+Rewards Overlay: After game completion, show earned points/badges with celebratory animation.
+
+7.6 Audio/Video Date Mode
+Purpose: For long-distance couples, facilitate shared experiences via integrated voice or video.
+
+UI Elements:
+
+Call Screen: Similar to a native video-call app but with overlays for shared quiz questions.
+
+Integration: A “Start Date” button that launches the video mode and overlays a synchronized quiz or challenge panel.
+
+Post-Call Feedback: Simple rating or “How was your date?” prompt after ending the call.
+
+7.7 Photo Enhancement & Profile Analyzer
+Purpose: Help couples improve profile photos and personal descriptions.
+
+UI Flow:
+
+Photo Upload Screen: Let users select a photo with a preview window.
+
+Enhancement Tools: Options for basic edits (crop, brightness, filter overlays) with real-time preview.
+
+Profile Analyzer: Input a text description and receive suggestions in an adjacent pane (using NLP methods similar to the provided code samples).
+
+7.8 Avatar & Customization Options
+Purpose: Allow further personalization of profiles and in-app representation.
+
+UI Components:
+
+Avatar Builder Screen: Select pre-designed characters or customize features (hair, clothing, accessories).
+
+Theme Selector: Choose app themes (colors, backgrounds) that reflect the couple’s personality.
+
+Preview & Save: Live preview of changes before confirming.
+
+8. Community, Rewards, & Social Sharing
+8.1 Community Forum & Discussion Threads
+Purpose: Provide an opt-in space where couples can share experiences and seek advice.
+
+UI Layout:
+
+Forum Feed: A typical social feed with posts tagged by topics (e.g., #DateIdeas, #SuccessStories).
+
+Post Creation: A button for “Share Your Story” or “Ask a Question” with text input and photo attachment options.
+
+Commenting & Upvoting: Standard social interactions (like/dislike, comment threads).
+
+8.2 Achievements & Badge Collection
+Purpose: Reward couples for milestones and consistent engagement.
+
+UI Components:
+
+Achievements Page: Grid or carousel of earned badges, with tooltips explaining how each was won.
+
+Rewards Center: List of prizes available from competitions (e.g., digital coupons or entry toward exclusive events) and their claim status.
+
+Progress Indicators: Visual markers showing progress toward the next badge.
+
+8.3 Referral & Social Sharing UI
+Purpose: Encourage virality and word-of-mouth.
+
+UI Features:
+
+Referral Screen: Unique referral code and social share buttons for text messages, WhatsApp, Instagram, etc.
+
+In-App Share Graphics: When finishing a quiz or achieving a milestone, generate a shareable infographic (e.g. “Our BondQuest Score is 85/100!”).
+
+Leaderboard for Referrals: (Optional) A small leaderboard showing top referrers among friends.
+
+9. Settings, Profile, & Help
+9.1 Profile & Account Management
+Components:
+
+Profile Screen: Editable fields for personal info, couple details, profile pictures.
+
+Subscription Management: Displays current subscription tier, next billing date, and an “Upgrade” button if on free.
+
+Partner Settings: Option to review or re-link the partner’s account.
+
+9.2 Privacy, Notification, and Security Settings
+UI Views:
+
+Privacy Screen: Toggle options for data sharing (e.g., whether quiz results appear on leaderboards), clear explanations about data usage.
+
+Notification Settings: Customizable settings for in-app notifications, push alerts, and email digests.
+
+Security Options: Two-factor authentication and account recovery settings.
+
+9.3 Help Center / FAQ / Support
+Components:
+
+Help Topics: Organized FAQ in categories (Account, Technical, Relationship Tips).
+
+Tutorial Videos: Step-by-step guides for using key features.
+
+Contact Form / Live Chat: For direct support queries.
+
+Navigation & Flow Overview
+User Onboarding → Home Dashboard:
+Users start with a welcoming tutorial, sign up, and are guided through creating their couple profile. They then land on the Home Dashboard where they see immediate calls-to-action (daily challenge, upcoming competition, etc.).
+
+Dashboard → Activities/Quizzes:
+From the dashboard, users tap on an activity card to see details and start a quiz (synchronized or asynchronous) with built-in timers and clear instructions. The transition is smooth with animated loading and progress feedback.
+
+Inter-Module Navigation:
+A persistent bottom navigation bar (or hamburger menu) allows fast switching between:
+
+Home
+
+Activities
+
+Competitions
+
+Insights
+
+AI Chat
+
+Community
+
+Profile/Settings
+
+In-App Notifications & AI Interactions:
+Throughout, pop-up notifications and the AI assistant prompt users to check in, share their progress, or try out new features, ensuring a constant but nonintrusive engagement loop.
