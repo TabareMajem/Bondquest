@@ -8,6 +8,7 @@ import ActivityCard from "../components/dashboard/ActivityCard";
 import QuickAccessButtons from "../components/ui/QuickAccessButtons";
 import { useAuth } from "../contexts/AuthContext";
 import { Quiz, Activity } from "@shared/schema";
+import { get } from "@/lib/apiClient";
 
 interface DashboardData {
   couple: {
@@ -33,22 +34,115 @@ interface DashboardData {
 export default function Home() {
   const [, navigate] = useLocation();
   const { user, couple } = useAuth();
+  const [showDebug, setShowDebug] = useState(false);
+
+  // Automatically create a test user and couple for development
+  useEffect(() => {
+    const createTestUser = async () => {
+      if (!user && !localStorage.getItem("bondquest_user")) {
+        try {
+          // Create test user
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username: "testuser1",
+              password: "password123",
+            }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem("bondquest_user", JSON.stringify(data.user));
+            if (data.couple) {
+              localStorage.setItem("bondquest_couple", JSON.stringify(data.couple));
+            }
+            
+            // Reload the page to update auth context
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error("Failed to create test user:", error);
+        }
+      }
+    };
+    
+    createTestUser();
+  }, [user]);
 
   // Redirect to onboarding if no user is logged in
   useEffect(() => {
-    if (!user) {
+    if (!user && !localStorage.getItem("bondquest_user")) {
       navigate("/");
     }
   }, [user, navigate]);
 
   // Fetch dashboard data
   const { data, isLoading, error } = useQuery<DashboardData>({
-    queryKey: [couple ? `/api/couples/${couple.id}/dashboard` : null],
-    enabled: !!couple,
+    queryKey: [`/api/couples/${couple?.id || 1}/dashboard`],
+    queryFn: () => get(`/api/couples/${couple?.id || 1}/dashboard`),
+    enabled: true,
+    staleTime: 5000,
   });
 
-  if (!user || !couple) {
-    return null;
+  // Use sample couple data if none exists
+  useEffect(() => {
+    if (!couple && localStorage.getItem("bondquest_user") && !localStorage.getItem("bondquest_couple")) {
+      const sampleCouple = {
+        id: 1,
+        userId1: 1,
+        userId2: 2,
+        bondStrength: 50,
+        level: 1,
+        xp: 0,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem("bondquest_couple", JSON.stringify(sampleCouple));
+      window.location.reload();
+    }
+  }, [couple]);
+
+  if ((!user && !localStorage.getItem("bondquest_user")) || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="w-20 h-20 bg-primary-200 rounded-full mb-4"></div>
+          <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-24"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("Dashboard data fetch error:", error);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-sm">
+          <h2 className="text-red-500 text-lg font-semibold mb-2">Error Loading Dashboard</h2>
+          <p className="text-gray-600 mb-4">Unable to load your relationship data. Please try again later.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+          >
+            Retry
+          </button>
+          <button 
+            onClick={() => setShowDebug(!showDebug)} 
+            className="ml-2 text-gray-500 text-sm underline"
+          >
+            {showDebug ? "Hide Details" : "Show Details"}
+          </button>
+          {showDebug && (
+            <pre className="mt-4 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+              {JSON.stringify(error, null, 2)}
+            </pre>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const displayName = data ? `${data.user1.displayName} & ${data.user2.displayName}` : "Your Relationship";
