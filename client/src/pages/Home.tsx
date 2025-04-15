@@ -83,7 +83,7 @@ export default function Home() {
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
     queryKey: [`/api/couples/${couple?.id || 1}/dashboard`],
     queryFn: () => get(`/api/couples/${couple?.id || 1}/dashboard`),
-    enabled: true,
+    enabled: !!couple, // Only run query if couple exists
     staleTime: 5000,
   });
   
@@ -135,6 +135,7 @@ export default function Home() {
     }
   }, [couple]);
 
+  // If no user is logged in or data is loading, show loading state
   if ((!user && !localStorage.getItem("bondquest_user")) || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -142,6 +143,35 @@ export default function Home() {
           <div className="w-20 h-20 bg-primary-200 rounded-full mb-4"></div>
           <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
           <div className="h-4 bg-gray-200 rounded w-24"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  // If user exists but no couple is linked, show partner linking screen
+  if (user && !couple) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900 p-6">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-md w-full shadow-xl border border-white/20 text-center">
+          <div className="mb-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+            </div>
+            <h2 className="text-white text-xl font-bold mb-2">Connect with Your Partner</h2>
+            <p className="text-white/80 mb-6">To use BondQuest, you need to connect with your partner first.</p>
+            <button 
+              onClick={() => navigate("/partner-linking")} 
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-medium py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all"
+            >
+              Link with Partner
+            </button>
+          </div>
+          
+          <p className="text-white/60 text-sm">
+            BondQuest is designed for couples. Connect with your partner to access all features and start strengthening your relationship.
+          </p>
         </div>
       </div>
     );
