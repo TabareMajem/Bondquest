@@ -6,6 +6,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "../contexts/AuthContext";
 import { useQuiz } from "../hooks/useQuiz";
 import AnswerOption from "../components/quiz/AnswerOption";
+import QuizResults from "../components/quiz/QuizResults";
 import { Quiz, Question } from "@shared/schema";
 
 interface QuizData {
@@ -58,6 +59,13 @@ export default function QuizGame() {
     },
   });
 
+  // State for quiz completion
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [quizResults, setQuizResults] = useState<{
+    matchPercentage: number;
+    pointsEarned: number;
+  }>({ matchPercentage: 0, pointsEarned: 0 });
+  
   // Complete quiz session
   const completeSessionMutation = useMutation({
     mutationFn: async () => {
@@ -80,16 +88,20 @@ export default function QuizGame() {
       // Invalidate dashboard data to reflect new activity
       if (couple) {
         queryClient.invalidateQueries({ queryKey: [`/api/couples/${couple.id}/dashboard`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/couples/${couple.id}/activities`] });
       }
       
-      // Navigate to results or home
+      // Set quiz as completed and store results
+      setQuizResults({
+        matchPercentage: data.matchPercentage,
+        pointsEarned: data.pointsEarned
+      });
+      setQuizCompleted(true);
+      
       toast({
         title: "Quiz completed!",
         description: `You earned ${data.pointsEarned} points.`,
       });
-      
-      // In a real app, we would navigate to a results page
-      navigate("/home");
     },
     onError: (error) => {
       toast({
@@ -183,6 +195,18 @@ export default function QuizGame() {
 
   const currentQuestion = data.questions[currentQuestionIndex];
 
+  // Show results screen if quiz is completed
+  if (quizCompleted && quizSessionId && data) {
+    return (
+      <QuizResults
+        quizId={quizId}
+        sessionId={quizSessionId}
+        matchPercentage={quizResults.matchPercentage}
+        pointsEarned={quizResults.pointsEarned}
+      />
+    );
+  }
+  
   return (
     <div className="min-h-screen w-full bg-gray-50 pt-12 pb-20">
       {/* Header */}

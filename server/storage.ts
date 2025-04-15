@@ -48,7 +48,7 @@ export interface IStorage {
   
   // Activity Methods
   getActivitiesByCouple(coupleId: number, limit?: number): Promise<Activity[]>;
-  createActivity(activity: InsertActivity): Promise<Activity>;
+  createActivity(activity: InsertActivity & { description?: string }): Promise<Activity>;
   
   // Chat Methods
   getChatsByCouple(coupleId: number): Promise<Chat[]>;
@@ -265,7 +265,7 @@ export class MemStorage implements IStorage {
     return limit ? activities.slice(0, limit) : activities;
   }
 
-  async createActivity(activity: InsertActivity): Promise<Activity> {
+  async createActivity(activity: InsertActivity & { description?: string }): Promise<Activity> {
     const id = this.activityId++;
     const newActivity: Activity = { ...activity, id, createdAt: new Date() };
     this.activities.set(id, newActivity);
