@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { insertUserSchema, insertCoupleSchema, insertQuizSessionSchema, insertDailyCheckInSchema, insertChatSchema } from "@shared/schema";
+import { generateAIResponse, generateRelationshipInsights } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check route
@@ -223,10 +224,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           // Update bond strength if match percentage is provided
-          if (updates.matchPercentage) {
+          if (updates.matchPercentage && couple.bondStrength !== null) {
             // Calculate new bond strength (weighted average)
+            const currentBondStrength = couple.bondStrength || 50; // Default to 50 if null
             const newBondStrength = Math.round(
-              (couple.bondStrength * 0.7) + (updates.matchPercentage * 0.3)
+              (currentBondStrength * 0.7) + (updates.matchPercentage * 0.3)
             );
             await storage.updateCoupleBondStrength(couple.id, newBondStrength);
           }
@@ -406,32 +408,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Simple mock AI response generator
-async function generateAIResponse(userMessage: string, assistantType: string): Promise<string> {
-  // In a real application, this would call the OpenAI API
-  
-  const responses: Record<string, string[]> = {
-    "casanova": [
-      "I've got just the thing! How about a '15-Minute Connection Challenge'? Take 15 minutes tonight to share the highlight and lowlight of your day, with no phones or distractions. It's small but powerful!",
-      "Have you considered planning a surprise date night? Even something simple at home can reignite that spark! Maybe recreate your first date?",
-      "Communication is the heartbeat of love! Try this game: take turns completing the sentence 'I feel loved when you...' - it's amazing what you'll discover!",
-      "The data shows you both love outdoor activities. How about a weekend hiking trip with no technology? Nature has a way of bringing people closer."
-    ],
-    "venus": [
-      "I notice you've been feeling a bit disconnected lately. Consider setting aside 10 minutes each day for mindful conversation - no phones, no TV, just presence with each other.",
-      "Relationships thrive on appreciation. Try sharing one thing you appreciate about your partner each day for the next week and watch how it transforms your connection.",
-      "Sometimes the smallest gestures have the biggest impact. What's one tiny thing you could do today to make your partner feel seen and valued?",
-      "According to your quiz results, you both value quality time differently. Have you discussed what meaningful time together looks like for each of you?"
-    ],
-    "aurora": [
-      "Based on your relationship data, I recommend focusing on improving your communication patterns. The quiz results show a 35% mismatch in how you express appreciation.",
-      "Looking at your activity history, you've completed 8 quizzes but only 2 in the 'communication' category. Consider balancing your relationship growth areas.",
-      "Statistical analysis of successful couples shows that a daily 6-second kiss significantly improves relationship satisfaction. Have you incorporated this habit?",
-      "Your relationship strength metrics have improved 12% this month. The most influential factor was completing the 'Love Languages' quiz together."
-    ]
-  };
 
-  // Select a random response based on assistant type
-  const availableResponses = responses[assistantType] || responses["casanova"];
-  return availableResponses[Math.floor(Math.random() * availableResponses.length)];
-}
