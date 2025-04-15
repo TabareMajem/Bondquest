@@ -45,9 +45,18 @@ export default function Onboarding() {
         </Button>
         
         <p className="text-sm opacity-70 mb-2">Already have an account?</p>
-        <a href="#" className="text-white underline font-medium">
+        <button 
+          onClick={() => {
+            // Clear any previous user data first
+            localStorage.removeItem("bondquest_user");
+            localStorage.removeItem("bondquest_couple");
+            // Navigate to signup which handles login too
+            navigate("/signup");
+          }} 
+          className="text-white underline font-medium"
+        >
           Log In
-        </a>
+        </button>
       </div>
     </div>
   );

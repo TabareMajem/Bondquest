@@ -36,51 +36,15 @@ export default function Home() {
   const { user, couple } = useAuth();
   const [showDebug, setShowDebug] = useState(false);
 
-  // Auto-login is disabled when in production
-  // For development purposes, we'll check if the user already exists in the system
-  useEffect(() => {
-    const attemptAutoLogin = async () => {
-      // Only try to auto-login if no user is logged in yet
-      if (!user && !localStorage.getItem("bondquest_user")) {
-        try {
-          // Check if the test user exists
-          const response = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              username: "tabaremajem@gmail.com",
-              password: "88888888",
-            }),
-          });
-          
-          if (response.ok) {
-            // User exists, save to local storage
-            const data = await response.json();
-            localStorage.setItem("bondquest_user", JSON.stringify(data.user));
-            
-            // If the user has a couple, save that as well
-            if (data.couple) {
-              localStorage.setItem("bondquest_couple", JSON.stringify(data.couple));
-            }
-            
-            // Reload to update context
-            window.location.reload();
-          } else {
-            // If login fails, redirect to onboarding
-            navigate("/");
-          }
-        } catch (error) {
-          console.error("Auto-login failed:", error);
-          // Redirect to onboarding on error
-          navigate("/");
-        }
-      }
-    };
+  // For development, add a manual option to restart the onboarding process
+  const handleRestartApp = () => {
+    // Clear all local storage
+    localStorage.removeItem("bondquest_user");
+    localStorage.removeItem("bondquest_couple");
     
-    attemptAutoLogin();
-  }, [user, navigate]);
+    // Force a redirect to the onboarding page
+    window.location.href = "/";
+  };
 
   // Redirect to onboarding if no user is logged in
   useEffect(() => {
@@ -173,30 +137,43 @@ export default function Home() {
     );
   }
 
-  if (error) {
+  // If there's a dashboard error but we're logged in, it's because we don't have a couple
+  // So we'll show the partner linking screen instead
+  if (error && user) {
     console.error("Dashboard data fetch error:", error);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-6 rounded-lg shadow-md max-w-sm">
-          <h2 className="text-red-500 text-lg font-semibold mb-2">Error Loading Dashboard</h2>
-          <p className="text-gray-600 mb-4">Unable to load your relationship data. Please try again later.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
-          >
-            Retry
-          </button>
-          <button 
-            onClick={() => setShowDebug(!showDebug)} 
-            className="ml-2 text-gray-500 text-sm underline"
-          >
-            {showDebug ? "Hide Details" : "Show Details"}
-          </button>
-          {showDebug && (
-            <pre className="mt-4 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
-              {JSON.stringify(error, null, 2)}
-            </pre>
-          )}
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900 p-6">
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-md w-full shadow-xl border border-white/20 text-center">
+          <div className="mb-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+            </div>
+            <h2 className="text-white text-xl font-bold mb-2">Connect with Your Partner</h2>
+            <p className="text-white/80 mb-6">To use BondQuest, you need to connect with your partner first.</p>
+            <button 
+              onClick={() => navigate("/partner-linking")} 
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-medium py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all mb-4"
+            >
+              Link with Partner
+            </button>
+            <button 
+              onClick={() => {
+                // Clear local storage and reload to start fresh
+                localStorage.removeItem("bondquest_user");
+                localStorage.removeItem("bondquest_couple");
+                window.location.href = "/";
+              }} 
+              className="w-full bg-gray-600/50 text-white font-medium py-2 px-4 rounded-xl border border-white/20"
+            >
+              Start Over
+            </button>
+          </div>
+          
+          <p className="text-white/60 text-sm">
+            BondQuest is designed for couples. Connect with your partner to access all features.
+          </p>
         </div>
       </div>
     );
@@ -213,7 +190,15 @@ export default function Home() {
       <div 
         className="w-full px-6 pt-12 pb-6 relative"
       >
-        <div className="flex justify-between items-center mb-6">
+        {/* Fixed back to start button */}
+        <button 
+          onClick={handleRestartApp}
+          className="absolute top-4 left-4 p-2 bg-white/10 rounded-md text-white text-sm backdrop-blur-sm border border-white/10"
+        >
+          Back to Start
+        </button>
+
+        <div className="flex justify-between items-center mb-6 mt-8">
           <div className="flex items-center space-x-3">
             <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/30 shadow-xl">
               <img 
