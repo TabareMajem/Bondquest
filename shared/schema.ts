@@ -87,6 +87,7 @@ export const activities = pgTable("activities", {
   type: text("type").notNull(), // "quiz", "check_in", "achievement"
   referenceId: integer("reference_id").notNull(), // reference to the specific activity object
   points: integer("points"),
+  description: text("description"), // AI-generated insights or activity description
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

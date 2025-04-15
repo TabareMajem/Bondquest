@@ -215,12 +215,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (couple) {
           await storage.updateCoupleXP(couple.id, updates.pointsEarned);
           
-          // Create activity record
+          // Get the quiz details
+          const quiz = await storage.getQuiz(session.quizId);
+          
+          // Generate AI insights if answers are provided
+          let insights = "";
+          if (updates.user1Answers && Object.keys(updates.user1Answers).length > 0 && quiz) {
+            try {
+              insights = await generateRelationshipInsights(updates.user1Answers, quiz.category);
+            } catch (error) {
+              console.error("Failed to generate relationship insights:", error);
+              insights = "Your relationship is showing great potential. Keep exploring together!";
+            }
+          }
+          
+          // Create activity record with insights
           await storage.createActivity({
             coupleId: couple.id,
             type: "quiz",
             referenceId: sessionId,
-            points: updates.pointsEarned
+            points: updates.pointsEarned,
+            description: insights
           });
           
           // Update bond strength if match percentage is provided
@@ -265,7 +280,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           coupleId: couple.id,
           type: "check_in",
           referenceId: checkIn.id,
-          points: 5 // Fixed points for check-in
+          points: 5, // Fixed points for check-in
+          description: checkIn.note
         });
         
         // Update couple XP
