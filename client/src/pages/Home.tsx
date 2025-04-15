@@ -182,15 +182,14 @@ export default function Home() {
   const xp = data?.couple.xp || 0;
 
   return (
-    <div className="min-h-screen w-full bg-gray-50">
+    <div className="min-h-screen w-full bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900">
       {/* Header with gradient background */}
       <div 
-        className="w-full rounded-b-3xl px-6 pt-12 pb-6 relative"
-        style={{ background: "var(--gradient-primary)" }}
+        className="w-full px-6 pt-12 pb-6 relative"
       >
         <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-2">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white">
+          <div className="flex items-center space-x-3">
+            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/30 shadow-xl">
               <img 
                 src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png" 
                 alt="Profile" 
@@ -198,17 +197,17 @@ export default function Home() {
               />
             </div>
             <div>
-              <h2 className="text-white font-semibold">{displayName}</h2>
+              <h2 className="text-white font-semibold text-lg">{displayName}</h2>
               <div className="flex items-center">
-                <span className="text-xs bg-yellow-400 text-black px-2 py-0.5 rounded-full font-medium">
+                <span className="text-xs bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-2 py-0.5 rounded-full font-medium shadow-md">
                   Level {level}
                 </span>
-                <span className="text-xs text-white opacity-80 ml-2">{xp} XP</span>
+                <span className="text-xs text-white/80 ml-2">{xp} XP</span>
               </div>
             </div>
           </div>
           
-          <button className="p-2 rounded-full bg-white bg-opacity-20">
+          <button className="p-2.5 rounded-full bg-white/10 backdrop-blur-sm shadow-lg border border-white/10">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
             </svg>
@@ -216,30 +215,91 @@ export default function Home() {
         </div>
         
         {/* Bond Strength Meter */}
-        <BondStrengthMeter percentage={bondStrength} />
+        <div className="mb-6 bg-white/10 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-white/10">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-white font-medium">Bond Strength</span>
+            <span className="text-white text-xl font-bold">{bondStrength}%</span>
+          </div>
+          <div className="h-3 bg-purple-900/50 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-pink-500 to-orange-400 rounded-full"
+              style={{ width: `${bondStrength}%` }}
+            ></div>
+          </div>
+        </div>
         
         {/* Daily Challenge Card */}
-        <DailyQuizCard 
-          quiz={data?.dailyQuiz} 
-          isLoading={isLoading} 
+        <div 
+          className="relative p-5 bg-gradient-to-br from-pink-500/90 to-purple-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-pink-500/20 mb-6"
           onClick={() => data?.dailyQuiz && navigate(`/quizzes/${data.dailyQuiz.id}`)}
-        />
+        >
+          <div className="absolute right-4 top-4 w-12 h-12 opacity-50">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 21L12 21C16.9706 21 21 16.9706 21 12V12C21 7.02944 16.9706 3 12 3V3C7.02944 3 3 7.02944 3 12V12C3 16.9706 7.02944 21 12 21Z" stroke="white" strokeWidth="2"/>
+              <path d="M3.6 8.5H20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M3.6 15.5H20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M12 20.4V3.6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M8.5 3.6V20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M15.5 3.6V20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <h3 className="text-white text-sm font-medium mb-1">Daily Challenge</h3>
+          <h2 className="text-white text-xl font-bold mb-1">
+            {data?.dailyQuiz?.title || "Today's Quiz"}
+          </h2>
+          <p className="text-white/80 text-sm mb-3">
+            {data?.dailyQuiz?.description || "How Well Do You Know Me?"}
+          </p>
+          <div className="flex items-center justify-between">
+            <div className="bg-white/20 rounded-full px-3 py-1 text-xs text-white font-medium">
+              03:21:45
+            </div>
+            <button className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg">
+              START
+            </button>
+          </div>
+        </div>
+        
+        {/* Upcoming Competition Card */}
+        <div className="bg-gradient-to-br from-indigo-500/90 to-blue-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-indigo-500/20 mb-6 p-4">
+          <h3 className="text-white font-medium">Upcoming Competition</h3>
+          <div className="flex justify-between items-center mt-2">
+            <div className="flex items-center gap-4">
+              <div>
+                <p className="text-white">April 25</p>
+                <p className="text-white/70 text-xs">Entry Fee</p>
+              </div>
+              <div>
+                <p className="text-white flex items-center">
+                  <span className="text-yellow-300 mr-1">•</span> 50
+                </p>
+                <p className="text-white/70 text-xs">Current Ranking</p>
+              </div>
+              <div>
+                <p className="text-white">#12</p>
+              </div>
+            </div>
+            <button className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-full shadow-md">
+              Join
+            </button>
+          </div>
+        </div>
       </div>
       
       {/* Recent Activity */}
-      <div className="px-6 pt-14 pb-20">
-        <h3 className="font-semibold text-lg text-gray-800 mb-3">Recent Activity</h3>
+      <div className="px-6 pt-4 pb-24">
+        <h3 className="font-semibold text-lg text-white mb-4">Recent Activity</h3>
         
         {isLoading ? (
           // Loading state
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 animate-pulse">
+              <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/10 animate-pulse">
                 <div className="flex items-center">
-                  <div className="bg-gray-200 w-10 h-10 rounded-lg mr-3"></div>
+                  <div className="bg-purple-700/50 w-12 h-12 rounded-lg mr-3"></div>
                   <div className="flex-grow">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-purple-700/50 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-purple-700/50 rounded w-1/2"></div>
                   </div>
                 </div>
               </div>
@@ -247,18 +307,54 @@ export default function Home() {
           </div>
         ) : error ? (
           // Error state
-          <div className="bg-red-50 text-red-500 p-4 rounded-lg">
+          <div className="bg-red-900/30 text-red-200 p-4 rounded-lg border border-red-500/30">
             Failed to load activities
           </div>
         ) : (
-          // Render activities
+          // Activity Cards
           <div className="space-y-3">
-            {data?.recentActivities.map((activity) => (
-              <ActivityCard key={activity.id} activity={activity} />
-            ))}
-            
-            {data?.recentActivities.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
+            {data?.recentActivities.length > 0 ? (
+              data.recentActivities.map((activity) => (
+                <div 
+                  key={activity.id} 
+                  className="bg-white/10 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/10 flex items-center"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white mr-3 shadow-md">
+                    {activity.type === 'quiz' && (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                    )}
+                    {activity.type === 'check_in' && (
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-white font-medium">
+                      {activity.type === 'quiz' ? 'Completed a quiz' : 'Daily check-in'}
+                    </h4>
+                    <p className="text-gray-300 text-sm flex items-center">
+                      <span>{new Date(activity.createdAt).toLocaleString()}</span>
+                      {activity.points && (
+                        <span className="ml-2 bg-yellow-400/90 text-yellow-900 px-2 py-0.5 rounded-full text-xs font-medium">
+                          +{activity.points} pts
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="ml-auto">
+                    <button className="text-purple-300">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-white/70 bg-white/5 backdrop-blur-sm rounded-xl p-6 shadow-md border border-white/10">
                 <p>No activities yet. Start a quiz to see your activities here!</p>
               </div>
             )}
