@@ -15,6 +15,7 @@ import QuizGame from "./pages/QuizGame";
 import AIAssistant from "./pages/AIAssistant";
 import Insights from "./pages/Insights";
 import Profile from "./pages/Profile";
+import Compete from "./pages/Compete";
 
 function Router() {
   const [location] = useLocation();
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/ai-assistant" component={AIAssistant} />
       <Route path="/insights" component={Insights} />
       <Route path="/profile" component={Profile} />
+      <Route path="/compete" component={Compete} />
       <Route component={NotFound} />
     </Switch>
   );
