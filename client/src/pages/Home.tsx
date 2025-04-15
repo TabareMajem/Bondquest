@@ -80,12 +80,43 @@ export default function Home() {
   }, [user, navigate]);
 
   // Fetch dashboard data
-  const { data, isLoading, error } = useQuery<DashboardData>({
+  const { data, isLoading, error, refetch } = useQuery<DashboardData>({
     queryKey: [`/api/couples/${couple?.id || 1}/dashboard`],
     queryFn: () => get(`/api/couples/${couple?.id || 1}/dashboard`),
     enabled: true,
     staleTime: 5000,
   });
+  
+  // Function to handle daily check-in
+  const handleCheckIn = async () => {
+    try {
+      const checkInData = {
+        userId: user?.id || 1,
+        mood: "happy", // Default mood
+        note: "Daily check-in via quick access button"
+      };
+      
+      const response = await fetch('/api/daily-check-ins', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(checkInData),
+      });
+      
+      if (response.ok) {
+        // Refetch dashboard data to update activities
+        refetch();
+        // Show success message
+        alert("Check-in recorded successfully!");
+      } else {
+        alert("Failed to record check-in. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error creating check-in:", error);
+      alert("An error occurred while creating check-in");
+    }
+  };
 
   // Use sample couple data if none exists
   useEffect(() => {
@@ -239,7 +270,7 @@ export default function Home() {
       <QuickAccessButtons 
         onAIAssistantClick={() => navigate("/ai-assistant")}
         onStartQuizClick={() => navigate("/quizzes")}
-        onCheckInClick={() => console.log("Check-in clicked")}
+        onCheckInClick={handleCheckIn}
       />
       
       {/* Bottom Navigation */}
