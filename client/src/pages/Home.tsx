@@ -36,41 +36,51 @@ export default function Home() {
   const { user, couple } = useAuth();
   const [showDebug, setShowDebug] = useState(false);
 
-  // Automatically create a test user and couple for development
+  // Auto-login is disabled when in production
+  // For development purposes, we'll check if the user already exists in the system
   useEffect(() => {
-    const createTestUser = async () => {
+    const attemptAutoLogin = async () => {
+      // Only try to auto-login if no user is logged in yet
       if (!user && !localStorage.getItem("bondquest_user")) {
         try {
-          // Create test user
+          // Check if the test user exists
           const response = await fetch("/api/auth/login", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              username: "testuser1",
-              password: "password123",
+              username: "tabaremajem@gmail.com",
+              password: "88888888",
             }),
           });
           
           if (response.ok) {
+            // User exists, save to local storage
             const data = await response.json();
             localStorage.setItem("bondquest_user", JSON.stringify(data.user));
+            
+            // If the user has a couple, save that as well
             if (data.couple) {
               localStorage.setItem("bondquest_couple", JSON.stringify(data.couple));
             }
             
-            // Reload the page to update auth context
+            // Reload to update context
             window.location.reload();
+          } else {
+            // If login fails, redirect to onboarding
+            navigate("/");
           }
         } catch (error) {
-          console.error("Failed to create test user:", error);
+          console.error("Auto-login failed:", error);
+          // Redirect to onboarding on error
+          navigate("/");
         }
       }
     };
     
-    createTestUser();
-  }, [user]);
+    attemptAutoLogin();
+  }, [user, navigate]);
 
   // Redirect to onboarding if no user is logged in
   useEffect(() => {
@@ -118,22 +128,8 @@ export default function Home() {
     }
   };
 
-  // Use sample couple data if none exists
-  useEffect(() => {
-    if (!couple && localStorage.getItem("bondquest_user") && !localStorage.getItem("bondquest_couple")) {
-      const sampleCouple = {
-        id: 1,
-        userId1: 1,
-        userId2: 2,
-        bondStrength: 50,
-        level: 1,
-        xp: 0,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem("bondquest_couple", JSON.stringify(sampleCouple));
-      window.location.reload();
-    }
-  }, [couple]);
+  // No longer automatically creating sample couple
+  // We now show the partner linking screen instead
 
   // If no user is logged in or data is loading, show loading state
   if ((!user && !localStorage.getItem("bondquest_user")) || isLoading) {
