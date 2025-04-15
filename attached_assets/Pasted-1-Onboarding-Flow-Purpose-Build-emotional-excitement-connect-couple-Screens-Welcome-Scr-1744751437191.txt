@@ -1,0 +1,183 @@
+1. 🎬 Onboarding Flow
+Purpose: Build emotional excitement + connect couple
+
+🖼️ Screens:
+Welcome Screen
+
+App intro animation (“Level up your love.”)
+
+Button: “Start Your Quest”
+
+Sign Up / Log In
+
+Options: Email / Google / Apple
+
+CTA: “Join with Partner” → enter code/email/QR
+
+Profile Creation
+
+Name, avatar (emoji-style or selfie), love language
+
+Relationship stage selector (new / 1 yr+ / LDR / married)
+
+Personality Quiz (optional)
+
+Short quiz to customize AI assistant tone + tips
+
+2. 🏠 Home Dashboard
+Purpose: Hub for daily engagement and emotional rhythm
+
+🖼️ Components:
+Current Points & Couple Rank (XP bar + global position)
+
+Daily Challenge (“Today’s BondBoost: Tell each other a secret.”)
+
+Quiz Selector:
+
+🔁 Partner vs Partner
+
+🌐 Couple vs Couple
+
+Assistant Alert (“Venus: ‘Looks like it’s been a quiet week… here’s a gentle spark 💡’”)
+
+🧭 Navigation Tabs:
+Home 🏠 | Quests 🎮 | Insights 📊 | Community 💬 | Profile 🧑‍🤝‍🧑
+
+3. 🎮 Quiz & Activity Selector
+Purpose: Pick an activity, synced or async
+
+🖼️ Layout:
+Category Carousel:
+
+🧠 Knowledge | 😂 Fun | 💖 Preferences | 🧘‍♀️ Wellness | 🎞️ Memory Lane
+
+Filters: Synced 🔁 / Async ⏱ / Competition 🏆
+
+Previews:
+
+“Who Knows Better?” — 6 Qs · 5 mins
+
+“Perfect Match: Travel Dreams” — Real-time challenge
+
+CTA:
+“Play Together Now”
+
+“Send for Later” (async)
+
+4. ⏱️ Quiz/Game Flow
+✨ Synchronized Format:
+Split screen for each partner
+
+Countdown Timer
+
+Progress Tracker
+
+Reveal Side-by-Side Answers (with reaction animations!)
+
+✨ Async Format:
+“Your partner has answered…”
+
+“Can you guess their answer?”
+
+Prompted in notifications over the week
+
+Bonus:
+Emoji reactions for match or miss 💘 😅
+
+5. 💬 AI Assistant Chat (Casanova / Venus)
+Purpose: Supportive, playful, AI companion
+
+UI Elements:
+Messenger-style layout (OpenAI-powered)
+
+Avatar switch: Casanova / Venus / Aurora
+
+Modes:
+
+💬 Ask anything
+
+📅 Weekly Check-In
+
+🎯 Goal Planner
+
+🔥 Conflict Rescue
+
+Examples:
+“Today’s Micro-Reflection: What was the most ‘us’ moment of the week?”
+
+“Casanova says: You’ve both been quiet... Ready for a spicy quiz?”
+
+6. 🏆 Couple Competitions
+Purpose: Inject friendly rivalry + real rewards
+
+UI:
+Live Leaderboard
+
+Join Challenge: “This week: Love & Logic 🔮”
+
+Prize Display: “Top 10 win a romantic dinner voucher 🍽️”
+
+Entry Options:
+Free for Premium | Entry Fee for Basic
+
+Anti-cheat: real-time, locked-in answers, 30-sec per Q
+
+7. 📈 Relationship Insights Page
+Purpose: Reflect, grow, plan
+
+Components:
+💑 Compatibility Score Wheel
+
+🧠 Strengths & Growth Zones
+
+🕰️ Timeline of completed activities
+
+💡 Tips Feed (“You both love surprises… plan one this weekend”)
+
+Optional: Add mood/emotion visualizations (emojis or colored rings)
+
+8. 💬 Community & Social
+Purpose: Create tribe of emotionally engaged couples
+
+Layout:
+Scrollable Feed:
+
+“Couple of the Week”
+
+Community Questions
+
+Shared Stories
+
+Post UI:
+
+Title + emoji tag
+
+Image upload
+
+“❤️ Relate” | “💬 Comment”
+
+9. 🏅 Achievements & Rewards
+Purpose: Gamify emotional progress
+
+Sections:
+Badge Wall (Milestones: “Shared 50 Secrets” 💌)
+
+Rewards Center:
+
+Vouchers
+
+Premium unlocks
+
+Real-life coupons (restaurant, app integrations)
+
+10. ⚙️ Settings & Profile
+👤 User Details + Avatar
+
+💳 Subscription Tier & Upgrade
+
+🔔 Notification Control
+
+🔐 Data & Privacy Settings
+
+❓ Help & FAQs
+
