@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { insertUserSchema, insertCoupleSchema, insertQuizSessionSchema, insertDailyCheckInSchema, insertChatSchema } from "@shared/schema";
+import { insertUserSchema, insertCoupleSchema, insertQuizSchema, insertQuizSessionSchema, insertQuestionSchema, insertDailyCheckInSchema, insertChatSchema } from "@shared/schema";
 import { generateAIResponse, generateRelationshipInsights } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -153,6 +153,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(quizzes);
     } catch (error) {
       res.status(500).json({ message: "Failed to get quizzes" });
+    }
+  });
+  
+  app.post("/api/quizzes", async (req, res) => {
+    try {
+      const validatedData = insertQuizSchema.parse(req.body);
+      const quiz = await storage.createQuiz(validatedData);
+      res.status(201).json(quiz);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create quiz" });
     }
   });
 
