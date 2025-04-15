@@ -343,8 +343,8 @@ export default function Home() {
         ) : (
           // Activity Cards
           <div className="space-y-3">
-            {data?.recentActivities.length > 0 ? (
-              data.recentActivities.map((activity) => (
+            {data?.recentActivities && data?.recentActivities.length > 0 ? (
+              data?.recentActivities.map((activity) => (
                 <div 
                   key={activity.id} 
                   className="bg-white/10 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-white/10 flex items-center"
