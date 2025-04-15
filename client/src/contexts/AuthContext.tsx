@@ -54,11 +54,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setCouple(null);
-    localStorage.removeItem("bondquest_user");
-    localStorage.removeItem("bondquest_couple");
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      // Call logout API endpoint
+      await apiRequest("POST", "/api/auth/logout");
+    } catch (error) {
+      console.error("Logout API call failed:", error);
+    } finally {
+      // Clear local state regardless of API call success
+      setUser(null);
+      setCouple(null);
+      localStorage.removeItem("bondquest_user");
+      localStorage.removeItem("bondquest_couple");
+      setIsLoading(false);
+    }
   };
 
   const updateCouple = (coupleData: Couple) => {

@@ -226,7 +226,7 @@ export default function AIAssistant() {
       </div>
       
       {/* Bottom Navigation */}
-      <BottomNavigation activeTab="none" />
+      <BottomNavigation activeTab="ai" />
     </div>
   );
 }

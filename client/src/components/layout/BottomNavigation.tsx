@@ -1,8 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart } from "lucide-react";
+import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, User } from "lucide-react";
 
 interface BottomNavigationProps {
-  activeTab: "home" | "play" | "compete" | "insights" | "settings" | "none";
+  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "none";
 }
 
 export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
@@ -14,7 +14,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   };
   
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-purple-900 py-3 px-6 flex justify-between items-center z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-purple-900 py-3 px-4 flex justify-between items-center z-50">
       <div 
         onClick={(e) => handleNavigate("/home", e)} 
         className={`flex flex-col items-center text-xs font-medium cursor-pointer ${activeTab === "home" ? "text-white" : "text-purple-300"}`}
@@ -49,10 +49,18 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       
       <div 
         onClick={(e) => handleNavigate("/ai-assistant", e)}
-        className={`flex flex-col items-center text-xs font-medium cursor-pointer ${activeTab === "settings" ? "text-white" : "text-purple-300"}`}
+        className={`flex flex-col items-center text-xs font-medium cursor-pointer ${activeTab === "ai" ? "text-white" : "text-purple-300"}`}
       >
-        <MessageCircleHeart className={`w-6 h-6 ${activeTab === "settings" ? "text-white" : "text-purple-300"}`} />
+        <MessageCircleHeart className={`w-6 h-6 ${activeTab === "ai" ? "text-white" : "text-purple-300"}`} />
         <span className="mt-1">Love AI</span>
+      </div>
+      
+      <div 
+        onClick={(e) => handleNavigate("/profile", e)}
+        className={`flex flex-col items-center text-xs font-medium cursor-pointer ${activeTab === "profile" ? "text-white" : "text-purple-300"}`}
+      >
+        <User className={`w-6 h-6 ${activeTab === "profile" ? "text-white" : "text-purple-300"}`} />
+        <span className="mt-1">Profile</span>
       </div>
     </div>
   );
