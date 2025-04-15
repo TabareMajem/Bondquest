@@ -400,6 +400,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Couple Routes
+  app.get("/api/couples/:id", async (req, res) => {
+    try {
+      const coupleId = parseInt(req.params.id);
+      const couple = await storage.getCouple(coupleId);
+      
+      if (!couple) {
+        return res.status(404).json({ message: "Couple not found" });
+      }
+      
+      res.json(couple);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get couple" });
+    }
+  });
+
   // Couple Dashboard Route
   app.get("/api/couples/:coupleId/dashboard", async (req, res) => {
     try {
