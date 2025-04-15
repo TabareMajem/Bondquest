@@ -102,7 +102,7 @@ export const chats = pgTable("chats", {
 });
 
 // Insert Schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, partnerCode: true });
 export const insertCoupleSchema = createInsertSchema(couples).omit({ id: true, createdAt: true });
 export const insertQuizSchema = createInsertSchema(quizzes).omit({ id: true });
 export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });
