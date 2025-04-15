@@ -10,4 +10,49 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+  
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+@layer components {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-card-1 {
+    background: var(--gradient-card-1);
+  }
+  
+  .gradient-card-2 {
+    background: var(--gradient-card-2);
+  }
+  
+  .gradient-card-3 {
+    background: var(--gradient-card-3);
+  }
+  
+  .gradient-card-4 {
+    background: var(--gradient-card-4);
+  }
+  
+  .quiz-card-icon {
+    @apply w-12 h-12 flex items-center justify-center rounded-xl bg-white bg-opacity-20;
+  }
+  
+  .quiz-duration-badge {
+    @apply flex items-center px-3 py-1 rounded-full bg-primary-100 bg-opacity-20;
+  }
+  
+  .quiz-points-badge {
+    @apply flex items-center px-3 py-1 rounded-full bg-yellow-400 bg-opacity-20;
+  }
 }
