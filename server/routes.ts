@@ -195,6 +195,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get quiz" });
     }
   });
+  
+  // Questions Route
+  app.post("/api/questions", async (req, res) => {
+    try {
+      const validatedData = insertQuestionSchema.parse(req.body);
+      const question = await storage.createQuestion(validatedData);
+      res.status(201).json(question);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create question" });
+    }
+  });
 
   // Quiz Session Routes
   app.post("/api/quiz-sessions", async (req, res) => {
