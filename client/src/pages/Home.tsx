@@ -47,9 +47,14 @@ export default function Home() {
   };
 
   // Redirect to onboarding if no user is logged in
+  // or to profile setup if that hasn't been completed
   useEffect(() => {
     if (!user && !localStorage.getItem("bondquest_user")) {
+      // Not logged in, go to onboarding
       navigate("/");
+    } else if (user && !localStorage.getItem("profile_setup_completed")) {
+      // User exists but profile setup not done, go to profile setup
+      navigate("/profile-setup");
     }
   }, [user, navigate]);
 

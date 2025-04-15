@@ -25,11 +25,22 @@ export default function ProfileSetup() {
   
   const handleComplete = () => {
     // In a real app, this would save the profile data
+    
+    // Even if we don't have a couple linked, we can continue to the home page
+    // The home page will handle showing the proper UI based on whether a couple exists
+    localStorage.setItem("profile_setup_completed", "true");
+    
     navigate("/home");
     toast({
       title: "Profile completed!",
       description: "Your profile has been set up successfully.",
     });
+  };
+  
+  // For users who want to skip this step too
+  const handleSkip = () => {
+    localStorage.setItem("profile_setup_completed", "true");
+    navigate("/home");
   };
 
   return (
@@ -117,12 +128,21 @@ export default function ProfileSetup() {
           </div>
         </div>
         
-        <Button
-          onClick={handleComplete}
-          className="w-full bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
-        >
-          Complete Profile
-        </Button>
+        <div className="flex flex-col space-y-3">
+          <Button
+            onClick={handleComplete}
+            className="w-full bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
+          >
+            Complete Profile
+          </Button>
+          
+          <Button
+            onClick={handleSkip}
+            className="w-full bg-white/20 text-white font-medium py-3 px-6 rounded-lg hover:bg-white/30 transition-all"
+          >
+            Skip for Now
+          </Button>
+        </div>
       </div>
     </div>
   );
