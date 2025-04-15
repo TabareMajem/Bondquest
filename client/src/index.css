@@ -49,7 +49,7 @@
   }
   
   .quiz-duration-badge {
-    @apply flex items-center px-3 py-1 rounded-full bg-primary-100 bg-opacity-20;
+    @apply flex items-center px-3 py-1 rounded-full bg-white bg-opacity-20;
   }
   
   .quiz-points-badge {

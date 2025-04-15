@@ -10,14 +10,14 @@ export default function CategoryTabs({
   onCategoryChange,
 }: CategoryTabsProps) {
   return (
-    <div className="flex overflow-x-auto space-x-2 pb-3 -mx-1 px-1 no-scrollbar">
+    <div className="flex overflow-x-auto space-x-2 pb-3 -mx-1 px-1 no-scrollbar bg-purple-800 rounded-3xl p-2">
       {categories.map((category) => (
         <button
           key={category.id}
           className={`flex-shrink-0 ${
             activeCategory === category.id
-              ? "bg-primary-600 text-white"
-              : "bg-white text-gray-500 border border-gray-200"
+              ? "bg-purple-600 text-white"
+              : "bg-transparent text-white text-opacity-80"
           } px-5 py-2 rounded-full font-medium text-sm transition-colors`}
           onClick={() => onCategoryChange(category.id)}
         >
