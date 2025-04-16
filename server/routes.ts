@@ -19,6 +19,15 @@ import {
   generateQuiz, 
   generateCompetition 
 } from "./openai";
+import { 
+  initializeGeminiAPI, 
+  createConversationSession, 
+  addConversationMessage,
+  getConversationMessages, 
+  generateGeminiResponse,
+  extractProfileInsightsFromConversation,
+  getOnboardingPrompt
+} from "./gemini";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check route
@@ -1555,6 +1564,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ message: "Failed to get admin dashboard data" });
     }
+  });
+
+  // Conversation-based Onboarding Routes
+  // Initialize a new conversation session for onboarding
+  app.post("/api/conversations/sessions", async (req, res) => {
+    try {
+      const { userId, sessionType } = z.object({
+        userId: z.number(),
+        sessionType: z.string()
+      }).parse(req.body);
+      
+      // Validate the user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create a new conversation session
+      const session = await createConversationSession({
+        userId,
+        sessionType,
+        status: "in-progress",
+        metadata: {}
+      });
+      
+      // Add initial system message with appropriate prompt based on stage
+      const systemPrompt = getOnboardingPrompt(req.body.stage || "welcome");
+      const systemMessage = await addConversationMessage({
+        sessionId: session.id,
+        sender: "system",
+        message: systemPrompt,
+        messageType: "instruction",
+        contentTags: ["onboarding", "welcome"],
+      });
+      
+      // Generate initial AI greeting
+      const aiGreeting = await generateGeminiResponse(session.id, "Start onboarding");
+      
+      // Save AI greeting as a message
+      const aiMessage = await addConversationMessage({
+        sessionId: session.id,
+        sender: "ai",
+        message: aiGreeting,
+        messageType: "greeting",
+        contentTags: ["onboarding", "welcome"],
+      });
+      
+      res.status(201).json({
+        session,
+        messages: [systemMessage, aiMessage]
+      });
+    } catch (error) {
+      console.error("Error creating conversation session:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ 
+        message: "Failed to create conversation session",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  });
+  
+  // Add a message to an existing conversation session
+  app.post("/api/conversations/:sessionId/messages", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const { message, contentTags } = z.object({
+        message: z.string(),
+        contentTags: z.array(z.string()).optional()
+      }).parse(req.body);
+      
+      // Add user message
+      const userMessage = await addConversationMessage({
+        sessionId,
+        sender: "user",
+        message,
+        messageType: "response",
+        contentTags: contentTags || [],
+      });
+      
+      // Generate AI response
+      const systemContext = req.body.systemContext; // Optional context to guide the AI
+      const aiResponseText = await generateGeminiResponse(sessionId, message, systemContext);
+      
+      // Save AI response as a message
+      const aiMessage = await addConversationMessage({
+        sessionId,
+        sender: "ai",
+        message: aiResponseText,
+        messageType: "response",
+        contentTags: contentTags || [],
+      });
+      
+      res.json({
+        userMessage,
+        aiMessage
+      });
+    } catch (error) {
+      console.error("Error handling conversation message:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ 
+        message: "Failed to process conversation message",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  });
+  
+  // Get all messages for a conversation session
+  app.get("/api/conversations/:sessionId/messages", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const messages = await getConversationMessages(sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error getting conversation messages:", error);
+      res.status(500).json({ 
+        message: "Failed to retrieve conversation messages",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  });
+  
+  // Extract profile insights from a conversation
+  app.post("/api/conversations/:sessionId/extract-insights", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const { userId } = z.object({
+        userId: z.number()
+      }).parse(req.body);
+      
+      // Validate user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Extract insights from the conversation
+      const insights = await extractProfileInsightsFromConversation(sessionId, userId);
+      
+      res.json(insights);
+    } catch (error) {
+      console.error("Error extracting profile insights:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ 
+        message: "Failed to extract profile insights",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  });
+  
+  // Complete a conversation session
+  app.patch("/api/conversations/:sessionId/complete", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      
+      // Get the conversation session
+      const [session] = await db
+        .select()
+        .from(conversationSessions)
+        .where(eq(conversationSessions.id, sessionId));
+      
+      if (!session) {
+        return res.status(404).json({ message: "Conversation session not found" });
+      }
+      
+      // Update session status to completed
+      const [updatedSession] = await db
+        .update(conversationSessions)
+        .set({ 
+          status: "completed",
+          completedAt: new Date()
+        })
+        .where(eq(conversationSessions.id, sessionId))
+        .returning();
+      
+      // Extract insights automatically when completing
+      if (req.body.extractInsights) {
+        try {
+          const insights = await extractProfileInsightsFromConversation(sessionId, session.userId);
+          return res.json({ 
+            session: updatedSession,
+            insights
+          });
+        } catch (insightError) {
+          console.error("Error extracting insights during completion:", insightError);
+          return res.json({ 
+            session: updatedSession,
+            error: "Failed to extract insights"
+          });
+        }
+      }
+      
+      res.json({ session: updatedSession });
+    } catch (error) {
+      console.error("Error completing conversation session:", error);
+      res.status(500).json({ 
+        message: "Failed to complete conversation session",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  });
+  
+  // Middleware to initialize Gemini API if key is provided via headers
+  app.use((req, res, next) => {
+    const apiKey = req.headers['x-gemini-api-key'];
+    if (typeof apiKey === 'string' && apiKey.length > 0) {
+      try {
+        initializeGeminiAPI(apiKey);
+        // Store in request for downstream use
+        req.geminiApiInitialized = true;
+      } catch (error) {
+        console.error('Failed to initialize Gemini API with provided key:', error);
+      }
+    }
+    next();
   });
 
   const httpServer = createServer(app);
