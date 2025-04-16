@@ -440,6 +440,462 @@ export default function Profile() {
         </DialogContent>
       </Dialog>
       
+      {/* Notifications Modal */}
+      <Dialog open={notificationsModalOpen} onOpenChange={setNotificationsModalOpen}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-center">{t('profile.notifications')}</DialogTitle>
+            <DialogDescription className="text-purple-200 text-center">
+              Manage your notification preferences
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <Bell className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Daily Reminders</h4>
+                  <p className="text-purple-200 text-xs">Receive daily check-in reminders</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <Bell className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Partner Activity</h4>
+                  <p className="text-purple-200 text-xs">Get notified of your partner's activities</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <Bell className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Competition Updates</h4>
+                  <p className="text-purple-200 text-xs">Receive updates about ongoing competitions</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <Bell className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">App Updates</h4>
+                  <p className="text-purple-200 text-xs">Get notified about new features and updates</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="mt-6 flex gap-3">
+            <Button 
+              variant="outline" 
+              className="flex-1 border-purple-500/30 text-white hover:bg-purple-700/50"
+              onClick={() => setNotificationsModalOpen(false)}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+              onClick={() => {
+                toast({
+                  title: "Notifications updated",
+                  description: "Your notification preferences have been saved",
+                });
+                setNotificationsModalOpen(false);
+              }}
+            >
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Privacy Settings Modal */}
+      <Dialog open={privacyModalOpen} onOpenChange={setPrivacyModalOpen}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-center">{t('profile.privacy')}</DialogTitle>
+            <DialogDescription className="text-purple-200 text-center">
+              Manage your privacy settings
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <Shield className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Public Profile</h4>
+                  <p className="text-purple-200 text-xs">Allow others to find you by email</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={false}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <Shield className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Activity Visibility</h4>
+                  <p className="text-purple-200 text-xs">Show your activities in leaderboards</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <Shield className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Data Collection</h4>
+                  <p className="text-purple-200 text-xs">Allow anonymous data collection to improve the app</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <Shield className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Marketing Emails</h4>
+                  <p className="text-purple-200 text-xs">Receive promotional emails and updates</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={false}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="mt-6 flex gap-3">
+            <Button 
+              variant="outline" 
+              className="flex-1 border-purple-500/30 text-white hover:bg-purple-700/50"
+              onClick={() => setPrivacyModalOpen(false)}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+              onClick={() => {
+                toast({
+                  title: "Privacy settings updated",
+                  description: "Your privacy preferences have been saved",
+                });
+                setPrivacyModalOpen(false);
+              }}
+            >
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* AI Preferences Modal */}
+      <Dialog open={aiPreferencesModalOpen} onOpenChange={setAiPreferencesModalOpen}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-center">AI {t('common.ai')} {t('profile.preferences')}</DialogTitle>
+            <DialogDescription className="text-purple-200 text-center">
+              Customize your AI assistant preferences
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm text-purple-200">Preferred AI Assistant</label>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-purple-800/50 p-3 rounded-lg border border-pink-500/50 flex flex-col items-center cursor-pointer">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-lg font-bold text-white mb-2">
+                    👨‍🎤
+                  </div>
+                  <span className="text-white text-xs font-medium">Casanova</span>
+                  <span className="text-purple-200 text-xs">{t('assistants.casanovaDesc')}</span>
+                </div>
+                
+                <div className="bg-purple-800/50 p-3 rounded-lg border border-purple-500/30 flex flex-col items-center cursor-pointer">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg font-bold text-white mb-2">
+                    👩‍🚀
+                  </div>
+                  <span className="text-white text-xs font-medium">Venus</span>
+                  <span className="text-purple-200 text-xs">{t('assistants.venusDesc')}</span>
+                </div>
+                
+                <div className="bg-purple-800/50 p-3 rounded-lg border border-purple-500/30 flex flex-col items-center cursor-pointer">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-lg font-bold text-white mb-2">
+                    🤖
+                  </div>
+                  <span className="text-white text-xs font-medium">Aurora</span>
+                  <span className="text-purple-200 text-xs">{t('assistants.auroraDesc')}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <MessageSquare className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Proactive AI Suggestions</h4>
+                  <p className="text-purple-200 text-xs">Receive AI suggestions based on your activities</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <MessageSquare className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Personalized Insights</h4>
+                  <p className="text-purple-200 text-xs">Allow AI to analyze your relationship patterns</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
+              <div className="flex items-center">
+                <MessageSquare className="w-5 h-5 text-pink-400 mr-3" />
+                <div>
+                  <h4 className="text-white text-sm font-medium">Content Customization</h4>
+                  <p className="text-purple-200 text-xs">Let AI customize content based on your interests</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-end">
+                <input 
+                  type="checkbox" 
+                  defaultChecked={true}
+                  className="w-4 h-4 accent-pink-500"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="mt-6 flex gap-3">
+            <Button 
+              variant="outline" 
+              className="flex-1 border-purple-500/30 text-white hover:bg-purple-700/50"
+              onClick={() => setAiPreferencesModalOpen(false)}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+              onClick={() => {
+                toast({
+                  title: "AI preferences updated",
+                  description: "Your AI preferences have been saved",
+                });
+                setAiPreferencesModalOpen(false);
+              }}
+            >
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Help & Support Modal */}
+      <Dialog open={helpModalOpen} onOpenChange={setHelpModalOpen}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-center">{t('profile.help')}</DialogTitle>
+            <DialogDescription className="text-purple-200 text-center">
+              Get help and support
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="bg-purple-800/40 p-4 rounded-lg border border-purple-500/30">
+              <h3 className="text-white font-medium mb-2 flex items-center">
+                <HelpCircle className="w-5 h-5 text-pink-400 mr-2" />
+                Frequently Asked Questions
+              </h3>
+              <div className="space-y-3">
+                <div className="bg-purple-900/60 p-3 rounded-lg">
+                  <h4 className="text-white text-sm font-medium mb-1">How do I connect with my partner?</h4>
+                  <p className="text-purple-200 text-xs">Share your partner code or send them an email invitation from your profile.</p>
+                </div>
+                <div className="bg-purple-900/60 p-3 rounded-lg">
+                  <h4 className="text-white text-sm font-medium mb-1">How do I earn points and increase bond strength?</h4>
+                  <p className="text-purple-200 text-xs">Complete daily challenges, quizzes, and participate in competitions together.</p>
+                </div>
+                <div className="bg-purple-900/60 p-3 rounded-lg">
+                  <h4 className="text-white text-sm font-medium mb-1">Can I change my AI assistant?</h4>
+                  <p className="text-purple-200 text-xs">Yes, you can select your preferred AI assistant in AI Preferences.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-purple-800/40 p-4 rounded-lg border border-purple-500/30">
+              <h3 className="text-white font-medium mb-2 flex items-center">
+                <MessageSquare className="w-5 h-5 text-pink-400 mr-2" />
+                Contact Support
+              </h3>
+              <div className="space-y-3">
+                <textarea 
+                  className="w-full bg-purple-800/50 border border-purple-500/30 rounded-lg p-3 text-white placeholder:text-purple-300 resize-none"
+                  placeholder="Describe your issue or question..."
+                  rows={4}
+                ></textarea>
+                <Button 
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+                  onClick={() => {
+                    toast({
+                      title: "Message sent",
+                      description: "We'll get back to you as soon as possible",
+                    });
+                  }}
+                >
+                  Send Message
+                </Button>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="mt-6">
+            <Button 
+              variant="outline" 
+              className="w-full border-purple-500/30 text-white hover:bg-purple-700/50"
+              onClick={() => setHelpModalOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Subscription Modal */}
+      <Dialog open={subscriptionsModalOpen} onOpenChange={setSubscriptionsModalOpen}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-center">{t('profile.subscriptions')}</DialogTitle>
+            <DialogDescription className="text-purple-200 text-center">
+              Manage your subscription plan
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl border border-purple-500/30">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-medium">Current Plan</h3>
+                <span className="bg-purple-600 py-1 px-2 rounded-full text-xs text-white">Free</span>
+              </div>
+              
+              <div className="text-purple-200 text-sm space-y-2">
+                <p>• 5 quizzes per month</p>
+                <p>• Basic AI suggestions</p>
+                <p>• Standard relationship insights</p>
+              </div>
+            </div>
+            
+            <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl border border-purple-500/30">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-medium">Premium Plan</h3>
+                <span className="bg-pink-500 py-1 px-2 rounded-full text-xs text-white">$9.99/month</span>
+              </div>
+              
+              <div className="text-purple-200 text-sm space-y-2">
+                <p>• Unlimited quizzes</p>
+                <p>• Advanced AI relationship coaching</p>
+                <p>• Detailed relationship insights</p>
+                <p>• Priority support</p>
+                <p>• Ad-free experience</p>
+              </div>
+              
+              <Button
+                className="w-full mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+                onClick={() => toast({
+                  title: "Coming soon!",
+                  description: "Premium subscriptions will be available soon.",
+                })}
+              >
+                Upgrade to Premium
+              </Button>
+            </div>
+          </div>
+          
+          <DialogFooter className="mt-6">
+            <Button 
+              variant="outline" 
+              className="w-full border-purple-500/30 text-white hover:bg-purple-700/50"
+              onClick={() => setSubscriptionsModalOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Partner Linking Modal */}
       <Dialog open={partnerLinkModalOpen} onOpenChange={setPartnerLinkModalOpen}>
         <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
