@@ -1,9 +1,12 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { eq, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { 
+  users, couples, userSubscriptions, competitions, coupleRewards,
   insertUserSchema, insertCoupleSchema, insertQuizSchema, insertQuizSessionSchema, 
   insertQuestionSchema, insertDailyCheckInSchema, insertChatSchema,
   insertSubscriptionTierSchema, insertUserSubscriptionSchema, insertRewardSchema,
@@ -465,6 +468,752 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to get dashboard data" });
+    }
+  });
+
+  // Subscription Tier Routes - Admin Only
+  app.post("/api/admin/subscription-tiers", async (req, res) => {
+    try {
+      const validatedData = insertSubscriptionTierSchema.parse(req.body);
+      const tier = await storage.createSubscriptionTier(validatedData);
+      res.status(201).json(tier);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create subscription tier" });
+    }
+  });
+
+  app.get("/api/subscription-tiers", async (req, res) => {
+    try {
+      const tiers = await storage.getSubscriptionTiers();
+      res.json(tiers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get subscription tiers" });
+    }
+  });
+
+  app.get("/api/subscription-tiers/:id", async (req, res) => {
+    try {
+      const tierId = parseInt(req.params.id);
+      const tier = await storage.getSubscriptionTier(tierId);
+      
+      if (!tier) {
+        return res.status(404).json({ message: "Subscription tier not found" });
+      }
+      
+      res.json(tier);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get subscription tier" });
+    }
+  });
+
+  app.patch("/api/admin/subscription-tiers/:id", async (req, res) => {
+    try {
+      const tierId = parseInt(req.params.id);
+      const tier = await storage.getSubscriptionTier(tierId);
+      
+      if (!tier) {
+        return res.status(404).json({ message: "Subscription tier not found" });
+      }
+      
+      const updates = req.body;
+      const updatedTier = await storage.updateSubscriptionTier(tierId, updates);
+      
+      res.json(updatedTier);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update subscription tier" });
+    }
+  });
+
+  // User Subscription Routes
+  app.post("/api/users/:userId/subscriptions", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Validate user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if user already has an active subscription
+      const existingSubscription = await storage.getUserSubscription(userId);
+      if (existingSubscription && existingSubscription.status === "active") {
+        return res.status(400).json({ message: "User already has an active subscription" });
+      }
+      
+      // Parse subscription data
+      const subscriptionData = insertUserSubscriptionSchema.parse({
+        ...req.body,
+        userId
+      });
+      
+      const subscription = await storage.createUserSubscription(subscriptionData);
+      res.status(201).json(subscription);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create subscription" });
+    }
+  });
+
+  app.get("/api/users/:userId/subscription", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const subscription = await storage.getUserSubscription(userId);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+      
+      res.json(subscription);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get subscription" });
+    }
+  });
+
+  app.patch("/api/users/:userId/subscription/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const subscriptionId = parseInt(req.params.id);
+      
+      // Validate subscription belongs to user
+      const subscription = await storage.getUserSubscription(userId);
+      if (!subscription || subscription.id !== subscriptionId) {
+        return res.status(404).json({ message: "Subscription not found for this user" });
+      }
+      
+      const updates = req.body;
+      const updatedSubscription = await storage.updateUserSubscription(subscriptionId, updates);
+      
+      res.json(updatedSubscription);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update subscription" });
+    }
+  });
+
+  app.delete("/api/users/:userId/subscription/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const subscriptionId = parseInt(req.params.id);
+      
+      // Validate subscription belongs to user
+      const subscription = await storage.getUserSubscription(userId);
+      if (!subscription || subscription.id !== subscriptionId) {
+        return res.status(404).json({ message: "Subscription not found for this user" });
+      }
+      
+      const canceledSubscription = await storage.cancelUserSubscription(subscriptionId);
+      
+      res.json(canceledSubscription);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to cancel subscription" });
+    }
+  });
+
+  // Reward Routes - Admin Only for creation and updates
+  app.post("/api/admin/rewards", async (req, res) => {
+    try {
+      const validatedData = insertRewardSchema.parse(req.body);
+      const reward = await storage.createReward(validatedData);
+      res.status(201).json(reward);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create reward" });
+    }
+  });
+
+  app.get("/api/rewards", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const activeOnly = req.query.activeOnly === "false" ? false : true;
+      
+      const rewards = await storage.getRewards(limit, activeOnly);
+      res.json(rewards);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get rewards" });
+    }
+  });
+
+  app.get("/api/rewards/:id", async (req, res) => {
+    try {
+      const rewardId = parseInt(req.params.id);
+      const reward = await storage.getReward(rewardId);
+      
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+      
+      res.json(reward);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get reward" });
+    }
+  });
+
+  app.patch("/api/admin/rewards/:id", async (req, res) => {
+    try {
+      const rewardId = parseInt(req.params.id);
+      const reward = await storage.getReward(rewardId);
+      
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+      
+      const updates = req.body;
+      const updatedReward = await storage.updateReward(rewardId, updates);
+      
+      res.json(updatedReward);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update reward" });
+    }
+  });
+
+  // Competition Routes
+  app.post("/api/admin/competitions", async (req, res) => {
+    try {
+      const validatedData = insertCompetitionSchema.parse(req.body);
+      const competition = await storage.createCompetition(validatedData);
+      res.status(201).json(competition);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create competition" });
+    }
+  });
+
+  app.get("/api/competitions", async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      
+      const competitions = await storage.getCompetitions(status, limit);
+      res.json(competitions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get competitions" });
+    }
+  });
+
+  app.get("/api/competitions/:id", async (req, res) => {
+    try {
+      const competitionId = parseInt(req.params.id);
+      const competition = await storage.getCompetition(competitionId);
+      
+      if (!competition) {
+        return res.status(404).json({ message: "Competition not found" });
+      }
+      
+      // Get rewards associated with this competition
+      const rewards = await storage.getCompetitionRewards(competitionId);
+      
+      res.json({ competition, rewards });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get competition" });
+    }
+  });
+
+  app.patch("/api/admin/competitions/:id", async (req, res) => {
+    try {
+      const competitionId = parseInt(req.params.id);
+      const competition = await storage.getCompetition(competitionId);
+      
+      if (!competition) {
+        return res.status(404).json({ message: "Competition not found" });
+      }
+      
+      const updates = req.body;
+      const updatedCompetition = await storage.updateCompetition(competitionId, updates);
+      
+      res.json(updatedCompetition);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update competition" });
+    }
+  });
+
+  // Competition Rewards - Admin Only
+  app.post("/api/admin/competitions/:competitionId/rewards", async (req, res) => {
+    try {
+      const competitionId = parseInt(req.params.competitionId);
+      
+      // Validate competition exists
+      const competition = await storage.getCompetition(competitionId);
+      if (!competition) {
+        return res.status(404).json({ message: "Competition not found" });
+      }
+      
+      // Parse reward data
+      const rewardData = insertCompetitionRewardSchema.parse({
+        ...req.body,
+        competitionId
+      });
+      
+      // Validate reward exists
+      const reward = await storage.getReward(rewardData.rewardId);
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+      
+      const competitionReward = await storage.addRewardToCompetition(rewardData);
+      res.status(201).json(competitionReward);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to add reward to competition" });
+    }
+  });
+
+  app.get("/api/competitions/:competitionId/rewards", async (req, res) => {
+    try {
+      const competitionId = parseInt(req.params.competitionId);
+      
+      // Validate competition exists
+      const competition = await storage.getCompetition(competitionId);
+      if (!competition) {
+        return res.status(404).json({ message: "Competition not found" });
+      }
+      
+      const rewards = await storage.getCompetitionRewards(competitionId);
+      
+      // Get the full reward details for each competition reward
+      const fullRewardDetails = await Promise.all(
+        rewards.map(async (compReward) => {
+          const reward = await storage.getReward(compReward.rewardId);
+          return {
+            ...compReward,
+            reward
+          };
+        })
+      );
+      
+      res.json(fullRewardDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get competition rewards" });
+    }
+  });
+
+  // Competition Entries
+  app.post("/api/competitions/:competitionId/entries", async (req, res) => {
+    try {
+      const competitionId = parseInt(req.params.competitionId);
+      
+      // Validate competition exists and is active
+      const competition = await storage.getCompetition(competitionId);
+      if (!competition) {
+        return res.status(404).json({ message: "Competition not found" });
+      }
+      
+      if (competition.status !== "active") {
+        return res.status(400).json({ message: "Competition is not currently active" });
+      }
+      
+      const now = new Date();
+      if (now < competition.startDate || now > competition.endDate) {
+        return res.status(400).json({ message: "Competition is not currently accepting entries" });
+      }
+      
+      // Check if maximum participants is reached
+      if (competition.maxParticipants && competition.participantCount >= competition.maxParticipants) {
+        return res.status(400).json({ message: "Competition has reached maximum number of participants" });
+      }
+      
+      // Parse entry data
+      const entryData = insertCompetitionEntrySchema.parse({
+        ...req.body,
+        competitionId
+      });
+      
+      // Check if couple already has an entry for this competition
+      const existingEntry = await storage.getCompetitionEntry(competitionId, entryData.coupleId);
+      if (existingEntry) {
+        return res.status(400).json({ message: "Couple already has an entry for this competition" });
+      }
+      
+      // If competition requires a subscription, check if couple has an active subscription
+      if (competition.requiredTier) {
+        const couple = await storage.getCouple(entryData.coupleId);
+        if (!couple) {
+          return res.status(404).json({ message: "Couple not found" });
+        }
+        
+        // Check if either user in the couple has the required subscription
+        const user1Subscription = await storage.getUserSubscription(couple.userId1);
+        const user2Subscription = await storage.getUserSubscription(couple.userId2);
+        
+        const hasRequiredSubscription = 
+          (user1Subscription && 
+            user1Subscription.status === "active" && 
+            user1Subscription.tierId === competition.requiredTier) ||
+          (user2Subscription && 
+            user2Subscription.status === "active" && 
+            user2Subscription.tierId === competition.requiredTier);
+            
+        if (!hasRequiredSubscription) {
+          return res.status(403).json({ message: "Required subscription tier not found" });
+        }
+      }
+      
+      const entry = await storage.createCompetitionEntry(entryData);
+      res.status(201).json(entry);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create competition entry" });
+    }
+  });
+
+  app.get("/api/competitions/:competitionId/entries", async (req, res) => {
+    try {
+      const competitionId = parseInt(req.params.competitionId);
+      
+      // Validate competition exists
+      const competition = await storage.getCompetition(competitionId);
+      if (!competition) {
+        return res.status(404).json({ message: "Competition not found" });
+      }
+      
+      const entries = await storage.getCompetitionEntries(competitionId);
+      
+      // Enhance entries with couple information
+      const enhancedEntries = await Promise.all(
+        entries.map(async (entry) => {
+          const couple = await storage.getCouple(entry.coupleId);
+          if (couple) {
+            const user1 = await storage.getUser(couple.userId1);
+            const user2 = await storage.getUser(couple.userId2);
+            
+            // Remove sensitive user data
+            let user1Data = null;
+            let user2Data = null;
+            
+            if (user1) {
+              const { password, ...safeUser1 } = user1;
+              user1Data = safeUser1;
+            }
+            
+            if (user2) {
+              const { password, ...safeUser2 } = user2;
+              user2Data = safeUser2;
+            }
+            
+            return {
+              ...entry,
+              couple: {
+                ...couple,
+                user1: user1Data,
+                user2: user2Data
+              }
+            };
+          }
+          return entry;
+        })
+      );
+      
+      res.json(enhancedEntries);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get competition entries" });
+    }
+  });
+
+  app.patch("/api/competitions/:competitionId/entries/:entryId/score", async (req, res) => {
+    try {
+      const competitionId = parseInt(req.params.competitionId);
+      const entryId = parseInt(req.params.entryId);
+      
+      const { score } = z.object({
+        score: z.number().min(0)
+      }).parse(req.body);
+      
+      // Validate competition exists
+      const competition = await storage.getCompetition(competitionId);
+      if (!competition) {
+        return res.status(404).json({ message: "Competition not found" });
+      }
+      
+      const updatedEntry = await storage.updateCompetitionEntryScore(entryId, score);
+      if (!updatedEntry) {
+        return res.status(404).json({ message: "Entry not found" });
+      }
+      
+      // After updating score, we may need to recalculate rankings
+      // This would typically be done by a background job or scheduled task
+      // For simplicity, we'll just handle it directly here
+      
+      // Get all entries for this competition
+      const allEntries = await storage.getCompetitionEntries(competitionId);
+      
+      // Sort by score (descending)
+      const sortedEntries = [...allEntries].sort((a, b) => (b.score || 0) - (a.score || 0));
+      
+      // Update ranks
+      for (let i = 0; i < sortedEntries.length; i++) {
+        const entry = sortedEntries[i];
+        const rank = i + 1; // 1-based index for rank
+        
+        if (entry.rank !== rank) {
+          await storage.updateCompetitionEntryRank(entry.id, rank);
+        }
+      }
+      
+      res.json(updatedEntry);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update entry score" });
+    }
+  });
+
+  // Couple Rewards
+  app.post("/api/admin/couples/:coupleId/rewards", async (req, res) => {
+    try {
+      const coupleId = parseInt(req.params.coupleId);
+      
+      // Validate couple exists
+      const couple = await storage.getCouple(coupleId);
+      if (!couple) {
+        return res.status(404).json({ message: "Couple not found" });
+      }
+      
+      // Parse reward data
+      const rewardData = insertCoupleRewardSchema.parse({
+        ...req.body,
+        coupleId
+      });
+      
+      // Validate reward exists and is available
+      const reward = await storage.getReward(rewardData.rewardId);
+      if (!reward) {
+        return res.status(404).json({ message: "Reward not found" });
+      }
+      
+      // Check if reward requires a specific subscription tier
+      if (reward.requiredTier) {
+        // Check if either user in the couple has the required subscription
+        const user1Subscription = await storage.getUserSubscription(couple.userId1);
+        const user2Subscription = await storage.getUserSubscription(couple.userId2);
+        
+        const hasRequiredSubscription = 
+          (user1Subscription && 
+            user1Subscription.status === "active" && 
+            user1Subscription.tierId === reward.requiredTier) ||
+          (user2Subscription && 
+            user2Subscription.status === "active" && 
+            user2Subscription.tierId === reward.requiredTier);
+            
+        if (!hasRequiredSubscription) {
+          return res.status(403).json({ message: "Required subscription tier not found" });
+        }
+      }
+      
+      const now = new Date();
+      if (!reward.active || reward.availableFrom > now || reward.availableTo < now) {
+        return res.status(400).json({ message: "Reward is not currently available" });
+      }
+      
+      if (reward.quantity <= 0) {
+        return res.status(400).json({ message: "Reward is out of stock" });
+      }
+      
+      const coupleReward = await storage.createCoupleReward(rewardData);
+      res.status(201).json(coupleReward);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to award reward to couple" });
+    }
+  });
+
+  app.get("/api/couples/:coupleId/rewards", async (req, res) => {
+    try {
+      const coupleId = parseInt(req.params.coupleId);
+      
+      // Validate couple exists
+      const couple = await storage.getCouple(coupleId);
+      if (!couple) {
+        return res.status(404).json({ message: "Couple not found" });
+      }
+      
+      const coupleRewards = await storage.getCoupleRewards(coupleId);
+      
+      // Get the full reward details for each couple reward
+      const fullRewardDetails = await Promise.all(
+        coupleRewards.map(async (coupleReward) => {
+          const reward = await storage.getReward(coupleReward.rewardId);
+          return {
+            ...coupleReward,
+            reward
+          };
+        })
+      );
+      
+      res.json(fullRewardDetails);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get couple rewards" });
+    }
+  });
+
+  app.patch("/api/couples/:coupleId/rewards/:rewardId/claim", async (req, res) => {
+    try {
+      const coupleId = parseInt(req.params.coupleId);
+      const rewardId = parseInt(req.params.rewardId);
+      
+      // Validate couple exists
+      const couple = await storage.getCouple(coupleId);
+      if (!couple) {
+        return res.status(404).json({ message: "Couple not found" });
+      }
+      
+      // Find the couple reward
+      const coupleReward = await storage.getCoupleReward(rewardId);
+      if (!coupleReward || coupleReward.coupleId !== coupleId) {
+        return res.status(404).json({ message: "Reward not found for this couple" });
+      }
+      
+      // Validate reward is in a state that can be claimed
+      if (coupleReward.status !== "awarded") {
+        return res.status(400).json({ message: `Reward cannot be claimed (current status: ${coupleReward.status})` });
+      }
+      
+      const updatedReward = await storage.updateCoupleRewardStatus(rewardId, "claimed");
+      
+      res.json(updatedReward);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to claim reward" });
+    }
+  });
+
+  app.patch("/api/admin/couples/:coupleId/rewards/:rewardId/shipping", async (req, res) => {
+    try {
+      const coupleId = parseInt(req.params.coupleId);
+      const rewardId = parseInt(req.params.rewardId);
+      
+      const { trackingNumber, shippingAddress } = z.object({
+        trackingNumber: z.string(),
+        shippingAddress: z.object({
+          name: z.string(),
+          address1: z.string(),
+          address2: z.string().optional(),
+          city: z.string(),
+          state: z.string(),
+          postalCode: z.string(),
+          country: z.string(),
+          phone: z.string().optional()
+        })
+      }).parse(req.body);
+      
+      // Validate couple exists
+      const couple = await storage.getCouple(coupleId);
+      if (!couple) {
+        return res.status(404).json({ message: "Couple not found" });
+      }
+      
+      // Find the couple reward
+      const coupleReward = await storage.getCoupleReward(rewardId);
+      if (!coupleReward || coupleReward.coupleId !== coupleId) {
+        return res.status(404).json({ message: "Reward not found for this couple" });
+      }
+      
+      // Validate reward is in a state that can be shipped
+      if (coupleReward.status !== "claimed") {
+        return res.status(400).json({ message: `Reward cannot be shipped (current status: ${coupleReward.status})` });
+      }
+      
+      const updatedReward = await storage.updateCoupleRewardShipping(rewardId, trackingNumber, shippingAddress);
+      
+      res.json(updatedReward);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update shipping information" });
+    }
+  });
+
+  app.patch("/api/admin/couples/:coupleId/rewards/:rewardId/status", async (req, res) => {
+    try {
+      const coupleId = parseInt(req.params.coupleId);
+      const rewardId = parseInt(req.params.rewardId);
+      
+      const { status } = z.object({
+        status: z.enum(["awarded", "claimed", "shipped", "delivered", "expired"])
+      }).parse(req.body);
+      
+      // Validate couple exists
+      const couple = await storage.getCouple(coupleId);
+      if (!couple) {
+        return res.status(404).json({ message: "Couple not found" });
+      }
+      
+      // Find the couple reward
+      const coupleReward = await storage.getCoupleReward(rewardId);
+      if (!coupleReward || coupleReward.coupleId !== coupleId) {
+        return res.status(404).json({ message: "Reward not found for this couple" });
+      }
+      
+      const updatedReward = await storage.updateCoupleRewardStatus(rewardId, status);
+      
+      res.json(updatedReward);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update reward status" });
+    }
+  });
+
+  // Admin Dashboard Data
+  app.get("/api/admin/dashboard", async (_req, res) => {
+    try {
+      // Get all users count
+      const allUsers = await db.select().from(users);
+      const usersCount = allUsers.length;
+      
+      // Get all couples count
+      const allCouples = await db.select().from(couples);
+      const couplesCount = allCouples.length;
+      
+      // Get active subscriptions count
+      const activeSubscriptions = await db.select()
+        .from(userSubscriptions)
+        .where(eq(userSubscriptions.status, "active"));
+      const subscribersCount = activeSubscriptions.length;
+      
+      // Get active competitions count
+      const activeCompetitions = await db.select()
+        .from(competitions)
+        .where(eq(competitions.status, "active"));
+      const activeCompetitionsCount = activeCompetitions.length;
+      
+      // Get recent rewards awarded
+      const recentRewards = await db.select()
+        .from(coupleRewards)
+        .orderBy(desc(coupleRewards.awardedAt))
+        .limit(10);
+      
+      // Get total rewards claimed
+      const claimedRewards = await db.select()
+        .from(coupleRewards)
+        .where(sql`${coupleRewards.status} = 'claimed' OR ${coupleRewards.status} = 'shipped' OR ${coupleRewards.status} = 'delivered'`);
+      const claimedRewardsCount = claimedRewards.length;
+      
+      res.json({
+        usersCount,
+        couplesCount,
+        subscribersCount,
+        activeCompetitionsCount,
+        recentRewards,
+        claimedRewardsCount
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get admin dashboard data" });
     }
   });
 
