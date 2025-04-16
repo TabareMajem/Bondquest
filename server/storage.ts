@@ -2,6 +2,7 @@ import {
   users, couples, quizzes, questions, quizSessions, dailyCheckIns, achievements, activities, chats,
   subscriptionTiers, userSubscriptions, rewards, competitions, competitionRewards, competitionEntries, coupleRewards,
   userProfiles, profileQuestions, userResponses, partnerQuizQuestions, partnerQuizResponses,
+  bondAssessments, bondInsights, bondQuestions,
   type User, type InsertUser, type Couple, type InsertCouple, type Quiz, type InsertQuiz, 
   type Question, type InsertQuestion, type QuizSession, type InsertQuizSession, 
   type DailyCheckIn, type InsertDailyCheckIn, type Achievement, type InsertAchievement,
@@ -12,8 +13,11 @@ import {
   type CoupleReward, type InsertCoupleReward,
   type UserProfile, type InsertUserProfile, type ProfileQuestion, type InsertProfileQuestion,
   type UserResponse, type InsertUserResponse, type PartnerQuizQuestion, type InsertPartnerQuizQuestion,
-  type PartnerQuizResponse, type InsertPartnerQuizResponse
+  type PartnerQuizResponse, type InsertPartnerQuizResponse,
+  type BondAssessment, type InsertBondAssessment, type BondInsight, type InsertBondInsight,
+  type BondQuestion, type InsertBondQuestion
 } from "@shared/schema";
+import { BOND_DIMENSIONS } from "@shared/bondDimensions";
 import { nanoid } from "nanoid";
 
 export interface IStorage {
@@ -125,6 +129,22 @@ export interface IStorage {
   createPartnerQuizQuestion(question: InsertPartnerQuizQuestion): Promise<PartnerQuizQuestion>;
   getPartnerQuizResponses(questionId: number): Promise<PartnerQuizResponse[]>;
   createPartnerQuizResponse(response: InsertPartnerQuizResponse): Promise<PartnerQuizResponse>;
+  
+  // Bond Dimension Assessment Methods
+  getBondQuestions(): Promise<BondQuestion[]>;
+  getBondQuestionsByDimension(dimensionId: string): Promise<BondQuestion[]>;
+  getBondQuestion(id: number): Promise<BondQuestion | undefined>;
+  createBondQuestion(question: InsertBondQuestion): Promise<BondQuestion>;
+  
+  getBondAssessmentsByCouple(coupleId: number): Promise<BondAssessment[]>;
+  getBondAssessment(id: number): Promise<BondAssessment | undefined>;
+  createBondAssessment(assessment: InsertBondAssessment): Promise<BondAssessment>;
+  
+  getBondInsightsByCouple(coupleId: number): Promise<BondInsight[]>;
+  getBondInsight(id: number): Promise<BondInsight | undefined>;
+  createBondInsight(insight: InsertBondInsight): Promise<BondInsight>;
+  updateBondInsightViewed(id: number, viewed: boolean): Promise<BondInsight | undefined>;
+  updateBondInsightCompleted(id: number, completed: boolean): Promise<BondInsight | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -149,6 +169,9 @@ export class MemStorage implements IStorage {
   private competitionRewards: Map<number, CompetitionReward>;
   private competitionEntries: Map<number, CompetitionEntry>;
   private coupleRewards: Map<number, CoupleReward>;
+  private bondQuestions: Map<number, BondQuestion>;
+  private bondAssessments: Map<number, BondAssessment>;
+  private bondInsights: Map<number, BondInsight>;
   
   private userId: number = 1;
   private coupleId: number = 1;
@@ -171,6 +194,9 @@ export class MemStorage implements IStorage {
   private competitionRewardId: number = 1;
   private competitionEntryId: number = 1;
   private coupleRewardId: number = 1;
+  private bondQuestionId: number = 1;
+  private bondAssessmentId: number = 1;
+  private bondInsightId: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -194,6 +220,9 @@ export class MemStorage implements IStorage {
     this.competitionRewards = new Map();
     this.competitionEntries = new Map();
     this.coupleRewards = new Map();
+    this.bondQuestions = new Map();
+    this.bondAssessments = new Map();
+    this.bondInsights = new Map();
     
     // Initialize with sample quizzes and questions
     this.initializeSampleData();
@@ -392,6 +421,107 @@ export class MemStorage implements IStorage {
     const newChat: Chat = { ...chat, id, createdAt: new Date() };
     this.chats.set(id, newChat);
     return newChat;
+  }
+
+  // Bond Question Methods
+  async getBondQuestions(): Promise<BondQuestion[]> {
+    return Array.from(this.bondQuestions.values());
+  }
+
+  async getBondQuestionsByDimension(dimensionId: string): Promise<BondQuestion[]> {
+    return Array.from(this.bondQuestions.values())
+      .filter(question => question.dimensionId === dimensionId);
+  }
+
+  async getBondQuestion(id: number): Promise<BondQuestion | undefined> {
+    return this.bondQuestions.get(id);
+  }
+
+  async createBondQuestion(question: InsertBondQuestion): Promise<BondQuestion> {
+    const id = this.bondQuestionId++;
+    const newQuestion: BondQuestion = { ...question, id };
+    this.bondQuestions.set(id, newQuestion);
+    return newQuestion;
+  }
+
+  // Bond Assessment Methods
+  async getBondAssessmentsByCouple(coupleId: number): Promise<BondAssessment[]> {
+    return Array.from(this.bondAssessments.values())
+      .filter(assessment => assessment.coupleId === coupleId);
+  }
+
+  async getBondAssessment(id: number): Promise<BondAssessment | undefined> {
+    return this.bondAssessments.get(id);
+  }
+
+  async createBondAssessment(assessment: InsertBondAssessment): Promise<BondAssessment> {
+    const id = this.bondAssessmentId++;
+    const newAssessment: BondAssessment = { 
+      ...assessment, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.bondAssessments.set(id, newAssessment);
+
+    // Update overall bond strength on the couple
+    const assessments = await this.getBondAssessmentsByCouple(assessment.coupleId);
+    if (assessments.length > 0) {
+      const dimensions = BOND_DIMENSIONS.length;
+      const completedDimensions = new Set(assessments.map(a => a.dimensionId)).size;
+      
+      // Only update bond strength if we have assessments for at least half of the dimensions
+      if (completedDimensions >= dimensions / 2) {
+        const totalScore = assessments.reduce((sum, a) => sum + a.score, 0);
+        const avgScore = Math.round(totalScore / assessments.length);
+        await this.updateCoupleBondStrength(assessment.coupleId, avgScore);
+      }
+    }
+
+    return newAssessment;
+  }
+
+  // Bond Insight Methods
+  async getBondInsightsByCouple(coupleId: number): Promise<BondInsight[]> {
+    return Array.from(this.bondInsights.values())
+      .filter(insight => insight.coupleId === coupleId)
+      .sort((a, b) => {
+        // Sort first by completion status, then by expiration date
+        if (a.completed !== b.completed) {
+          return a.completed ? 1 : -1;
+        }
+        return a.expiresAt.getTime() - b.expiresAt.getTime();
+      });
+  }
+
+  async getBondInsight(id: number): Promise<BondInsight | undefined> {
+    return this.bondInsights.get(id);
+  }
+
+  async createBondInsight(insight: InsertBondInsight): Promise<BondInsight> {
+    const id = this.bondInsightId++;
+    const newInsight: BondInsight = { ...insight, id, createdAt: new Date() };
+    this.bondInsights.set(id, newInsight);
+    return newInsight;
+  }
+
+  async updateBondInsightViewed(id: number, viewed: boolean): Promise<BondInsight | undefined> {
+    const insight = this.bondInsights.get(id);
+    if (insight) {
+      const updatedInsight = { ...insight, viewed };
+      this.bondInsights.set(id, updatedInsight);
+      return updatedInsight;
+    }
+    return undefined;
+  }
+
+  async updateBondInsightCompleted(id: number, completed: boolean): Promise<BondInsight | undefined> {
+    const insight = this.bondInsights.get(id);
+    if (insight) {
+      const updatedInsight = { ...insight, completed };
+      this.bondInsights.set(id, updatedInsight);
+      return updatedInsight;
+    }
+    return undefined;
   }
 
   // Initialize sample data
