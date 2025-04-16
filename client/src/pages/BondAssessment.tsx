@@ -230,12 +230,14 @@ const BondAssessment: React.FC = () => {
     if (!dimension) {
       return (
         <div className="container mx-auto py-8 max-w-3xl pb-20">
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {t('Dimension not found. Please return to the main page.')}
-            </AlertDescription>
-          </Alert>
+          <Card className="border-red-500 border mb-4">
+            <CardHeader className="bg-red-50 text-red-800">
+              <CardTitle>{t('Error')}</CardTitle>
+              <CardDescription className="text-red-700">
+                {t('Dimension not found. Please return to the main page.')}
+              </CardDescription>
+            </CardHeader>
+          </Card>
           <div className="mt-4">
             <Button onClick={handleStartOver}>
               {t('Back to Overview')}
