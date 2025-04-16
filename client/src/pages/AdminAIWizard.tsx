@@ -55,6 +55,26 @@ export default function AdminAIWizard() {
     
     setCompetitionStartDate(today.toISOString().split('T')[0]);
     setCompetitionEndDate(nextWeek.toISOString().split('T')[0]);
+    
+    // Fetch all couples for personalized quiz generation
+    const fetchCouples = async () => {
+      setLoadingCouples(true);
+      try {
+        const response = await fetch("/api/admin/couples");
+        if (response.ok) {
+          const data = await response.json();
+          setCouples(data);
+        } else {
+          console.error("Failed to fetch couples");
+        }
+      } catch (error) {
+        console.error("Error fetching couples:", error);
+      } finally {
+        setLoadingCouples(false);
+      }
+    };
+    
+    fetchCouples();
   }, [isAdmin, navigate]);
   
   const handleGenerateQuiz = async () => {
@@ -70,18 +90,26 @@ export default function AdminAIWizard() {
     setQuizLoading(true);
     
     try {
+      // Prepare request payload, include coupleId if selected
+      const payload = {
+        topic: quizTopic,
+        category: quizCategory,
+        difficulty: quizDifficulty,
+        questionCount: quizQuestionCount,
+        additionalInstructions: quizAdditionalInstructions || undefined,
+      };
+      
+      // Add coupleId for personalization if a couple is selected
+      if (selectedCoupleId) {
+        Object.assign(payload, { coupleId: selectedCoupleId });
+      }
+      
       const response = await fetch("/api/admin/ai/generate-quiz", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          topic: quizTopic,
-          category: quizCategory,
-          difficulty: quizDifficulty,
-          questionCount: quizQuestionCount,
-          additionalInstructions: quizAdditionalInstructions || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       
       if (!response.ok) {
@@ -95,7 +123,9 @@ export default function AdminAIWizard() {
       
       toast({
         title: "Quiz Generated",
-        description: "Your quiz has been successfully created",
+        description: selectedCoupleId 
+          ? "Your personalized quiz has been successfully created" 
+          : "Your quiz has been successfully created",
       });
     } catch (error) {
       toast({
@@ -385,6 +415,41 @@ export default function AdminAIWizard() {
                             className="bg-purple-900/40 border-purple-600"
                           />
                         </div>
+                      </div>
+                      
+                      {/* Couple selector for personalized content generation */}
+                      <div className="space-y-2 mt-4">
+                        <Label htmlFor="selectedCouple">Target Couple (Optional)</Label>
+                        <div className="flex gap-2 items-center">
+                          <Select 
+                            value={selectedCoupleId?.toString() || ""} 
+                            onValueChange={(value) => setSelectedCoupleId(value ? parseInt(value) : null)}
+                          >
+                            <SelectTrigger className="bg-purple-900/40 border-purple-600 flex-1">
+                              <SelectValue placeholder="Select a couple for personalized content" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">No specific couple (generic content)</SelectItem>
+                              {loadingCouples ? (
+                                <div className="flex items-center justify-center py-2">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span>Loading couples...</span>
+                                </div>
+                              ) : (
+                                couples.map((couple) => (
+                                  <SelectItem key={couple.id} value={couple.id.toString()}>
+                                    {couple.displayName}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {selectedCoupleId && (
+                          <p className="text-xs text-purple-300 mt-1">
+                            The AI will personalize content using this couple's profile information and relationship history.
+                          </p>
+                        )}
                       </div>
                       
                       <div className="space-y-2">
