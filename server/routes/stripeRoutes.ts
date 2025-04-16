@@ -47,7 +47,7 @@ router.post('/create-subscription', async (req, res) => {
 
       const price = await stripeService.createPrice(
         product.id,
-        parseInt((tier.price * 100).toString()), // Convert to cents
+        Math.round(tier.price * 100), // Convert to cents
         'usd',
         { interval: tier.billingPeriod === 'monthly' ? 'month' : 'year' }
       );

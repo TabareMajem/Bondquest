@@ -160,16 +160,16 @@ export class StripeService {
         }
         case 'invoice.payment_succeeded': {
           const invoice = event.data.object as Stripe.Invoice;
-          if (invoice.subscription) {
-            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+          if ((invoice as any).subscription) {
+            const subscription = await stripe.subscriptions.retrieve((invoice as any).subscription as string);
             await this.updateSubscriptionStatus(subscription);
           }
           break;
         }
         case 'invoice.payment_failed': {
           const invoice = event.data.object as Stripe.Invoice;
-          if (invoice.subscription) {
-            const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+          if ((invoice as any).subscription) {
+            const subscription = await stripe.subscriptions.retrieve((invoice as any).subscription as string);
             await this.updateSubscriptionStatus(subscription);
           }
           break;
@@ -229,8 +229,8 @@ export class StripeService {
           stripeCustomerId: subscription.customer as string,
           stripeSubscriptionId: subscription.id,
           status: subscription.status,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          currentPeriodStart: new Date((subscription as any).current_period_start * 1000),
+          currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
         });
       }
