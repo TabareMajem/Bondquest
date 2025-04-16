@@ -1,9 +1,9 @@
 import { useLocation } from "wouter";
-import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, Settings, ShieldCheck } from "lucide-react";
+import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, Settings, ShieldCheck, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface BottomNavigationProps {
-  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "admin" | "none";
+  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "admin" | "rewards" | "none";
 }
 
 export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
@@ -96,6 +96,17 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
         <span className={getLabelClassName("ai")}>Love AI</span>
       </div>
       
+      <div 
+        onClick={(e) => handleNavigate("/rewards", e)}
+        className={getButtonClassName("rewards")}
+      >
+        {activeTab === "rewards" && (
+          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+        )}
+        <Gift className={getIconClassName("rewards")} />
+        <span className={getLabelClassName("rewards")}>Rewards</span>
+      </div>
+
       <div 
         onClick={(e) => handleNavigate("/profile", e)}
         className={getButtonClassName("profile")}
