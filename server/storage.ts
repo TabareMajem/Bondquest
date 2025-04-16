@@ -843,5 +843,6 @@ export class MemStorage implements IStorage {
 // Import the DatabaseStorage implementation
 import { DatabaseStorage } from './DatabaseStorage';
 
-// Use DatabaseStorage instead of MemStorage
-export const storage = new DatabaseStorage();
+// Use MemStorage for now to test bond dimensions functionality
+// This will let us move forward without waiting for database migrations
+export const storage = new MemStorage();
