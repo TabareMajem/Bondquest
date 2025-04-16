@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, date, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { BOND_DIMENSIONS } from "./bondDimensions";
 
 // User Model
 export const users = pgTable("users", {
@@ -322,6 +323,46 @@ export const relationshipContexts = pgTable("relationship_contexts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Bond Dimension Assessments - Stores scores for each bond dimension
+export const bondAssessments = pgTable("bond_assessments", {
+  id: serial("id").primaryKey(),
+  coupleId: integer("couple_id").notNull().references(() => couples.id),
+  dimensionId: text("dimension_id").notNull(), // Matches the id in BOND_DIMENSIONS
+  score: integer("score").notNull(), // 1-10 scale
+  user1Score: integer("user1_score"), // Individual user assessment
+  user2Score: integer("user2_score"), // Individual user assessment
+  answeredAt: timestamp("answered_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Bond Insights - AI-generated insights based on bond assessment scores
+export const bondInsights = pgTable("bond_insights", {
+  id: serial("id").primaryKey(),
+  coupleId: integer("couple_id").notNull().references(() => couples.id),
+  dimensionId: text("dimension_id").notNull(), // Matches the id in BOND_DIMENSIONS
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  actionItems: json("action_items").$type<string[]>().notNull(),
+  targetScoreRange: json("target_score_range").$type<[number, number]>().notNull(),
+  difficulty: text("difficulty").notNull(), // "easy", "medium", "challenging"
+  viewed: boolean("viewed").default(false),
+  completed: boolean("completed").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+
+// Bond Assessment Questions - Questions used to measure each bond dimension
+export const bondQuestions = pgTable("bond_questions", {
+  id: serial("id").primaryKey(),
+  dimensionId: text("dimension_id").notNull(), // Matches the id in BOND_DIMENSIONS
+  text: text("text").notNull(),
+  type: text("type").notNull(), // "likert", "multiple_choice", "text"
+  options: json("options").$type<string[]>(),
+  weight: integer("weight").default(1), // Importance of this question to dimension score
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // New Types for Reward System
 export type SubscriptionTier = typeof subscriptionTiers.$inferSelect;
 export type InsertSubscriptionTier = z.infer<typeof insertSubscriptionTierSchema>;
@@ -444,6 +485,25 @@ export const insertRelationshipContextSchema = createInsertSchema(relationshipCo
   updatedAt: true 
 });
 
+// Bond Dimensions Insert Schemas
+export const insertBondAssessmentSchema = createInsertSchema(bondAssessments).omit({
+  id: true,
+  answeredAt: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertBondInsightSchema = createInsertSchema(bondInsights).omit({
+  id: true,
+  createdAt: true,
+  expiresAt: true
+});
+
+export const insertBondQuestionSchema = createInsertSchema(bondQuestions).omit({
+  id: true,
+  createdAt: true
+});
+
 // Types for the new tables
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
@@ -475,3 +535,13 @@ export type InsertProfileInsight = z.infer<typeof insertProfileInsightSchema>;
 
 export type RelationshipContext = typeof relationshipContexts.$inferSelect;
 export type InsertRelationshipContext = z.infer<typeof insertRelationshipContextSchema>;
+
+// Bond Dimensions Types
+export type BondAssessment = typeof bondAssessments.$inferSelect;
+export type InsertBondAssessment = z.infer<typeof insertBondAssessmentSchema>;
+
+export type BondInsight = typeof bondInsights.$inferSelect;
+export type InsertBondInsight = z.infer<typeof insertBondInsightSchema>;
+
+export type BondQuestion = typeof bondQuestions.$inferSelect;
+export type InsertBondQuestion = z.infer<typeof insertBondQuestionSchema>;
