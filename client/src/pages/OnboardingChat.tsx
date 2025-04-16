@@ -7,13 +7,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, Send, Heart, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Send, Heart, CheckCircle2, Info } from "lucide-react";
+import { bondDimensions, bondDimensionOrder, getNextDimension, getDimensionById } from "@shared/bondDimensions";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Import the assistant message component
 import Message from "@/components/ai/Message";
 
 // Define the bond dimension stages for guided conversation
-type BondDimensionStage = 
+export type BondDimensionStage = 
   | 'welcome' 
   | 'communication' 
   | 'trust' 
@@ -24,6 +26,7 @@ type BondDimensionStage =
   | 'fun_playfulness'
   | 'mutual_support'
   | 'independence_balance'
+  | 'overall_satisfaction'
   | 'wrap_up';
 
 // Array of stages in the correct order
@@ -38,6 +41,7 @@ const conversationStages: BondDimensionStage[] = [
   'fun_playfulness',
   'mutual_support',
   'independence_balance',
+  'overall_satisfaction',
   'wrap_up'
 ];
 
@@ -52,7 +56,8 @@ const dimensionNames: Record<BondDimensionStage, string> = {
   shared_values: 'Values & Goals',
   fun_playfulness: 'Fun & Enjoyment',
   mutual_support: 'Support & Respect',
-  independence_balance: 'Balance & Autonomy',
+  independence_balance: 'Independence & Balance',
+  overall_satisfaction: 'Overall Satisfaction',
   wrap_up: 'Summary'
 };
 
@@ -92,6 +97,7 @@ export default function OnboardingChat() {
     fun_playfulness: 0,
     mutual_support: 0,
     independence_balance: 0,
+    overall_satisfaction: 0,
     wrap_up: 0
   });
   
@@ -325,16 +331,34 @@ export default function OnboardingChat() {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Current dimension indicator (if applicable) */}
+      {/* Current dimension indicator with information (if applicable) */}
       {currentStage !== 'welcome' && currentStage !== 'wrap_up' && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 bottom-24 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 shadow-lg">
-          <div className="flex items-center space-x-2">
-            <Heart className="w-4 h-4 text-pink-400" />
-            <span className="text-sm text-white font-medium">
-              {dimensionNames[currentStage]}
-            </span>
-          </div>
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="absolute left-1/2 transform -translate-x-1/2 bottom-24 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 shadow-lg cursor-help">
+                <div className="flex items-center space-x-2">
+                  <div 
+                    className="w-5 h-5 flex items-center justify-center"
+                    style={{ color: getDimensionById(currentStage)?.color || '#EC4899' }}
+                  >
+                    <Heart className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm text-white font-medium">
+                    {dimensionNames[currentStage]}
+                  </span>
+                  <Info className="w-3 h-3 text-white/70" />
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="text-sm">{getDimensionById(currentStage)?.description}</p>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Tap to learn more about this dimension
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
       
       {/* Input Area */}

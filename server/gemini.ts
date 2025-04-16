@@ -468,25 +468,33 @@ export async function extractProfileInsightsFromConversation(
           for (const [dimension, data] of Object.entries(bondResults.bond_dimensions)) {
             if (data) {
               // Main dimension summary
+              // Ensure data is typed correctly
+              const dimensionData = data as {
+                notes?: string;
+                score?: number;
+                strengths?: string[];
+                growth_areas?: string[];
+              };
+              
               const dimensionInsight = await saveProfileInsight({
                 userId,
                 insightType: `bond_dimension_${dimension}`,
-                insight: data.notes || `Information about ${dimension}`,
-                confidenceScore: data.score ? 'high' : 'low',
+                insight: dimensionData.notes || `Information about ${dimension}`,
+                confidenceScore: dimensionData.score ? 'high' : 'low',
                 sourceSessionIds: [sessionId],
                 metadata: {
-                  dimensionScore: data.score,
+                  dimensionScore: dimensionData.score,
                   dimensionType: dimension
                 }
               });
               savedInsights.push(dimensionInsight);
               
               // Strengths for this dimension
-              if (data.strengths && Array.isArray(data.strengths) && data.strengths.length > 0) {
+              if (dimensionData.strengths && Array.isArray(dimensionData.strengths) && dimensionData.strengths.length > 0) {
                 const strengthsInsight = await saveProfileInsight({
                   userId,
                   insightType: `${dimension}_strengths`,
-                  insight: `Strengths in ${dimension}: ${data.strengths.join(', ')}`,
+                  insight: `Strengths in ${dimension}: ${dimensionData.strengths.join(', ')}`,
                   confidenceScore: 'medium',
                   sourceSessionIds: [sessionId]
                 });
@@ -494,11 +502,11 @@ export async function extractProfileInsightsFromConversation(
               }
               
               // Growth areas for this dimension
-              if (data.growth_areas && Array.isArray(data.growth_areas) && data.growth_areas.length > 0) {
+              if (dimensionData.growth_areas && Array.isArray(dimensionData.growth_areas) && dimensionData.growth_areas.length > 0) {
                 const growthInsight = await saveProfileInsight({
                   userId,
                   insightType: `${dimension}_growth_areas`,
-                  insight: `Growth areas in ${dimension}: ${data.growth_areas.join(', ')}`,
+                  insight: `Growth areas in ${dimension}: ${dimensionData.growth_areas.join(', ')}`,
                   confidenceScore: 'medium',
                   sourceSessionIds: [sessionId]
                 });
