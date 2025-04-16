@@ -620,7 +620,17 @@ export class MemStorage implements IStorage {
 
   async createBondInsight(insight: InsertBondInsight): Promise<BondInsight> {
     const id = this.bondInsightId++;
-    const newInsight: BondInsight = { ...insight, id, createdAt: new Date() };
+    const now = new Date();
+    const expiresAt = insight.expiresAt || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // Default 30 days expiration
+    const newInsight: BondInsight = { 
+      ...insight, 
+      id, 
+      createdAt: now,
+      expiresAt: expiresAt,
+      completed: insight.completed || null,
+      viewed: insight.viewed || null,
+      actionItems: insight.actionItems || null
+    };
     this.bondInsights.set(id, newInsight);
     return newInsight;
   }
@@ -978,7 +988,9 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
       stripeProductId: null,
-      stripePriceId: null
+      stripePriceId: null,
+      features: Array.isArray(tier.features) ? tier.features : null,
+      active: tier.active || null
     };
     this.subscriptionTiers.set(id, newTier);
     return newTier;
@@ -1006,7 +1018,11 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: now,
       updatedAt: now,
-      cancelAtPeriodEnd: false
+      cancelAtPeriodEnd: false,
+      stripeCustomerId: subscription.stripeCustomerId || null,
+      stripeSubscriptionId: subscription.stripeSubscriptionId || null,
+      currentPeriodStart: subscription.currentPeriodStart || null,
+      currentPeriodEnd: subscription.currentPeriodEnd || null
     };
     this.userSubscriptions.set(id, newSubscription);
     return newSubscription;
@@ -1066,7 +1082,10 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: now,
       updatedAt: now,
-      active: true
+      active: reward.active !== undefined ? reward.active : true,
+      code: reward.code || null,
+      imageUrl: reward.imageUrl || null,
+      requiredTier: reward.requiredTier || null
     };
     this.rewards.set(id, newReward);
     return newReward;
@@ -1110,7 +1129,11 @@ export class MemStorage implements IStorage {
       ...competition, 
       id, 
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      imageUrl: competition.imageUrl || null,
+      requiredTier: competition.requiredTier || null,
+      maxParticipants: competition.maxParticipants || null,
+      participantCount: 0
     };
     this.competitions.set(id, newCompetition);
     return newCompetition;
@@ -1162,10 +1185,10 @@ export class MemStorage implements IStorage {
     const newEntry: CompetitionEntry = { 
       ...entry, 
       id, 
-      createdAt: now,
+      updatedAt: now,
+      joinedAt: now,
       score: 0,
-      rank: null,
-      completed: false
+      rank: null
     };
     this.competitionEntries.set(id, newEntry);
     return newEntry;
@@ -1205,13 +1228,17 @@ export class MemStorage implements IStorage {
   async createCoupleReward(coupleReward: InsertCoupleReward): Promise<CoupleReward> {
     const id = this.coupleRewardId++;
     const now = new Date();
+    const expiresAt = coupleReward.expiresAt || new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // Default 90 days expiration
     const newCoupleReward: CoupleReward = { 
       ...coupleReward, 
       id, 
-      createdAt: now,
       status: 'pending',
       trackingNumber: null,
-      shippingAddress: null
+      shippingAddress: null,
+      expiresAt: expiresAt,
+      redeemedAt: null,
+      confirmedAt: null,
+      canceledAt: null
     };
     this.coupleRewards.set(id, newCoupleReward);
     return newCoupleReward;
