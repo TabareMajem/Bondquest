@@ -13,7 +13,12 @@ import {
   insertCompetitionSchema, insertCompetitionRewardSchema, insertCompetitionEntrySchema,
   insertCoupleRewardSchema
 } from "@shared/schema";
-import { generateAIResponse, generateRelationshipInsights } from "./openai";
+import { 
+  generateAIResponse, 
+  generateRelationshipInsights, 
+  generateQuiz, 
+  generateCompetition 
+} from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check route
