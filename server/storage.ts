@@ -1,9 +1,14 @@
 import { 
   users, couples, quizzes, questions, quizSessions, dailyCheckIns, achievements, activities, chats,
+  subscriptionTiers, userSubscriptions, rewards, competitions, competitionRewards, competitionEntries, coupleRewards,
   type User, type InsertUser, type Couple, type InsertCouple, type Quiz, type InsertQuiz, 
   type Question, type InsertQuestion, type QuizSession, type InsertQuizSession, 
   type DailyCheckIn, type InsertDailyCheckIn, type Achievement, type InsertAchievement,
-  type Activity, type InsertActivity, type Chat, type InsertChat
+  type Activity, type InsertActivity, type Chat, type InsertChat,
+  type SubscriptionTier, type InsertSubscriptionTier, type UserSubscription, type InsertUserSubscription,
+  type Reward, type InsertReward, type Competition, type InsertCompetition,
+  type CompetitionReward, type InsertCompetitionReward, type CompetitionEntry, type InsertCompetitionEntry,
+  type CoupleReward, type InsertCoupleReward
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 
@@ -53,6 +58,47 @@ export interface IStorage {
   // Chat Methods
   getChatsByCouple(coupleId: number): Promise<Chat[]>;
   createChat(chat: InsertChat): Promise<Chat>;
+  
+  // Subscription Methods
+  getSubscriptionTiers(): Promise<SubscriptionTier[]>;
+  getSubscriptionTier(id: number): Promise<SubscriptionTier | undefined>;
+  createSubscriptionTier(tier: InsertSubscriptionTier): Promise<SubscriptionTier>;
+  updateSubscriptionTier(id: number, updates: Partial<SubscriptionTier>): Promise<SubscriptionTier | undefined>;
+  
+  getUserSubscription(userId: number): Promise<UserSubscription | undefined>;
+  createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription>;
+  updateUserSubscription(id: number, updates: Partial<UserSubscription>): Promise<UserSubscription | undefined>;
+  cancelUserSubscription(id: number): Promise<UserSubscription | undefined>;
+  
+  // Reward Methods
+  getRewards(limit?: number, activeOnly?: boolean): Promise<Reward[]>;
+  getReward(id: number): Promise<Reward | undefined>;
+  createReward(reward: InsertReward): Promise<Reward>;
+  updateReward(id: number, updates: Partial<Reward>): Promise<Reward | undefined>;
+  
+  // Competition Methods
+  getCompetitions(status?: string, limit?: number): Promise<Competition[]>;
+  getCompetition(id: number): Promise<Competition | undefined>;
+  createCompetition(competition: InsertCompetition): Promise<Competition>;
+  updateCompetition(id: number, updates: Partial<Competition>): Promise<Competition | undefined>;
+  
+  // Link competition with rewards
+  addRewardToCompetition(competitionReward: InsertCompetitionReward): Promise<CompetitionReward>;
+  getCompetitionRewards(competitionId: number): Promise<CompetitionReward[]>;
+  
+  // Competition Entry Methods
+  getCompetitionEntries(competitionId: number): Promise<CompetitionEntry[]>;
+  getCompetitionEntry(competitionId: number, coupleId: number): Promise<CompetitionEntry | undefined>;
+  createCompetitionEntry(entry: InsertCompetitionEntry): Promise<CompetitionEntry>;
+  updateCompetitionEntryScore(id: number, score: number): Promise<CompetitionEntry | undefined>;
+  updateCompetitionEntryRank(id: number, rank: number): Promise<CompetitionEntry | undefined>;
+  
+  // Couple Rewards Methods
+  getCoupleRewards(coupleId: number): Promise<CoupleReward[]>;
+  getCoupleReward(id: number): Promise<CoupleReward | undefined>;
+  createCoupleReward(coupleReward: InsertCoupleReward): Promise<CoupleReward>;
+  updateCoupleRewardStatus(id: number, status: string): Promise<CoupleReward | undefined>;
+  updateCoupleRewardShipping(id: number, trackingNumber: string, shippingAddress: any): Promise<CoupleReward | undefined>;
 }
 
 export class MemStorage implements IStorage {

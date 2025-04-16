@@ -3,7 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { insertUserSchema, insertCoupleSchema, insertQuizSchema, insertQuizSessionSchema, insertQuestionSchema, insertDailyCheckInSchema, insertChatSchema } from "@shared/schema";
+import { 
+  insertUserSchema, insertCoupleSchema, insertQuizSchema, insertQuizSessionSchema, 
+  insertQuestionSchema, insertDailyCheckInSchema, insertChatSchema,
+  insertSubscriptionTierSchema, insertUserSubscriptionSchema, insertRewardSchema,
+  insertCompetitionSchema, insertCompetitionRewardSchema, insertCompetitionEntrySchema,
+  insertCoupleRewardSchema
+} from "@shared/schema";
 import { generateAIResponse, generateRelationshipInsights } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
