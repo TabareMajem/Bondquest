@@ -10,6 +10,11 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   const [, navigate] = useLocation();
   const { user, isAdmin } = useAuth();
   
+  // Map consolidated tabs to their new locations
+  const adjustedTab = activeTab === "bond" ? "insights" : 
+                      activeTab === "rewards" ? "profile" : 
+                      activeTab;
+  
   const handleNavigate = (path: string, e: React.MouseEvent) => {
     e.preventDefault();
     navigate(path);
@@ -17,7 +22,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   
   const getIconClassName = (tab: string) => {
     const baseClasses = "w-6 h-6 transition-all duration-200";
-    if (activeTab === tab) {
+    if (adjustedTab === tab) {
       return `${baseClasses} text-white`;
     }
     return `${baseClasses} text-purple-200/70`;
@@ -25,7 +30,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   
   const getLabelClassName = (tab: string) => {
     const baseClasses = "mt-1 text-xs font-medium transition-all duration-200";
-    if (activeTab === tab) {
+    if (adjustedTab === tab) {
       return `${baseClasses} text-white`;
     }
     return `${baseClasses} text-purple-200/70`;
@@ -33,7 +38,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   
   const getButtonClassName = (tab: string) => {
     const baseClasses = "flex flex-col items-center cursor-pointer transition-transform duration-200 relative";
-    if (activeTab === tab) {
+    if (adjustedTab === tab) {
       return `${baseClasses} scale-110`;
     }
     return `${baseClasses} hover:scale-105`;
@@ -45,7 +50,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
         onClick={(e) => handleNavigate("/home", e)} 
         className={getButtonClassName("home")}
       >
-        {activeTab === "home" && (
+        {adjustedTab === "home" && (
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
         )}
         <Home className={getIconClassName("home")} />
@@ -56,7 +61,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
         onClick={(e) => handleNavigate("/quizzes", e)}
         className={getButtonClassName("play")}
       >
-        {activeTab === "play" && (
+        {adjustedTab === "play" && (
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
         )}
         <Gamepad2 className={getIconClassName("play")} />
@@ -67,7 +72,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
         onClick={(e) => handleNavigate("/compete", e)}
         className={getButtonClassName("compete")}
       >
-        {activeTab === "compete" && (
+        {adjustedTab === "compete" && (
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
         )}
         <Trophy className={getIconClassName("compete")} />
@@ -75,10 +80,10 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       </div>
       
       <div 
-        onClick={(e) => handleNavigate("/insights", e)}
+        onClick={(e) => handleNavigate(activeTab === "bond" ? "/bond-assessment" : "/insights", e)}
         className={getButtonClassName("insights")}
       >
-        {activeTab === "insights" && (
+        {adjustedTab === "insights" && (
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
         )}
         <BarChart3 className={getIconClassName("insights")} />
@@ -86,21 +91,10 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       </div>
       
       <div 
-        onClick={(e) => handleNavigate("/bond-assessment", e)}
-        className={getButtonClassName("bond")}
-      >
-        {activeTab === "bond" && (
-          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
-        )}
-        <HeartHandshake className={getIconClassName("bond")} />
-        <span className={getLabelClassName("bond")}>Bond</span>
-      </div>
-      
-      <div 
         onClick={(e) => handleNavigate("/ai-assistant", e)}
         className={getButtonClassName("ai")}
       >
-        {activeTab === "ai" && (
+        {adjustedTab === "ai" && (
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
         )}
         <MessageCircleHeart className={getIconClassName("ai")} />
@@ -108,21 +102,10 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
       </div>
       
       <div 
-        onClick={(e) => handleNavigate("/rewards", e)}
-        className={getButtonClassName("rewards")}
-      >
-        {activeTab === "rewards" && (
-          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
-        )}
-        <Gift className={getIconClassName("rewards")} />
-        <span className={getLabelClassName("rewards")}>Rewards</span>
-      </div>
-
-      <div 
-        onClick={(e) => handleNavigate("/profile", e)}
+        onClick={(e) => handleNavigate(activeTab === "rewards" ? "/rewards" : "/profile", e)}
         className={getButtonClassName("profile")}
       >
-        {activeTab === "profile" && (
+        {adjustedTab === "profile" && (
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
         )}
         <Settings className={getIconClassName("profile")} />
@@ -134,7 +117,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
           onClick={(e) => handleNavigate("/admin", e)}
           className={getButtonClassName("admin")}
         >
-          {activeTab === "admin" && (
+          {adjustedTab === "admin" && (
             <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
           )}
           <ShieldCheck className={getIconClassName("admin")} />
