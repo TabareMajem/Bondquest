@@ -11,6 +11,7 @@ interface AuthContextType {
   socialLogin: (provider: string, accessToken?: string) => Promise<void>;
   logout: () => void;
   updateCouple: (coupleData: Couple) => void;
+  createMockCouple: () => void; // Added mock couple function
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -132,9 +133,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCouple(coupleData);
     localStorage.setItem("bondquest_couple", JSON.stringify(coupleData));
   };
+  
+  // Function to create a mock couple for testing when user is logged in but doesn't have a partner
+  const createMockCouple = () => {
+    if (!user) {
+      console.error("Cannot create mock couple: No user logged in");
+      return;
+    }
+    
+    // Create a mock partner user
+    const mockPartner: User = {
+      id: user.id + 1000, // Use an ID that won't conflict
+      username: `partner_of_${user.username}`,
+      email: `partner_of_${user.email}`,
+      password: "", 
+      displayName: `Partner of ${user.displayName || user.username}`,
+      avatar: null,
+      loveLanguage: "Quality Time",
+      relationshipStatus: "Dating",
+      anniversary: new Date(Date.now() - 1000 * 60 * 60 * 24 * 365), // 1 year ago
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30), // 30 days ago
+      partnerCode: `MOCK-${Math.floor(Math.random() * 10000)}`,
+    };
+    
+    // Create a mock couple
+    const mockCouple: Couple = {
+      id: 500,
+      user1Id: user.id,
+      user2Id: mockPartner.id,
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30), // 30 days ago
+      lastSyncDate: new Date(),
+      bondStrength: 75,
+      xp: 1200,
+      level: 5,
+      perfectStreak: 8,
+      attributes: { "Communication": 85, "Trust": 90, "EmotionalIntimacy": 80, "Respect": 95, "Teamwork": 88 },
+      currentTier: "Bronze",
+      status: "active",
+    };
+    
+    // Set the couple and store in localStorage
+    setCouple(mockCouple);
+    localStorage.setItem("bondquest_couple", JSON.stringify(mockCouple));
+    
+    console.log("Mock couple created for testing:", mockCouple);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, couple, isLoading, isAdmin, login, socialLogin, logout, updateCouple }}>
+    <AuthContext.Provider value={{ user, couple, isLoading, isAdmin, login, socialLogin, logout, updateCouple, createMockCouple }}>
       {children}
     </AuthContext.Provider>
   );

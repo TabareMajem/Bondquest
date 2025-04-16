@@ -29,7 +29,7 @@ export default function Profile() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   
   const { toast } = useToast();
-  const { user, couple, updateCouple } = useAuth();
+  const { user, couple, updateCouple, createMockCouple } = useAuth();
   const { t } = useTranslation();
 
   const handleLogout = () => {
@@ -166,13 +166,29 @@ export default function Profile() {
                   </button>
                   
                   {!couple && (
-                    <button 
-                      onClick={() => setPartnerLinkModalOpen(true)}
-                      className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-600 px-4 py-1.5 rounded-full text-sm text-white shadow-md"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      <span>Link Partner</span>
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setPartnerLinkModalOpen(true)}
+                        className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-600 px-4 py-1.5 rounded-full text-sm text-white shadow-md"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        <span>Link Partner</span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => {
+                          createMockCouple();
+                          toast({
+                            title: "Test Mode Activated",
+                            description: "A mock couple has been created for testing the app's features.",
+                          });
+                        }}
+                        className="flex items-center gap-1 bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-1.5 rounded-full text-sm text-white shadow-md"
+                      >
+                        <Users className="w-4 h-4" />
+                        <span>Test Mode</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
