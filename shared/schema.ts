@@ -264,6 +264,64 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Chat = typeof chats.$inferSelect;
 export type InsertChat = z.infer<typeof insertChatSchema>;
 
+// Conversation Session Model - Tracks conversation interaction sessions
+export const conversationSessions = pgTable("conversation_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  sessionType: text("session_type").notNull(), // "onboarding", "check-in", "quiz-prep", "profile-update"
+  status: text("status").notNull(), // "in-progress", "completed", "abandoned"
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  metadata: json("metadata").$type<Record<string, any>>(), // session flags, context, etc.
+});
+
+// Conversation Messages Model - Stores back-and-forth conversation during onboarding
+export const conversationMessages = pgTable("conversation_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull().references(() => conversationSessions.id),
+  sender: text("sender").notNull(), // "system", "user", "ai"
+  message: text("message").notNull(),
+  messageType: text("message_type").notNull(), // "text", "question", "response", "prompt", "instruction"
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  contentTags: json("content_tags").$type<string[]>(), // profile areas this message relates to
+  sentiment: text("sentiment"), // AI-analyzed sentiment
+  extractedInsights: json("extracted_insights").$type<Record<string, any>>(), // structured data extracted from message
+});
+
+// Voice Interaction Model - Storage for voice data and transcriptions
+export const voiceInteractions = pgTable("voice_interactions", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").references(() => conversationMessages.id),
+  audioUrl: text("audio_url"), // URL to stored audio file
+  transcript: text("transcript"), // Full transcript
+  duration: integer("duration"), // Duration in seconds
+  language: text("language").default("en-US"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Profile Insights - AI-generated insights derived from conversations
+export const profileInsights = pgTable("profile_insights", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  insightType: text("insight_type").notNull(), // "preference", "personality", "relationship", "goal"
+  insight: text("insight").notNull(), // The actual insight text
+  confidenceScore: decimal("confidence_score", { precision: 5, scale: 2 }), // How confident the AI is (0-100)
+  sourceSessionIds: json("source_session_ids").$type<number[]>(), // Which conversation sessions this was derived from
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Relationship Context - Specific for couple context
+export const relationshipContexts = pgTable("relationship_contexts", {
+  id: serial("id").primaryKey(),
+  coupleId: integer("couple_id").notNull().references(() => couples.id),
+  contextType: text("context_type").notNull(), // "communication", "challenges", "milestones", "goals"
+  context: text("context").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // New Types for Reward System
 export type SubscriptionTier = typeof subscriptionTiers.$inferSelect;
 export type InsertSubscriptionTier = z.infer<typeof insertSubscriptionTierSchema>;
@@ -361,6 +419,31 @@ export const insertUserResponseSchema = createInsertSchema(userResponses).omit({
 export const insertPartnerQuizQuestionSchema = createInsertSchema(partnerQuizQuestions).omit({ id: true, createdAt: true });
 export const insertPartnerQuizResponseSchema = createInsertSchema(partnerQuizResponses).omit({ id: true, createdAt: true });
 
+// Conversation System Insert Schemas
+export const insertConversationSessionSchema = createInsertSchema(conversationSessions).omit({ 
+  id: true, 
+  startedAt: true, 
+  completedAt: true 
+});
+export const insertConversationMessageSchema = createInsertSchema(conversationMessages).omit({ 
+  id: true, 
+  timestamp: true 
+});
+export const insertVoiceInteractionSchema = createInsertSchema(voiceInteractions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export const insertProfileInsightSchema = createInsertSchema(profileInsights).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export const insertRelationshipContextSchema = createInsertSchema(relationshipContexts).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
 // Types for the new tables
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
@@ -376,3 +459,19 @@ export type InsertPartnerQuizQuestion = z.infer<typeof insertPartnerQuizQuestion
 
 export type PartnerQuizResponse = typeof partnerQuizResponses.$inferSelect;
 export type InsertPartnerQuizResponse = z.infer<typeof insertPartnerQuizResponseSchema>;
+
+// Conversation System Types
+export type ConversationSession = typeof conversationSessions.$inferSelect;
+export type InsertConversationSession = z.infer<typeof insertConversationSessionSchema>;
+
+export type ConversationMessage = typeof conversationMessages.$inferSelect;
+export type InsertConversationMessage = z.infer<typeof insertConversationMessageSchema>;
+
+export type VoiceInteraction = typeof voiceInteractions.$inferSelect;
+export type InsertVoiceInteraction = z.infer<typeof insertVoiceInteractionSchema>;
+
+export type ProfileInsight = typeof profileInsights.$inferSelect;
+export type InsertProfileInsight = z.infer<typeof insertProfileInsightSchema>;
+
+export type RelationshipContext = typeof relationshipContexts.$inferSelect;
+export type InsertRelationshipContext = z.infer<typeof insertRelationshipContextSchema>;
