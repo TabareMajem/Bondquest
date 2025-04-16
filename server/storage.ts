@@ -256,7 +256,16 @@ export class MemStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const id = this.userId++;
     const partnerCode = nanoid(8);
-    const newUser: User = { ...user, id, partnerCode, createdAt: new Date() };
+    const newUser: User = { 
+      ...user, 
+      id, 
+      partnerCode, 
+      createdAt: new Date(),
+      avatar: user.avatar || null,
+      loveLanguage: user.loveLanguage || null,
+      relationshipStatus: user.relationshipStatus || null,
+      anniversary: user.anniversary || null
+    };
     this.users.set(id, newUser);
     return newUser;
   }
@@ -274,7 +283,14 @@ export class MemStorage implements IStorage {
 
   async createCouple(couple: InsertCouple): Promise<Couple> {
     const id = this.coupleId++;
-    const newCouple: Couple = { ...couple, id, createdAt: new Date() };
+    const newCouple: Couple = { 
+      ...couple, 
+      id, 
+      createdAt: new Date(),
+      bondStrength: couple.bondStrength || null,
+      level: couple.level || 1,
+      xp: couple.xp || 0
+    };
     this.couples.set(id, newCouple);
     return newCouple;
   }
@@ -881,6 +897,288 @@ export class MemStorage implements IStorage {
     for (const question of bondQuestions) {
       this.bondQuestions.set(question.id, question);
     }
+  }
+  
+  // Subscription Methods
+  async getSubscriptionTiers(): Promise<SubscriptionTier[]> {
+    return Array.from(this.subscriptionTiers.values());
+  }
+
+  async getSubscriptionTier(id: number): Promise<SubscriptionTier | undefined> {
+    return this.subscriptionTiers.get(id);
+  }
+
+  async createSubscriptionTier(tier: InsertSubscriptionTier): Promise<SubscriptionTier> {
+    const id = this.subscriptionTierId++;
+    const now = new Date();
+    const newTier: SubscriptionTier = { 
+      ...tier, 
+      id, 
+      createdAt: now,
+      updatedAt: now,
+      stripeProductId: null,
+      stripePriceId: null
+    };
+    this.subscriptionTiers.set(id, newTier);
+    return newTier;
+  }
+
+  async updateSubscriptionTier(id: number, updates: Partial<SubscriptionTier>): Promise<SubscriptionTier | undefined> {
+    const tier = this.subscriptionTiers.get(id);
+    if (tier) {
+      const updatedTier = { ...tier, ...updates, updatedAt: new Date() };
+      this.subscriptionTiers.set(id, updatedTier);
+      return updatedTier;
+    }
+    return undefined;
+  }
+  
+  async getUserSubscription(userId: number): Promise<UserSubscription | undefined> {
+    return Array.from(this.userSubscriptions.values()).find(sub => sub.userId === userId);
+  }
+
+  async createUserSubscription(subscription: InsertUserSubscription): Promise<UserSubscription> {
+    const id = this.userSubscriptionId++;
+    const now = new Date();
+    const newSubscription: UserSubscription = { 
+      ...subscription, 
+      id, 
+      createdAt: now,
+      updatedAt: now,
+      cancelAtPeriodEnd: false
+    };
+    this.userSubscriptions.set(id, newSubscription);
+    return newSubscription;
+  }
+
+  async updateUserSubscription(id: number, updates: Partial<UserSubscription>): Promise<UserSubscription | undefined> {
+    const subscription = this.userSubscriptions.get(id);
+    if (subscription) {
+      const updatedSubscription = { ...subscription, ...updates, updatedAt: new Date() };
+      this.userSubscriptions.set(id, updatedSubscription);
+      return updatedSubscription;
+    }
+    return undefined;
+  }
+
+  async cancelUserSubscription(id: number): Promise<UserSubscription | undefined> {
+    const subscription = this.userSubscriptions.get(id);
+    if (subscription) {
+      const updatedSubscription = { 
+        ...subscription, 
+        status: 'canceled', 
+        cancelAtPeriodEnd: true,
+        updatedAt: new Date() 
+      };
+      this.userSubscriptions.set(id, updatedSubscription);
+      return updatedSubscription;
+    }
+    return undefined;
+  }
+  
+  // Reward Methods
+  async getRewards(limit?: number, activeOnly: boolean = true): Promise<Reward[]> {
+    let rewards = Array.from(this.rewards.values());
+    
+    if (activeOnly) {
+      rewards = rewards.filter(reward => reward.active);
+    }
+    
+    rewards.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    if (limit && limit > 0) {
+      rewards = rewards.slice(0, limit);
+    }
+    
+    return rewards;
+  }
+
+  async getReward(id: number): Promise<Reward | undefined> {
+    return this.rewards.get(id);
+  }
+
+  async createReward(reward: InsertReward): Promise<Reward> {
+    const id = this.rewardId++;
+    const now = new Date();
+    const newReward: Reward = { 
+      ...reward, 
+      id, 
+      createdAt: now,
+      updatedAt: now,
+      active: true
+    };
+    this.rewards.set(id, newReward);
+    return newReward;
+  }
+
+  async updateReward(id: number, updates: Partial<Reward>): Promise<Reward | undefined> {
+    const reward = this.rewards.get(id);
+    if (reward) {
+      const updatedReward = { ...reward, ...updates, updatedAt: new Date() };
+      this.rewards.set(id, updatedReward);
+      return updatedReward;
+    }
+    return undefined;
+  }
+  
+  // Competition Methods
+  async getCompetitions(status?: string, limit?: number): Promise<Competition[]> {
+    let competitions = Array.from(this.competitions.values());
+    
+    if (status) {
+      competitions = competitions.filter(comp => comp.status === status);
+    }
+    
+    competitions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    if (limit && limit > 0) {
+      competitions = competitions.slice(0, limit);
+    }
+    
+    return competitions;
+  }
+
+  async getCompetition(id: number): Promise<Competition | undefined> {
+    return this.competitions.get(id);
+  }
+
+  async createCompetition(competition: InsertCompetition): Promise<Competition> {
+    const id = this.competitionId++;
+    const now = new Date();
+    const newCompetition: Competition = { 
+      ...competition, 
+      id, 
+      createdAt: now,
+      updatedAt: now
+    };
+    this.competitions.set(id, newCompetition);
+    return newCompetition;
+  }
+
+  async updateCompetition(id: number, updates: Partial<Competition>): Promise<Competition | undefined> {
+    const competition = this.competitions.get(id);
+    if (competition) {
+      const updatedCompetition = { ...competition, ...updates, updatedAt: new Date() };
+      this.competitions.set(id, updatedCompetition);
+      return updatedCompetition;
+    }
+    return undefined;
+  }
+  
+  // Link competition with rewards
+  async addRewardToCompetition(competitionReward: InsertCompetitionReward): Promise<CompetitionReward> {
+    const id = this.competitionRewardId++;
+    const now = new Date();
+    const newCompetitionReward: CompetitionReward = { 
+      ...competitionReward, 
+      id, 
+      createdAt: now
+    };
+    this.competitionRewards.set(id, newCompetitionReward);
+    return newCompetitionReward;
+  }
+
+  async getCompetitionRewards(competitionId: number): Promise<CompetitionReward[]> {
+    return Array.from(this.competitionRewards.values())
+      .filter(cr => cr.competitionId === competitionId);
+  }
+  
+  // Competition Entry Methods
+  async getCompetitionEntries(competitionId: number): Promise<CompetitionEntry[]> {
+    return Array.from(this.competitionEntries.values())
+      .filter(entry => entry.competitionId === competitionId)
+      .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
+  }
+
+  async getCompetitionEntry(competitionId: number, coupleId: number): Promise<CompetitionEntry | undefined> {
+    return Array.from(this.competitionEntries.values())
+      .find(entry => entry.competitionId === competitionId && entry.coupleId === coupleId);
+  }
+
+  async createCompetitionEntry(entry: InsertCompetitionEntry): Promise<CompetitionEntry> {
+    const id = this.competitionEntryId++;
+    const now = new Date();
+    const newEntry: CompetitionEntry = { 
+      ...entry, 
+      id, 
+      createdAt: now,
+      score: 0,
+      rank: null,
+      completed: false
+    };
+    this.competitionEntries.set(id, newEntry);
+    return newEntry;
+  }
+
+  async updateCompetitionEntryScore(id: number, score: number): Promise<CompetitionEntry | undefined> {
+    const entry = this.competitionEntries.get(id);
+    if (entry) {
+      const updatedEntry = { ...entry, score, completed: true };
+      this.competitionEntries.set(id, updatedEntry);
+      return updatedEntry;
+    }
+    return undefined;
+  }
+
+  async updateCompetitionEntryRank(id: number, rank: number): Promise<CompetitionEntry | undefined> {
+    const entry = this.competitionEntries.get(id);
+    if (entry) {
+      const updatedEntry = { ...entry, rank };
+      this.competitionEntries.set(id, updatedEntry);
+      return updatedEntry;
+    }
+    return undefined;
+  }
+  
+  // Couple Rewards Methods
+  async getCoupleRewards(coupleId: number): Promise<CoupleReward[]> {
+    return Array.from(this.coupleRewards.values())
+      .filter(reward => reward.coupleId === coupleId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getCoupleReward(id: number): Promise<CoupleReward | undefined> {
+    return this.coupleRewards.get(id);
+  }
+
+  async createCoupleReward(coupleReward: InsertCoupleReward): Promise<CoupleReward> {
+    const id = this.coupleRewardId++;
+    const now = new Date();
+    const newCoupleReward: CoupleReward = { 
+      ...coupleReward, 
+      id, 
+      createdAt: now,
+      status: 'pending',
+      trackingNumber: null,
+      shippingAddress: null
+    };
+    this.coupleRewards.set(id, newCoupleReward);
+    return newCoupleReward;
+  }
+
+  async updateCoupleRewardStatus(id: number, status: string): Promise<CoupleReward | undefined> {
+    const coupleReward = this.coupleRewards.get(id);
+    if (coupleReward) {
+      const updatedCoupleReward = { ...coupleReward, status };
+      this.coupleRewards.set(id, updatedCoupleReward);
+      return updatedCoupleReward;
+    }
+    return undefined;
+  }
+
+  async updateCoupleRewardShipping(id: number, trackingNumber: string, shippingAddress: any): Promise<CoupleReward | undefined> {
+    const coupleReward = this.coupleRewards.get(id);
+    if (coupleReward) {
+      const updatedCoupleReward = { 
+        ...coupleReward, 
+        trackingNumber, 
+        shippingAddress,
+        status: 'shipped'
+      };
+      this.coupleRewards.set(id, updatedCoupleReward);
+      return updatedCoupleReward;
+    }
+    return undefined;
   }
 }
 
