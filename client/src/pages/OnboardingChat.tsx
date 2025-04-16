@@ -76,6 +76,38 @@ export default function OnboardingChat() {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
+  // Track conversation stage (which bond dimension we're on)
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const currentStage = conversationStages[currentStageIndex];
+  
+  // Track user exchanges per stage
+  const [stageExchanges, setStageExchanges] = useState<Record<BondDimensionStage, number>>({
+    welcome: 0,
+    communication: 0,
+    trust: 0,
+    emotional_intimacy: 0,
+    conflict_resolution: 0,
+    physical_intimacy: 0,
+    shared_values: 0,
+    fun_playfulness: 0,
+    mutual_support: 0,
+    independence_balance: 0,
+    wrap_up: 0
+  });
+  
+  // Determine if the current stage has enough exchanges to progress
+  const canProgressStage = (stage: BondDimensionStage): boolean => {
+    const exchangesNeeded = stage === 'welcome' ? 2 : 1;
+    return stageExchanges[stage] >= exchangesNeeded;
+  };
+  
+  // Progress to the next stage when appropriate
+  const progressToNextStage = () => {
+    if (currentStageIndex < conversationStages.length - 1) {
+      setCurrentStageIndex(currentStageIndex + 1);
+    }
+  };
+  
   // Handle sending messages
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -87,7 +119,7 @@ export default function OnboardingChat() {
         const sessionResponse = await apiRequest("POST", "/api/conversation/sessions", {
           userId: user.id,
           sessionType: "onboarding",
-          title: "Welcome Onboarding"
+          title: "Bond Dimensions Assessment"
         });
         
         const sessionData = await sessionResponse.json();
@@ -95,41 +127,60 @@ export default function OnboardingChat() {
         setSessionId(currentSessionId);
       }
       
-      // Now send the message
+      // Now send the message with the proper context based on current stage
       const response = await apiRequest("POST", "/api/conversation/messages", {
         sessionId: currentSessionId,
         message: content,
-        systemContext: "onboarding_welcome"
+        systemContext: `onboarding_${currentStage}`
       });
       
       return response.json();
     },
     onSuccess: (data) => {
-      // Add both user message and AI response to the messages state
-      setMessages(prevMessages => [
-        ...prevMessages,
+      // Add both user message and AI response to the messages state with stage info
+      const newMessages: OnboardingMessage[] = [
         {
           id: Date.now(),
           message: data.userMessage.message,
           sender: 'user',
           assistantType: 'aurora',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          stage: currentStage
         },
         {
           id: Date.now() + 1,
           message: data.aiMessage.message,
           sender: 'ai',
           assistantType: 'aurora',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          stage: currentStage
         }
-      ]);
+      ];
+      
+      setMessages(prevMessages => [...prevMessages, ...newMessages]);
       
       // Clear input
       setMessage("");
       
-      // Check if we've had enough conversation to proceed
-      if (messages.filter(m => m.sender === 'user').length >= 3) {
-        // After a few exchanges, enable the continue button
+      // Update exchanges for current stage
+      setStageExchanges(prev => ({
+        ...prev,
+        [currentStage]: prev[currentStage] + 1
+      }));
+      
+      // Check if we should progress to the next stage
+      if (canProgressStage(currentStage)) {
+        // If we're on the last stage, enable the continue button
+        if (currentStage === 'wrap_up') {
+          setIsReadyToContinue(true);
+        } else {
+          // Progress to next stage on next user message
+          progressToNextStage();
+        }
+      }
+      
+      // If we've gotten through most stages, enable continue button anyway
+      if (currentStageIndex >= conversationStages.length - 3) {
         setIsReadyToContinue(true);
       }
     },
@@ -152,10 +203,11 @@ export default function OnboardingChat() {
       // Display an initial welcome message
       const welcomeMessage: OnboardingMessage = {
         id: Date.now(),
-        message: t('onboarding.welcomeMessage', 'Welcome to BondQuest! I\'m Aurora, your relationship guide. I\'m here to help you build a stronger bond with your partner. To get started, could you tell me your name and your partner\'s name?'),
+        message: t('onboarding.welcomeMessage', 'Welcome to BondQuest! I\'m Aurora, your relationship scientist. I\'m here to help you build a stronger bond with your partner by assessing 10 key dimensions of your relationship. To get started, could you tell me your name?'),
         sender: 'ai',
         assistantType: 'aurora',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        stage: 'welcome'
       };
       
       setMessages([welcomeMessage]);
@@ -205,21 +257,60 @@ export default function OnboardingChat() {
     return null;
   }
   
+  // Calculate progress percentage
+  const totalStages = conversationStages.length;
+  const progressPercentage = Math.min(100, Math.round((currentStageIndex / (totalStages - 1)) * 100));
+  
   return (
     <div 
       className="min-h-screen w-full flex flex-col relative"
       style={{ background: "var(--gradient-primary)" }}
     >
       {/* Header */}
-      <div className="px-6 py-4 flex items-center bg-black bg-opacity-30">
-        <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center mr-3">
-          <span className="text-white text-sm">🤖</span>
+      <div className="px-6 py-4 flex items-center justify-between bg-black bg-opacity-30">
+        <div className="flex items-center">
+          <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center mr-3 shadow-lg">
+            <span className="text-white text-lg">🤖</span>
+          </div>
+          <div>
+            <h1 className="text-white font-semibold">Aurora</h1>
+            <p className="text-xs text-white/70">{t('ai.relationshipScientist')}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-white font-semibold">Aurora</h1>
-          <p className="text-xs text-white opacity-70">{t('ai.relationshipScientist')}</p>
+        
+        {/* Progress indicator */}
+        <div className="flex items-center">
+          <span className="text-xs text-white/80 mr-2">
+            {currentStage !== 'welcome' && currentStage !== 'wrap_up' ? dimensionNames[currentStage] : ''}
+          </span>
+          <div className="w-16 h-2 bg-white/20 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-yellow-400 to-pink-500"
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
         </div>
       </div>
+      
+      {/* Dimension Progress Bar (only show after welcome) */}
+      {currentStageIndex > 0 && currentStageIndex < totalStages - 1 && (
+        <div className="flex overflow-x-auto py-2 px-4 bg-black/20 gap-1 no-scrollbar">
+          {conversationStages.slice(1, conversationStages.length - 1).map((stage, index) => (
+            <div 
+              key={stage}
+              className={`flex-shrink-0 px-2 py-1 rounded-full text-xs whitespace-nowrap transition-all duration-300 ${
+                index + 1 < currentStageIndex 
+                  ? 'bg-purple-600 text-white' 
+                  : index + 1 === currentStageIndex 
+                    ? 'bg-purple-500/80 text-white font-medium border border-white/30' 
+                    : 'bg-white/10 text-white/50'
+              }`}
+            >
+              {dimensionNames[stage]}
+            </div>
+          ))}
+        </div>
+      )}
       
       {/* Messages Area */}
       <div className="flex-1 p-6 overflow-y-auto space-y-4 pb-24">
@@ -234,19 +325,32 @@ export default function OnboardingChat() {
         <div ref={messagesEndRef} />
       </div>
       
+      {/* Current dimension indicator (if applicable) */}
+      {currentStage !== 'welcome' && currentStage !== 'wrap_up' && (
+        <div className="absolute left-1/2 transform -translate-x-1/2 bottom-24 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 shadow-lg">
+          <div className="flex items-center space-x-2">
+            <Heart className="w-4 h-4 text-pink-400" />
+            <span className="text-sm text-white font-medium">
+              {dimensionNames[currentStage]}
+            </span>
+          </div>
+        </div>
+      )}
+      
       {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-black bg-opacity-30">
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-black/40 backdrop-blur-sm border-t border-white/10">
         <form onSubmit={handleSubmit} className="flex">
           <Input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={t('onboarding.typeMessage') as string}
-            className="flex-grow mr-2 bg-white bg-opacity-20 border-0 text-white placeholder:text-white placeholder:opacity-60"
+            placeholder={currentStage === 'wrap_up' ? "Any final thoughts about your relationship..." : t('onboarding.typeMessage') as string}
+            className="flex-grow mr-2 bg-white/20 border-0 text-white placeholder:text-white/60 focus-visible:ring-purple-400"
+            autoFocus
           />
           <Button 
             type="submit"
             disabled={sendMessageMutation.isPending || !message.trim()}
-            className="bg-purple-500 hover:bg-purple-600"
+            className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-md transition-all"
           >
             {sendMessageMutation.isPending ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -257,17 +361,29 @@ export default function OnboardingChat() {
         </form>
         
         {/* Continue Button */}
-        {(isReadyToContinue || messages.filter(m => m.sender === 'user').length >= 3) && (
+        {(isReadyToContinue || currentStage === 'wrap_up' || messages.filter(m => m.sender === 'user').length >= conversationStages.length) && (
           <div className="flex justify-center mt-4">
             <Button
               onClick={handleContinue}
-              className="bg-yellow-400 text-gray-800 px-6 hover:bg-yellow-500"
+              className="bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 px-6 py-5 rounded-xl font-medium shadow-md hover:shadow-lg transition-all"
             >
-              {t('common.continue')} <ArrowRight className="ml-2 h-4 w-4" />
+              {currentStage === 'wrap_up' ? 'Connect with Partner' : 'Continue'} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         )}
       </div>
+      
+      {/* Show typing indicator when AI is responding */}
+      {sendMessageMutation.isPending && (
+        <div className="absolute bottom-24 left-8 bg-purple-600/80 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm shadow-md animate-pulse flex items-center">
+          <div className="flex gap-1 items-center">
+            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+          <span className="ml-2">Aurora is thinking...</span>
+        </div>
+      )}
     </div>
   );
 }

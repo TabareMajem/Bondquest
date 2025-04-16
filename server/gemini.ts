@@ -350,25 +350,49 @@ export async function extractProfileInsightsFromConversation(
       return [];
     }
     
-    // Create a prompt to extract insights
+    // Create a prompt to extract bond dimension insights
     const extractionPrompt = `
-      Please analyze the following conversation and extract key relationship insights about the user.
-      Focus on extracting the following types of information:
+      Please analyze the following conversation and extract key relationship insights about the user
+      based on the 10 bond dimensions framework. This is a structured onboarding conversation where
+      the assistant guided the user through questions about their relationship.
       
-      1. Relationship preferences (love languages, communication styles)
-      2. Partner dynamics (how they interact, conflict resolution patterns)
-      3. Personal values (what matters to them in relationships)
-      4. Relationship goals (what they want to achieve together)
-      5. Shared interests (activities they enjoy together)
+      Focus on extracting insights for each of these bond dimensions:
       
-      Return your insights as a JSON array with objects containing:
-      - insightType: one of the categories above
-      - insight: a detailed description of the insight
-      - confidenceScore: how confident you are in this insight (low, medium, high)
+      1. communication: Communication patterns, openness, and clarity
+      2. trust: Level of security, reliability, and honesty
+      3. emotional_intimacy: Emotional closeness and vulnerability sharing
+      4. conflict_resolution: How they handle disagreements and resolve issues
+      5. physical_intimacy: Satisfaction with physical connection (discussed in general terms)
+      6. shared_values: Alignment on core values and future goals
+      7. fun_playfulness: Ability to enjoy lighthearted moments and activities together
+      8. mutual_support: How they provide encouragement and respect
+      9. independence_balance: Balance between autonomy and togetherness
+      10. overall_satisfaction: General contentment with the relationship
       
-      Only extract insights that are clearly supported by the conversation.
+      Also extract these standard identifiers:
+      - user_name: The user's name
+      - partner_name: The partner's name
       
-      Respond ONLY with the JSON array, no additional text.
+      Return your insights as a structured JSON object with this format:
+      {
+        "user_name": "extracted user name",
+        "partner_name": "extracted partner name",
+        "bond_dimensions": {
+          "communication": {
+            "score": number from 1-10 estimating their current level (or null if unclear),
+            "notes": "detailed summary of communication patterns and areas for growth",
+            "strengths": ["list", "of", "identified", "strengths"],
+            "growth_areas": ["list", "of", "potential", "improvement", "areas"]
+          },
+          "trust": { same structure as above },
+          // include all 10 dimensions with the same structure
+        }
+      }
+      
+      Only include insights clearly supported by the conversation. If information about a dimension
+      is missing, include the dimension but set score to null and use minimal placeholder text.
+      
+      Respond ONLY with the JSON object, no additional explanation text.
     `;
     
     // Combine conversation messages
