@@ -317,7 +317,7 @@ export default function Profile() {
                 <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
                   <div className="flex items-center">
                     <HelpCircle className="w-5 h-5 text-pink-400 mr-3" />
-                    <span className="text-white">Help & Support</span>
+                    <span className="text-white">{t('profile.help')}</span>
                   </div>
                   <span className="text-purple-300">→</span>
                 </button>
@@ -328,7 +328,7 @@ export default function Profile() {
                   className="flex items-center w-full text-left p-4 hover:bg-red-700/20 text-red-400"
                 >
                   <LogOut className="w-5 h-5 mr-3" />
-                  <span>Logout</span>
+                  <span>{t('common.logout')}</span>
                 </button>
               </li>
             </ul>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,7 +28,10 @@ export default function Login() {
   const [, navigate] = useLocation();
   const { login, isAdmin } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isInstagramLoading, setIsInstagramLoading] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -46,24 +50,92 @@ export default function Login() {
       if (isAdmin) {
         navigate("/admin");
         toast({
-          title: "Welcome Administrator!",
+          title: t('auth.loginSuccess'),
           description: "You have successfully logged in to the admin panel.",
         });
       } else {
         navigate("/home"); // Redirect normal users to home
         toast({
-          title: "Welcome back!",
-          description: "You have successfully logged in.",
+          title: t('auth.loginSuccess'),
+          description: t('auth.loginSuccess'),
         });
       }
     } catch (error: any) {
       toast({
-        title: "Login failed",
-        description: error.message || "Invalid username or password. Please try again.",
+        title: t('auth.loginFailed'),
+        description: error.message || t('auth.loginFailed'),
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    try {
+      // In a real implementation, this would redirect to Google OAuth
+      // For now, we'll simulate a successful login
+      setTimeout(async () => {
+        try {
+          // Simulate login with dummy data
+          await login({ username: "google_user", password: "google_auth" });
+          navigate("/home");
+          toast({
+            title: t('auth.loginSuccess'),
+            description: t('auth.loginSuccess'),
+          });
+        } catch (error: any) {
+          toast({
+            title: t('auth.loginFailed'),
+            description: error.message || t('auth.loginFailed'),
+            variant: "destructive",
+          });
+        } finally {
+          setIsGoogleLoading(false);
+        }
+      }, 1500);
+    } catch (error: any) {
+      toast({
+        title: t('auth.loginFailed'),
+        description: error.message || "Google authentication failed. Please try again.",
+        variant: "destructive",
+      });
+      setIsGoogleLoading(false);
+    }
+  };
+  
+  const handleInstagramLogin = async () => {
+    setIsInstagramLoading(true);
+    try {
+      // In a real implementation, this would redirect to Instagram OAuth
+      // For now, we'll simulate a successful login
+      setTimeout(async () => {
+        try {
+          // Simulate login with dummy data
+          await login({ username: "instagram_user", password: "instagram_auth" });
+          navigate("/home");
+          toast({
+            title: t('auth.loginSuccess'),
+            description: t('auth.loginSuccess'),
+          });
+        } catch (error: any) {
+          toast({
+            title: t('auth.loginFailed'),
+            description: error.message || t('auth.loginFailed'),
+            variant: "destructive",
+          });
+        } finally {
+          setIsInstagramLoading(false);
+        }
+      }, 1500);
+    } catch (error: any) {
+      toast({
+        title: t('auth.loginFailed'),
+        description: error.message || "Instagram authentication failed. Please try again.",
+        variant: "destructive",
+      });
+      setIsInstagramLoading(false);
     }
   };
 
@@ -73,7 +145,7 @@ export default function Login() {
       style={{ background: "var(--gradient-primary)" }}
     >
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold font-poppins mb-8 text-center">Welcome Back to BondQuest</h1>
+        <h1 className="text-3xl font-bold font-poppins mb-8 text-center">{t('common.appName')}</h1>
 
         {/* Login Form */}
         <div className="bg-white bg-opacity-20 backdrop-filter backdrop-blur-sm rounded-2xl p-6 mb-6">
@@ -84,11 +156,11 @@ export default function Login() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white">Username</FormLabel>
+                    <FormLabel className="text-white">{t('common.username')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="Your username"
+                        placeholder={t('common.username')}
                         className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-25 border border-white border-opacity-30 text-white placeholder:text-white placeholder:opacity-60 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
                       />
                     </FormControl>
@@ -102,7 +174,7 @@ export default function Login() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white">Password</FormLabel>
+                    <FormLabel className="text-white">{t('common.password')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -121,7 +193,7 @@ export default function Login() {
                 className="w-full bg-white text-primary-700 font-semibold py-3 px-6 rounded-lg mt-6 shadow-lg hover:shadow-xl transition-all"
                 disabled={isLoading}
               >
-                {isLoading ? "Logging in..." : "Log In"}
+                {isLoading ? t('common.loading') : t('common.login')}
               </Button>
             </form>
           </Form>
@@ -133,6 +205,8 @@ export default function Login() {
             className="w-full flex items-center justify-center bg-white text-gray-700 font-medium py-3 px-6 rounded-lg shadow-sm hover:shadow transition-all"
             variant="outline"
             type="button"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleLoading}
           >
             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -140,17 +214,19 @@ export default function Login() {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            Continue with Google
+            {isGoogleLoading ? t('common.loading') : t('auth.continueWith', { provider: 'Google' })}
           </Button>
 
           <Button
             className="w-full flex items-center justify-center bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white font-medium py-3 px-6 rounded-lg shadow-sm hover:shadow transition-all"
             type="button"
+            onClick={handleInstagramLogin}
+            disabled={isInstagramLoading}
           >
             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/>
             </svg>
-            Continue with Instagram
+            {isInstagramLoading ? t('common.loading') : t('auth.continueWith', { provider: 'Instagram' })}
           </Button>
         </div>
 
@@ -163,7 +239,7 @@ export default function Login() {
               navigate("/signup");
             }}
           >
-            Don't have an account? Sign Up
+            {t('auth.dontHaveAccount')}
           </a>
         </div>
         
@@ -176,7 +252,7 @@ export default function Login() {
               navigate("/");
             }}
           >
-            Back to Start
+            {t('common.back')}
           </a>
         </div>
       </div>
