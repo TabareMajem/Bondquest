@@ -124,16 +124,40 @@ export async function getConversationMessages(sessionId: number) {
  * Save a profile insight extracted from conversation
  */
 export async function saveProfileInsight(insightData: InsertProfileInsight): Promise<ProfileInsight> {
+  // Convert string confidence scores to numeric values
+  let numericConfidence: number | null = null;
+  
+  if (typeof insightData.confidenceScore === 'string') {
+    // Map string confidence levels to numeric values (0-100)
+    switch(insightData.confidenceScore.toLowerCase()) {
+      case 'high':
+        numericConfidence = 90;
+        break;
+      case 'medium':
+        numericConfidence = 60;
+        break;
+      case 'low':
+        numericConfidence = 30;
+        break;
+      default:
+        // Try to parse as number if it's not one of the known strings
+        const parsed = parseFloat(insightData.confidenceScore);
+        numericConfidence = isNaN(parsed) ? 50 : parsed; // default to 50 if parsing fails
+    }
+  } else if (typeof insightData.confidenceScore === 'number') {
+    numericConfidence = insightData.confidenceScore;
+  }
+  
   const [insight] = await db
     .insert(profileInsights)
     .values({
       userId: insightData.userId,
       insightType: insightData.insightType,
       insight: insightData.insight,
-      confidenceScore: insightData.confidenceScore || 'medium',
+      confidenceScore: numericConfidence,
       createdAt: new Date(),
-      source: 'conversation',
-      metadata: insightData.metadata || {}
+      sourceSessionIds: insightData.sourceSessionIds,
+      updatedAt: new Date()
     })
     .returning();
   
