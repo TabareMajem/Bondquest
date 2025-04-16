@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
+import type { ContentBlock } from "@anthropic-ai/sdk/resources";
 
 // Initialize the OpenAI client
 const openai = new OpenAI({
@@ -291,7 +292,14 @@ async function generateQuizWithAnthropic(
     });
 
     // Extract and parse the JSON response
-    const content = response.content[0].text;
+    const content = response.content.filter(block => typeof (block as any).text === 'string')
+      .map(block => (block as any).text)
+      .join('');
+    
+    if (!content) {
+      throw new Error("Failed to get text content from Anthropic response");
+    }
+    
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     
     if (!jsonMatch) {
@@ -543,15 +551,21 @@ async function generateCompetitionWithAnthropic(
     });
 
     // Extract and parse the JSON response
-    const content = response.content[0].text;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    
-    if (!jsonMatch) {
-      throw new Error("Failed to generate valid competition format");
+    const contentBlock = response.content[0];
+    // Check if it's a text content block
+    if ('text' in contentBlock) {
+      const content = contentBlock.text;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      
+      if (!jsonMatch) {
+        throw new Error("Failed to generate valid competition format");
+      }
+      
+      const competitionData = JSON.parse(jsonMatch[0]);
+      return competitionData;
+    } else {
+      throw new Error("Unexpected response format from Anthropic");
     }
-    
-    const competitionData = JSON.parse(jsonMatch[0]);
-    return competitionData;
   } catch (error) {
     console.error("Error with Anthropic:", error);
     // Fallback to OpenAI if Anthropic fails
