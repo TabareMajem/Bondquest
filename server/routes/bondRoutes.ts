@@ -67,7 +67,7 @@ router.get('/assessments/couple/:coupleId', async (req, res) => {
     }
     
     // Calculate dimensions statistics
-    const dimensionStats = BOND_DIMENSIONS.map(dimension => {
+    const dimensionStats = bondDimensions.map(dimension => {
       const dimensionAssessments = assessments.filter(
         assessment => assessment.dimensionId === dimension.id
       );
@@ -111,7 +111,7 @@ router.post('/assessments', async (req, res) => {
     const validatedData = insertBondAssessmentSchema.parse(req.body);
     
     // Validate dimension exists
-    if (!BOND_DIMENSIONS.some(dim => dim.id === validatedData.dimensionId)) {
+    if (!bondDimensions.some(dim => dim.id === validatedData.dimensionId)) {
       return res.status(400).json({ message: 'Invalid dimension ID' });
     }
     
@@ -130,7 +130,7 @@ router.post('/assessments', async (req, res) => {
       type: 'bond_assessment',
       referenceId: assessment.id,
       points: 10,
-      description: `Completed ${BOND_DIMENSIONS.find(dim => dim.id === validatedData.dimensionId)?.name} assessment`
+      description: `Completed ${bondDimensions.find(dim => dim.id === validatedData.dimensionId)?.name} assessment`
     });
     
     // Update couple XP
@@ -161,7 +161,7 @@ router.post('/insights', async (req, res) => {
     const validatedData = insertBondInsightSchema.parse(req.body);
     
     // Validate dimension exists
-    if (!BOND_DIMENSIONS.some(dim => dim.id === validatedData.dimensionId)) {
+    if (!bondDimensions.some(dim => dim.id === validatedData.dimensionId)) {
       return res.status(400).json({ message: 'Invalid dimension ID' });
     }
     
@@ -258,7 +258,7 @@ router.post('/ai-generate-assessment', async (req, res) => {
     }).parse(req.body);
     
     // Validate dimension exists
-    const dimension = BOND_DIMENSIONS.find(dim => dim.id === dimensionId);
+    const dimension = bondDimensions.find(dim => dim.id === dimensionId);
     if (!dimension) {
       return res.status(400).json({ message: 'Invalid dimension ID' });
     }
