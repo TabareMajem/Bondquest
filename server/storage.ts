@@ -333,7 +333,11 @@ export class MemStorage implements IStorage {
 
   async createQuiz(quiz: InsertQuiz): Promise<Quiz> {
     const id = this.quizId++;
-    const newQuiz: Quiz = { ...quiz, id };
+    const newQuiz: Quiz = { 
+      ...quiz, 
+      id,
+      image: quiz.image || null 
+    };
     this.quizzes.set(id, newQuiz);
     return newQuiz;
   }
@@ -345,7 +349,11 @@ export class MemStorage implements IStorage {
 
   async createQuestion(question: InsertQuestion): Promise<Question> {
     const id = this.questionId++;
-    const newQuestion: Question = { ...question, id };
+    const newQuestion: Question = { 
+      ...question, 
+      id,
+      options: question.options || null
+    };
     this.questions.set(id, newQuestion);
     return newQuestion;
   }
@@ -367,7 +375,15 @@ export class MemStorage implements IStorage {
       ...session, 
       id, 
       createdAt: new Date(),
-      completedAt: null
+      completedAt: null,
+      user1Answers: session.user1Answers || null,
+      user2Answers: session.user2Answers || null,
+      user1Completed: session.user1Completed || null,
+      user2Completed: session.user2Completed || null,
+      user1Score: session.user1Score || null,
+      user2Score: session.user2Score || null,
+      user1CompletedAt: session.user1CompletedAt || null,
+      user2CompletedAt: session.user2CompletedAt || null
     };
     this.quizSessions.set(id, newSession);
     return newSession;
@@ -398,7 +414,12 @@ export class MemStorage implements IStorage {
 
   async createDailyCheckIn(checkIn: InsertDailyCheckIn): Promise<DailyCheckIn> {
     const id = this.checkInId++;
-    const newCheckIn: DailyCheckIn = { ...checkIn, id, date: new Date() };
+    const newCheckIn: DailyCheckIn = { 
+      ...checkIn, 
+      id, 
+      date: new Date(),
+      note: checkIn.note || null
+    };
     this.dailyCheckIns.set(id, newCheckIn);
     return newCheckIn;
   }
@@ -412,7 +433,17 @@ export class MemStorage implements IStorage {
 
   async createAchievement(achievement: InsertAchievement): Promise<Achievement> {
     const id = this.achievementId++;
-    const newAchievement: Achievement = { ...achievement, id, unlockedAt: new Date() };
+    const now = new Date();
+    const newAchievement: Achievement = { 
+      ...achievement, 
+      id, 
+      createdAt: now,
+      unlockedAt: now,
+      level: achievement.level || null,
+      points: achievement.points || null,
+      badgeImageUrl: achievement.badgeImageUrl || null,
+      progress: achievement.progress || null
+    };
     this.achievements.set(id, newAchievement);
     return newAchievement;
   }
@@ -428,7 +459,13 @@ export class MemStorage implements IStorage {
 
   async createActivity(activity: InsertActivity & { description?: string }): Promise<Activity> {
     const id = this.activityId++;
-    const newActivity: Activity = { ...activity, id, createdAt: new Date() };
+    const newActivity: Activity = { 
+      ...activity, 
+      id, 
+      createdAt: new Date(),
+      description: activity.description || null,
+      points: activity.points || null
+    };
     this.activities.set(id, newActivity);
     return newActivity;
   }
@@ -460,7 +497,20 @@ export class MemStorage implements IStorage {
       ...preferences, 
       id, 
       createdAt: now, 
-      updatedAt: now 
+      updatedAt: now,
+      dailyReminders: preferences.dailyReminders || null,
+      partnerActivity: preferences.partnerActivity || null,
+      competitionUpdates: preferences.competitionUpdates || null,
+      appUpdates: preferences.appUpdates || null,
+      sessionReminders: preferences.sessionReminders || null,
+      newMessageSound: preferences.newMessageSound || null,
+      achievementSound: preferences.achievementSound || null,
+      fontSizePreference: preferences.fontSizePreference || null,
+      colorMode: preferences.colorMode || null,
+      notificationTime: preferences.notificationTime || null,
+      pushNotificationsEnabled: preferences.pushNotificationsEnabled || null,
+      emailNotificationsEnabled: preferences.emailNotificationsEnabled || null,
+      language: preferences.language || null
     };
     this.userPreferences.set(id, newPreferences);
     return newPreferences;
@@ -499,7 +549,13 @@ export class MemStorage implements IStorage {
 
   async createBondQuestion(question: InsertBondQuestion): Promise<BondQuestion> {
     const id = this.bondQuestionId++;
-    const newQuestion: BondQuestion = { ...question, id };
+    const newQuestion: BondQuestion = { 
+      ...question, 
+      id,
+      createdAt: new Date(),
+      options: question.options || null,
+      weight: question.weight || null
+    };
     this.bondQuestions.set(id, newQuestion);
     return newQuestion;
   }
@@ -516,10 +572,15 @@ export class MemStorage implements IStorage {
 
   async createBondAssessment(assessment: InsertBondAssessment): Promise<BondAssessment> {
     const id = this.bondAssessmentId++;
+    const now = new Date();
     const newAssessment: BondAssessment = { 
       ...assessment, 
       id, 
-      createdAt: new Date() 
+      createdAt: now,
+      updatedAt: now,
+      answeredAt: now,
+      user1Score: assessment.user1Score || null,
+      user2Score: assessment.user2Score || null
     };
     this.bondAssessments.set(id, newAssessment);
 
