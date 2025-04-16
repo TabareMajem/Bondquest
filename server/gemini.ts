@@ -298,12 +298,6 @@ export async function extractProfileInsightsFromConversation(
   sessionId: number,
   userId: number
 ): Promise<ProfileInsight[]> {
-  // If API is not properly initialized, use fallback insights
-  if (!googleAI || !geminiModel) {
-    console.log('Using fallback insights as Gemini API is not initialized');
-    return generateFallbackInsights(sessionId, userId);
-  }
-  
   try {
     // Get conversation history
     const messages = await getConversationMessages(sessionId);
@@ -329,6 +323,8 @@ export async function extractProfileInsightsFromConversation(
       - confidenceScore: how confident you are in this insight (low, medium, high)
       
       Only extract insights that are clearly supported by the conversation.
+      
+      Respond ONLY with the JSON array, no additional text.
     `;
     
     // Combine conversation messages
@@ -337,13 +333,43 @@ export async function extractProfileInsightsFromConversation(
       .join('\n\n');
     
     try {
-      // Generate insights
-      const result = await geminiModel.generateContent([
-        extractionPrompt,
-        conversationText
-      ]);
+      let responseText = "";
       
-      const responseText = result.response.text();
+      // Try with direct API access using our confirmed working model
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          const model = googleAI.getGenerativeModel({ model: "models/gemini-1.5-pro" });
+          
+          // Combine prompt and conversation
+          const fullPrompt = `${extractionPrompt}\n\nConversation:\n${conversationText}`;
+          
+          const result = await model.generateContent(fullPrompt);
+          responseText = result.response.text();
+        } catch (directApiError) {
+          console.error("Error with direct Gemini API call:", directApiError);
+          // Fall back to original method if direct call fails
+          if (geminiModel) {
+            const result = await geminiModel.generateContent([
+              extractionPrompt,
+              conversationText
+            ]);
+            responseText = result.response.text();
+          } else {
+            return generateFallbackInsights(sessionId, userId);
+          }
+        }
+      } else if (geminiModel) {
+        // Use the existing model if initialized
+        const result = await geminiModel.generateContent([
+          extractionPrompt,
+          conversationText
+        ]);
+        responseText = result.response.text();
+      } else {
+        console.log('Using fallback insights as Gemini API is not initialized');
+        return generateFallbackInsights(sessionId, userId);
+      }
       
       // Parse JSON response
       try {

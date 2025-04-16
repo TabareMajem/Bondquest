@@ -1611,8 +1611,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contentTags: ["onboarding", "welcome"],
       });
       
-      // Generate initial AI greeting - passing the system prompt as context
-      const aiGreeting = await generateGeminiResponse(session.id, "Hello", systemPrompt);
+      // Generate initial AI greeting - using direct model approach
+      let aiGreeting = "";
+      
+      try {
+        // Use the direct model that we confirmed works
+        if (process.env.GEMINI_API_KEY) {
+          const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          const model = googleAI.getGenerativeModel({ model: "models/gemini-1.5-pro" });
+          
+          // Format a prompt for the initial greeting
+          const prompt = `
+            ${systemPrompt}
+            
+            The user has just started using BondQuest, a relationship app that helps couples strengthen their bond.
+            Introduce yourself as a friendly AI relationship assistant and welcome them to the app.
+            Keep it concise, friendly, and encouraging. Ask for their name and their partner's name.
+          `;
+          
+          const result = await model.generateContent(prompt);
+          aiGreeting = result.response.text();
+        } else {
+          // Fallback if no API key
+          aiGreeting = "Hello and welcome to BondQuest! 👋 I'm your relationship assistant, here to help you strengthen your bond with your partner. What's your name, and what's your partner's name? I'd love to get to know you both better!";
+        }
+      } catch (error) {
+        console.error("Error generating AI greeting:", error);
+        // Use the original generation method as fallback
+        aiGreeting = await generateGeminiResponse(session.id, "Hello", systemPrompt);
+      }
       
       // Save AI greeting as a message
       const aiMessage = await addConversationMessage({
@@ -1657,9 +1684,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contentTags: contentTags || [],
       });
       
-      // Generate AI response
-      const systemContext = req.body.systemContext; // Optional context to guide the AI
-      const aiResponseText = await generateGeminiResponse(sessionId, message, systemContext);
+      // Get conversation details to provide context
+      const sessions = await db
+        .select()
+        .from(conversationSessions)
+        .where(eq(conversationSessions.id, sessionId));
+      
+      const session = sessions.length > 0 ? sessions[0] : null;
+      
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Get previous messages for context
+      const previousMessages = await getConversationMessages(sessionId);
+      
+      // Create a rich context for the AI
+      let systemContext = req.body.systemContext; // Optional context passed in
+      
+      // If no context was provided, create one based on session type
+      if (!systemContext && session.sessionType === "onboarding") {
+        systemContext = getOnboardingPrompt("welcome");
+      }
+      
+      // Use direct model interaction for better reliability
+      let aiResponseText = "";
+      
+      try {
+        // Use the direct model that we confirmed works
+        if (process.env.GEMINI_API_KEY) {
+          const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+          const model = googleAI.getGenerativeModel({ model: "models/gemini-1.5-pro" });
+          
+          // Format messages for context
+          const prompt = `
+            ${systemContext || "You are a helpful relationship assistant in the BondQuest app."}
+            
+            Previous conversation:
+            ${previousMessages.map(msg => `${msg.sender}: ${msg.message}`).join('\n')}
+            
+            User: ${message}
+            
+            Respond in a friendly, supportive tone. Keep your response concise and focused on helping the couple strengthen their relationship.
+          `;
+          
+          const result = await model.generateContent(prompt);
+          aiResponseText = result.response.text();
+        } else {
+          // Fallback if no API key
+          aiResponseText = "I'm here to help you build a stronger relationship. What would you like to know about BondQuest?";
+        }
+      } catch (error) {
+        console.error("Error generating AI response:", error);
+        // Use the original generation method as fallback
+        aiResponseText = await generateGeminiResponse(sessionId, message, systemContext);
+      }
       
       // Save AI response as a message
       const aiMessage = await addConversationMessage({
