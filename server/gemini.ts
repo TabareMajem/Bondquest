@@ -125,41 +125,30 @@ export async function getConversationMessages(sessionId: number) {
  * Save a profile insight extracted from conversation
  */
 export async function saveProfileInsight(insightData: InsertProfileInsight): Promise<ProfileInsight> {
-  // Convert string confidence scores to numeric values
-  let numericConfidence: number | null = null;
+  // With schema changes, confidenceScore is now stored as a string value directly
+  const confidenceValue = typeof insightData.confidenceScore === 'string' 
+    ? insightData.confidenceScore 
+    : 'medium'; // Default to medium if not specified
   
-  if (typeof insightData.confidenceScore === 'string') {
-    // Map string confidence levels to numeric values (0-100)
-    switch(insightData.confidenceScore.toLowerCase()) {
-      case 'high':
-        numericConfidence = 90;
-        break;
-      case 'medium':
-        numericConfidence = 60;
-        break;
-      case 'low':
-        numericConfidence = 30;
-        break;
-      default:
-        // Try to parse as number if it's not one of the known strings
-        const parsed = parseFloat(insightData.confidenceScore);
-        numericConfidence = isNaN(parsed) ? 50 : parsed; // default to 50 if parsing fails
-    }
-  } else if (typeof insightData.confidenceScore === 'number') {
-    numericConfidence = insightData.confidenceScore;
+  // Prepare values for insertion
+  const insertValues: any = {
+    userId: insightData.userId,
+    insightType: insightData.insightType,
+    insight: insightData.insight,
+    confidenceScore: confidenceValue,
+    createdAt: new Date(),
+    sourceSessionIds: insightData.sourceSessionIds || [],
+    updatedAt: new Date()
+  };
+  
+  // Add metadata if provided
+  if (insightData.metadata) {
+    insertValues.metadata = insightData.metadata;
   }
   
   const [insight] = await db
     .insert(profileInsights)
-    .values({
-      userId: insightData.userId,
-      insightType: insightData.insightType,
-      insight: insightData.insight,
-      confidenceScore: numericConfidence,
-      createdAt: new Date(),
-      sourceSessionIds: insightData.sourceSessionIds,
-      updatedAt: new Date()
-    })
+    .values(insertValues)
     .returning();
   
   return insight;
@@ -447,27 +436,97 @@ export async function extractProfileInsightsFromConversation(
           .replace(/```/g, '')
           .trim();
         
-        const insights = JSON.parse(cleanedText);
-        
-        if (!Array.isArray(insights)) {
-          return generateFallbackInsights(sessionId, userId);
-        }
-        
-        // Save insights to database
+        const bondResults = JSON.parse(cleanedText);
         const savedInsights: ProfileInsight[] = [];
         
-        for (const insight of insights) {
-          if (insight.insightType && insight.insight) {
-            const savedInsight = await saveProfileInsight({
+        // Process structured bond dimensions data if available
+        if (bondResults.bond_dimensions) {
+          // Extract user and partner names
+          if (bondResults.user_name) {
+            const nameInsight = await saveProfileInsight({
               userId,
-              insightType: insight.insightType,
-              insight: insight.insight,
-              confidenceScore: insight.confidenceScore || 'medium',
+              insightType: 'user_details',
+              insight: `User name: ${bondResults.user_name}`,
+              confidenceScore: 'high',
               sourceSessionIds: [sessionId]
             });
-            
-            savedInsights.push(savedInsight);
+            savedInsights.push(nameInsight);
           }
+          
+          if (bondResults.partner_name) {
+            const partnerInsight = await saveProfileInsight({
+              userId,
+              insightType: 'partner_details',
+              insight: `Partner name: ${bondResults.partner_name}`,
+              confidenceScore: 'high',
+              sourceSessionIds: [sessionId]
+            });
+            savedInsights.push(partnerInsight);
+          }
+          
+          // Process each bond dimension
+          for (const [dimension, data] of Object.entries(bondResults.bond_dimensions)) {
+            if (data) {
+              // Main dimension summary
+              const dimensionInsight = await saveProfileInsight({
+                userId,
+                insightType: `bond_dimension_${dimension}`,
+                insight: data.notes || `Information about ${dimension}`,
+                confidenceScore: data.score ? 'high' : 'low',
+                sourceSessionIds: [sessionId],
+                metadata: {
+                  dimensionScore: data.score,
+                  dimensionType: dimension
+                }
+              });
+              savedInsights.push(dimensionInsight);
+              
+              // Strengths for this dimension
+              if (data.strengths && Array.isArray(data.strengths) && data.strengths.length > 0) {
+                const strengthsInsight = await saveProfileInsight({
+                  userId,
+                  insightType: `${dimension}_strengths`,
+                  insight: `Strengths in ${dimension}: ${data.strengths.join(', ')}`,
+                  confidenceScore: 'medium',
+                  sourceSessionIds: [sessionId]
+                });
+                savedInsights.push(strengthsInsight);
+              }
+              
+              // Growth areas for this dimension
+              if (data.growth_areas && Array.isArray(data.growth_areas) && data.growth_areas.length > 0) {
+                const growthInsight = await saveProfileInsight({
+                  userId,
+                  insightType: `${dimension}_growth_areas`,
+                  insight: `Growth areas in ${dimension}: ${data.growth_areas.join(', ')}`,
+                  confidenceScore: 'medium',
+                  sourceSessionIds: [sessionId]
+                });
+                savedInsights.push(growthInsight);
+              }
+            }
+          }
+        }
+        // Handle legacy format if that's what we received
+        else if (Array.isArray(bondResults)) {
+          for (const insight of bondResults) {
+            if (insight.insightType && insight.insight) {
+              const savedInsight = await saveProfileInsight({
+                userId,
+                insightType: insight.insightType,
+                insight: insight.insight,
+                confidenceScore: insight.confidenceScore || 'medium',
+                sourceSessionIds: [sessionId]
+              });
+              
+              savedInsights.push(savedInsight);
+            }
+          }
+        } 
+        // If neither format matches
+        else {
+          console.log('Unexpected insight format, using fallbacks');
+          return generateFallbackInsights(sessionId, userId);
         }
         
         return savedInsights;
@@ -487,6 +546,7 @@ export async function extractProfileInsightsFromConversation(
 
 /**
  * Generate fallback insights when the AI API is unavailable
+ * This now creates fallback insights for each bond dimension
  */
 async function generateFallbackInsights(
   sessionId: number,
@@ -496,40 +556,116 @@ async function generateFallbackInsights(
   const messages = await getConversationMessages(sessionId);
   const userMessages = messages.filter(m => m.sender === 'user');
   
-  // Sample insights based on common relationship patterns
-  const fallbackInsights = [
-    {
-      insightType: 'Relationship preferences',
-      insight: 'The user values clear and open communication in their relationship.',
-      confidenceScore: 'medium',
-    },
-    {
-      insightType: 'Relationship goals',
-      insight: 'The user is interested in deepening their connection with their partner through shared activities and experiences.',
-      confidenceScore: 'medium',
-    },
-    {
-      insightType: 'Personal values',
-      insight: 'Trust and mutual respect appear to be fundamental values in the user\'s approach to relationships.',
-      confidenceScore: 'medium',
-    }
-  ];
-  
   // Only generate insights if there are enough messages to base them on
   if (userMessages.length < 2) {
     return [];
   }
   
-  // Save the fallback insights
+  // Fallback bond dimensions with generic insights
+  const bondDimensionInsights = [
+    {
+      insightType: 'bond_dimension_communication',
+      insight: 'The user values open communication with their partner and seeks to improve how they express their needs and feelings.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 7,
+        dimensionType: 'communication'
+      }
+    },
+    {
+      insightType: 'bond_dimension_trust',
+      insight: 'Trust and reliability appear to be fundamental values in the user\'s relationship approach.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 8,
+        dimensionType: 'trust'
+      }
+    },
+    {
+      insightType: 'bond_dimension_emotional_intimacy',
+      insight: 'The user is working on developing deeper emotional connection with their partner through sharing vulnerable feelings.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 6,
+        dimensionType: 'emotional_intimacy'
+      }
+    },
+    {
+      insightType: 'bond_dimension_conflict_resolution',
+      insight: 'The couple has developed some conflict resolution strategies but may benefit from more tools for difficult conversations.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 6,
+        dimensionType: 'conflict_resolution'
+      }
+    },
+    {
+      insightType: 'bond_dimension_physical_intimacy',
+      insight: 'Physical connection is an important aspect of the relationship that the user wishes to nurture.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 7,
+        dimensionType: 'physical_intimacy'
+      }
+    },
+    {
+      insightType: 'bond_dimension_shared_values',
+      insight: 'The couple shares core values but may be working through alignment on some future goals.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 7,
+        dimensionType: 'shared_values'
+      }
+    },
+    {
+      insightType: 'bond_dimension_fun_playfulness',
+      insight: 'The user enjoys shared activities and lighthearted moments with their partner as a way to strengthen their bond.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 8,
+        dimensionType: 'fun_playfulness'
+      }
+    },
+    {
+      insightType: 'bond_dimension_mutual_support',
+      insight: 'Mutual support and respect are cornerstones of the relationship that the user prioritizes.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 8,
+        dimensionType: 'mutual_support'
+      }
+    },
+    {
+      insightType: 'bond_dimension_independence_balance',
+      insight: 'The user is seeking a healthy balance between personal autonomy and couple time.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 6,
+        dimensionType: 'independence_balance'
+      }
+    },
+    {
+      insightType: 'bond_dimension_overall_satisfaction',
+      insight: 'The user appears generally satisfied with their relationship while being motivated to strengthen specific dimensions.',
+      confidenceScore: 'medium',
+      metadata: {
+        dimensionScore: 7,
+        dimensionType: 'overall_satisfaction'
+      }
+    }
+  ];
+  
+  // Save the fallback insights for bond dimensions
   const savedInsights: ProfileInsight[] = [];
   
-  for (const insight of fallbackInsights) {
+  for (const insight of bondDimensionInsights) {
     const savedInsight = await saveProfileInsight({
       userId,
       insightType: insight.insightType,
       insight: insight.insight,
       confidenceScore: insight.confidenceScore,
-      sourceSessionIds: [sessionId]
+      sourceSessionIds: [sessionId],
+      metadata: insight.metadata
     });
     
     savedInsights.push(savedInsight);

@@ -317,10 +317,11 @@ export const voiceInteractions = pgTable("voice_interactions", {
 export const profileInsights = pgTable("profile_insights", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  insightType: text("insight_type").notNull(), // "preference", "personality", "relationship", "goal"
+  insightType: text("insight_type").notNull(), // e.g., "bond_dimension_communication", "partner_details" 
   insight: text("insight").notNull(), // The actual insight text
-  confidenceScore: decimal("confidence_score", { precision: 5, scale: 2 }), // How confident the AI is (0-100)
+  confidenceScore: text("confidence_score"), // How confident the AI is (low, medium, high)
   sourceSessionIds: json("source_session_ids").$type<number[]>(), // Which conversation sessions this was derived from
+  metadata: json("metadata").default({}), // Additional data like dimension scores and dimension type
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
