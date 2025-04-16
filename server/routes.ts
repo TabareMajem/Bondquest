@@ -1591,7 +1591,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Add initial system message with appropriate prompt based on stage
-      const systemPrompt = getOnboardingPrompt(req.body.stage || "welcome");
+      const stage = req.body.stage || "welcome";
+      const systemPrompt = getOnboardingPrompt(stage);
       const systemMessage = await addConversationMessage({
         sessionId: session.id,
         sender: "system",
@@ -1600,8 +1601,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contentTags: ["onboarding", "welcome"],
       });
       
-      // Generate initial AI greeting
-      const aiGreeting = await generateGeminiResponse(session.id, "Start onboarding");
+      // Add a dummy user message to satisfy Gemini's requirement
+      await addConversationMessage({
+        sessionId: session.id,
+        sender: "user",
+        message: "Hi there! I'm ready to start using BondQuest.",
+        messageType: "greeting",
+        contentTags: ["onboarding", "welcome"],
+      });
+      
+      // Generate initial AI greeting - passing the system prompt as context
+      const aiGreeting = await generateGeminiResponse(session.id, "Hello", systemPrompt);
       
       // Save AI greeting as a message
       const aiMessage = await addConversationMessage({
@@ -1623,7 +1633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(500).json({ 
         message: "Failed to create conversation session",
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : 'Unknown error' : undefined
       });
     }
   });

@@ -25,9 +25,10 @@ export function initializeGeminiAPI(apiKey: string) {
   }
   
   googleAI = new GoogleGenerativeAI(apiKey);
-  geminiModel = googleAI.getGenerativeModel({ model: 'gemini-pro' });
+  // Use the standard model name format
+  geminiModel = googleAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
   
-  console.log('Gemini API initialized successfully');
+  console.log('Gemini API initialized successfully with model: gemini-1.0-pro');
 }
 
 /**
@@ -104,12 +105,39 @@ export async function saveProfileInsight(insightData: InsertProfileInsight): Pro
 
 /**
  * Format messages for the Gemini API
+ * Note: Gemini requires that the first message must have 'user' role
  */
 function formatMessagesForGemini(messages: ConversationMessage[]) {
-  return messages.map(msg => {
-    const role = msg.sender === 'user' ? 'user' : 
-                 msg.sender === 'ai' ? 'model' : 
-                 'system';
+  // Filter out system messages since Gemini doesn't support them directly
+  const filteredMessages = messages.filter(msg => msg.sender !== 'system');
+  
+  // If there are no user or AI messages, create a dummy user message
+  if (filteredMessages.length === 0) {
+    return [{
+      role: 'user',
+      parts: [{ text: 'Hello' }]
+    }];
+  }
+  
+  // Make sure the first message is from a user
+  if (filteredMessages[0].sender !== 'user') {
+    // Add a dummy user message at the beginning
+    filteredMessages.unshift({
+      id: 0,
+      sessionId: filteredMessages[0].sessionId,
+      sender: 'user',
+      message: 'Hello',
+      messageType: 'text',
+      timestamp: new Date(),
+      contentTags: null,
+      sentiment: null,
+      extractedInsights: null
+    });
+  }
+  
+  // Map messages to Gemini format
+  return filteredMessages.map(msg => {
+    const role = msg.sender === 'user' ? 'user' : 'model';
     
     return {
       role,
