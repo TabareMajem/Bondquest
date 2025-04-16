@@ -126,25 +126,39 @@ const BondAssessment: React.FC = () => {
 
   if (isLoadingCouple) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="h-screen flex flex-col items-center justify-center pb-16">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-gray-500">{t('Loading your couple data...')}</p>
+        
+        <div className="fixed bottom-0 left-0 right-0">
+          <BottomNavigation activeTab="bond" />
+        </div>
       </div>
     );
   }
 
   if (!coupleData?.coupleId) {
     return (
-      <Card className="max-w-3xl mx-auto my-8">
-        <CardHeader>
-          <CardTitle>{t('Bond Assessment')}</CardTitle>
-          <CardDescription>
-            {t('You need to be in a couple to assess your relationship bond.')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>{t('Please link with a partner before using this feature.')}</p>
-        </CardContent>
-      </Card>
+      <div className="max-w-3xl mx-auto my-8 pb-20">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('Bond Assessment')}</CardTitle>
+            <CardDescription>
+              {t('You need to be in a couple to assess your relationship bond.')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>{t('Please link with a partner before using this feature.')}</p>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => window.location.href = '/profile'}>
+              {t('Go to Profile')}
+            </Button>
+          </CardFooter>
+        </Card>
+        
+        <BottomNavigation activeTab="bond" />
+      </div>
     );
   }
 
@@ -203,6 +217,8 @@ const BondAssessment: React.FC = () => {
             onDimensionClick={handleDimensionClick}
           />
         )}
+        
+        <BottomNavigation activeTab="bond" />
       </div>
     );
   }
@@ -212,11 +228,27 @@ const BondAssessment: React.FC = () => {
     const dimension = bondDimensions.find(d => d.id === currentDimension);
     
     if (!dimension) {
-      return <div>Dimension not found</div>;
+      return (
+        <div className="container mx-auto py-8 max-w-3xl pb-20">
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {t('Dimension not found. Please return to the main page.')}
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button onClick={handleStartOver}>
+              {t('Back to Overview')}
+            </Button>
+          </div>
+          
+          <BottomNavigation activeTab="bond" />
+        </div>
+      );
     }
 
     return (
-      <div className="container mx-auto py-8 max-w-3xl">
+      <div className="container mx-auto py-8 max-w-3xl pb-20">
         <Card>
           <CardHeader style={{ backgroundColor: `${dimension.color}15` }}>
             <div className="flex items-center gap-3">
@@ -268,13 +300,15 @@ const BondAssessment: React.FC = () => {
             </div>
           </CardFooter>
         </Card>
+        
+        <BottomNavigation activeTab="bond" />
       </div>
     );
   }
 
   // Results view
   return (
-    <div className="container mx-auto py-8 max-w-5xl">
+    <div className="container mx-auto py-8 max-w-5xl pb-20">
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>{t('Your Bond Assessment Results')}</CardTitle>
@@ -334,6 +368,8 @@ const BondAssessment: React.FC = () => {
           </CardContent>
         </Card>
       )}
+      
+      <BottomNavigation activeTab="bond" />
     </div>
   );
 };
