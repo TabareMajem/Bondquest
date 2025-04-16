@@ -1,307 +1,234 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Award, Trophy, Users, Gift, CreditCard } from "lucide-react";
-import { Link } from "wouter";
-import { apiRequest } from "@/lib/apiClient";
-
-interface DashboardStats {
-  usersCount: number;
-  couplesCount: number;
-  subscribersCount: number;
-  activeCompetitionsCount: number;
-  recentRewards: any[];
-  claimedRewardsCount: number;
-}
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import { BarChart3, Award, Trophy, Users, CreditCard, Gift, Calendar, ArrowRight } from "lucide-react";
+import BottomNavigation from "@/components/layout/BottomNavigation";
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [, navigate] = useLocation();
+  const { user } = useAuth();
+  
+  // Check if user has admin access - in a real app, you would check user.role or similar
+  const isAdmin = user?.email === "admin@bondquest.com";
+  
+  // Redirect non-admin users
+  React.useEffect(() => {
+    if (!isAdmin) {
+      navigate("/home");
+    }
+  }, [isAdmin, navigate]);
 
-  const { data: dashboardStats, isLoading } = useQuery<DashboardStats>({
+  // Fetch dashboard data
+  const { data: dashboardData, isLoading } = useQuery({
     queryKey: ["/api/admin/dashboard"],
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: isAdmin,
   });
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-purple-700 mb-2">Loading Admin Dashboard</h2>
-            <p className="text-gray-500">Please wait while we fetch the latest data...</p>
-          </div>
-        </div>
-      </div>
-    );
+  // Mock data for initial UI
+  const stats = dashboardData || {
+    activeUsers: 126,
+    activeCouples: 63,
+    activeCompetitions: 2,
+    activeRewards: 8,
+    totalSubscriptions: 42,
+    revenue: 1260,
+    topPerformingCouples: [],
+    recentActivity: []
+  };
+
+  if (!isAdmin) {
+    return null; // Not rendering if not admin
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-purple-800">Admin Dashboard</h1>
-        <div className="space-x-2">
-          <Button asChild variant="outline">
-            <Link href="/admin/rewards/new">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New Reward
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/admin/competitions/new">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New Competition
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+    <div className="container mx-auto p-6 pb-24">
+      <h1 className="text-3xl font-bold mb-6 text-purple-800">Admin Dashboard</h1>
+      
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="rewards">Rewards</TabsTrigger>
-          <TabsTrigger value="competitions">Competitions</TabsTrigger>
-          <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="revenue">Revenue</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <TabsContent value="overview" className="space-y-6">
+          {/* Quick stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Users</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats?.usersCount || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  Total registered users on the platform
-                </p>
+                <div className="flex items-center">
+                  <Users className="w-5 h-5 text-purple-600 mr-2" />
+                  <div className="text-2xl font-bold">{stats.activeUsers}</div>
+                </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Couples</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Couples</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats?.couplesCount || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  Paired couples on the platform
-                </p>
+                <div className="flex items-center">
+                  <Trophy className="w-5 h-5 text-purple-600 mr-2" />
+                  <div className="text-2xl font-bold">{stats.activeCouples}</div>
+                </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Subscribers</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Active Competitions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats?.subscribersCount || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  Active paid subscribers
-                </p>
+                <div className="flex items-center">
+                  <Award className="w-5 h-5 text-purple-600 mr-2" />
+                  <div className="text-2xl font-bold">{stats.activeCompetitions}</div>
+                </div>
               </CardContent>
             </Card>
             
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Competitions</CardTitle>
-                <Trophy className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-500">Active Rewards</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats?.activeCompetitionsCount || 0}</div>
-                <p className="text-xs text-muted-foreground">
-                  Currently running competitions
-                </p>
+                <div className="flex items-center">
+                  <Gift className="w-5 h-5 text-purple-600 mr-2" />
+                  <div className="text-2xl font-bold">{stats.activeRewards}</div>
+                </div>
               </CardContent>
             </Card>
           </div>
           
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card className="col-span-1">
+          {/* Action cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle>Recent Rewards Claimed</CardTitle>
+                <CardTitle>Manage Rewards</CardTitle>
                 <CardDescription>
-                  The most recently claimed rewards by couples
+                  Create and update rewards that couples can earn through competitions
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {dashboardStats?.recentRewards && dashboardStats.recentRewards.length > 0 ? (
-                  <div className="space-y-4">
-                    {dashboardStats.recentRewards.map((reward) => (
-                      <div key={reward.id} className="flex items-center">
-                        <div className="mr-2 h-9 w-9 rounded-full bg-purple-100 p-2 flex items-center justify-center">
-                          <Gift className="h-4 w-4 text-purple-700" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{reward.name}</p>
-                          <p className="text-xs text-muted-foreground">Couple ID: {reward.coupleId}</p>
-                        </div>
-                        <div className="ml-auto text-xs text-muted-foreground">
-                          Status: {reward.status}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No recent rewards claimed.</p>
-                )}
-              </CardContent>
-              <CardFooter>
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/admin/rewards">
-                    View All Rewards
-                  </Link>
+                <Button 
+                  className="w-full" 
+                  onClick={() => navigate("/admin/rewards")}
+                >
+                  Go to Rewards
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </CardFooter>
+              </CardContent>
             </Card>
             
-            <Card className="col-span-1">
+            <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle>Reward Stats</CardTitle>
+                <CardTitle>Manage Competitions</CardTitle>
                 <CardDescription>
-                  Overview of the reward system performance
+                  Create and organize competitions for couples to participate in
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Total Rewards Claimed</p>
-                    <p className="text-sm font-bold">{dashboardStats?.claimedRewardsCount || 0}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <p className="text-muted-foreground">Claimed</p>
-                      <p>63%</p>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-gray-100">
-                      <div className="h-full rounded-full bg-purple-500" style={{ width: "63%" }}></div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <p className="text-muted-foreground">Shipped</p>
-                      <p>42%</p>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-gray-100">
-                      <div className="h-full rounded-full bg-purple-500" style={{ width: "42%" }}></div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <p className="text-muted-foreground">Delivered</p>
-                      <p>25%</p>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-gray-100">
-                      <div className="h-full rounded-full bg-purple-500" style={{ width: "25%" }}></div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/admin/analytics">
-                    View Detailed Analytics
-                  </Link>
+                <Button 
+                  className="w-full" 
+                  onClick={() => navigate("/admin/competitions")}
+                >
+                  Go to Competitions
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </CardFooter>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle>Manage Subscriptions</CardTitle>
+                <CardDescription>
+                  Set up and manage subscription tiers and pricing
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  className="w-full" 
+                  onClick={() => navigate("/admin/subscriptions")}
+                >
+                  Go to Subscriptions
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
             </Card>
           </div>
         </TabsContent>
         
-        <TabsContent value="rewards" className="space-y-4">
+        <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Rewards Management</CardTitle>
+              <CardTitle>User Statistics</CardTitle>
               <CardDescription>
-                Manage all rewards in the system
+                Overview of user registration and activity trends
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-center py-20">
-                Rewards management content will be shown here. 
-                This will include a list of all rewards, their status, and actions to edit or delete them.
-              </p>
+            <CardContent className="h-96 flex items-center justify-center">
+              <div className="text-center text-gray-500">
+                <BarChart3 className="w-16 h-16 mx-auto mb-4 text-purple-300" />
+                <p>User statistics charts will be displayed here</p>
+              </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button asChild variant="outline">
-                <Link href="/admin/rewards">
-                  View All Rewards
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/admin/rewards/new">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add New Reward
-                </Link>
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
         
-        <TabsContent value="competitions" className="space-y-4">
+        <TabsContent value="revenue" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Competitions Management</CardTitle>
+              <CardTitle>Revenue Overview</CardTitle>
               <CardDescription>
-                Manage all competitions in the system
+                Revenue from subscriptions and premium features
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-center py-20">
-                Competitions management content will be shown here.
-                This will include a list of all competitions, their status, and actions to edit or delete them.
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-500">Total Subscriptions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <CreditCard className="w-5 h-5 text-purple-600 mr-2" />
+                      <div className="text-2xl font-bold">{stats.totalSubscriptions}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-500">Monthly Revenue</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center">
+                      <Calendar className="w-5 h-5 text-purple-600 mr-2" />
+                      <div className="text-2xl font-bold">${stats.revenue}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+                <div className="text-center text-gray-500">
+                  <BarChart3 className="w-12 h-12 mx-auto mb-2 text-purple-300" />
+                  <p>Revenue trends chart will be displayed here</p>
+                </div>
+              </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button asChild variant="outline">
-                <Link href="/admin/competitions">
-                  View All Competitions
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/admin/competitions/new">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Create New Competition
-                </Link>
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="subscriptions" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription Tiers Management</CardTitle>
-              <CardDescription>
-                Manage subscription tiers and user subscriptions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center py-20">
-                Subscription tiers management content will be shown here.
-                This will include a list of all subscription tiers, their features, and actions to edit or delete them.
-              </p>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button asChild variant="outline">
-                <Link href="/admin/subscriptions">
-                  View All Subscriptions
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/admin/subscriptions/new">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Create New Tier
-                </Link>
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <BottomNavigation activeTab="admin" />
     </div>
   );
 };

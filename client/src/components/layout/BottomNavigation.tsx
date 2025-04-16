@@ -1,12 +1,17 @@
 import { useLocation } from "wouter";
-import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, Settings } from "lucide-react";
+import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, Settings, ShieldCheck } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BottomNavigationProps {
-  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "none";
+  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "admin" | "none";
 }
 
 export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+  
+  // Check if user has admin access - in a real app, you would check user.role or similar
+  const isAdmin = user?.email === "admin@bondquest.com";
   
   const handleNavigate = (path: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -104,6 +109,19 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
         <Settings className={getIconClassName("profile")} />
         <span className={getLabelClassName("profile")}>Settings</span>
       </div>
+      
+      {isAdmin && (
+        <div 
+          onClick={(e) => handleNavigate("/admin", e)}
+          className={getButtonClassName("admin")}
+        >
+          {activeTab === "admin" && (
+            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+          )}
+          <ShieldCheck className={getIconClassName("admin")} />
+          <span className={getLabelClassName("admin")}>Admin</span>
+        </div>
+      )}
     </div>
   );
 }

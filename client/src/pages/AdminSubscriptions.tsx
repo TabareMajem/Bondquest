@@ -1,14 +1,6 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import React from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -18,170 +10,146 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  PlusCircle,
-  Pencil,
-  Trash2,
-  ArrowLeft,
-  CreditCard,
-  Search,
-  Eye,
-  RefreshCw,
-  UserCheck,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash, CreditCard, Users, Check, X } from "lucide-react";
+import { format } from "date-fns";
 import { queryClient } from "@/lib/queryClient";
 import { SubscriptionTier, UserSubscription } from "@shared/schema";
+import { useAuth } from "@/contexts/AuthContext";
+import BottomNavigation from "@/components/layout/BottomNavigation";
 import { apiRequest } from "@/lib/apiClient";
 
-const AdminSubscriptions = () => {
+export default function AdminSubscriptions() {
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState("tiers");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  
+  // Check if user has admin access - in a real app, you would check user.role or similar
+  const isAdmin = user?.email === "admin@bondquest.com";
+  
+  // Redirect non-admin users
+  React.useEffect(() => {
+    if (!isAdmin) {
+      navigate("/home");
+    }
+  }, [isAdmin, navigate]);
 
   // Fetch subscription tiers
-  const { data: tiers, isLoading: isLoadingTiers } = useQuery<SubscriptionTier[]>({
+  const { 
+    data: subscriptionTiers, 
+    isLoading: isLoadingTiers, 
+    isError: isErrorTiers 
+  } = useQuery<SubscriptionTier[]>({
     queryKey: ["/api/admin/subscription-tiers"],
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: isAdmin,
   });
 
-  // Fetch user subscriptions
-  const { data: subscriptions, isLoading: isLoadingSubscriptions } = useQuery<UserSubscription[]>({
+  // Fetch user subscriptions 
+  const {
+    data: userSubscriptions,
+    isLoading: isLoadingSubscriptions,
+    isError: isErrorSubscriptions
+  } = useQuery<UserSubscription[]>({
     queryKey: ["/api/admin/user-subscriptions"],
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: isAdmin,
   });
 
-  const handleDeleteTier = async () => {
-    if (!selectedTier) return;
-
-    try {
-      await apiRequest(`/api/admin/subscription-tiers/${selectedTier.id}`, {
+  // Delete subscription tier mutation
+  const deleteSubscriptionTierMutation = useMutation({
+    mutationFn: (id: number) => {
+      return apiRequest(`/api/admin/subscription-tiers/${id}`, {
         method: "DELETE",
       });
-
-      // Invalidate cache
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/subscription-tiers"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
-      
-      setShowDeleteDialog(false);
-      setSelectedTier(null);
-    } catch (error) {
+      toast({
+        title: "Subscription Tier Deleted",
+        description: "The subscription tier has been successfully deleted.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete the subscription tier. Please try again.",
+        variant: "destructive",
+      });
       console.error("Failed to delete subscription tier:", error);
+    },
+  });
+
+  const handleDeleteTier = (id: number) => {
+    if (window.confirm("Are you sure you want to delete this subscription tier?")) {
+      deleteSubscriptionTierMutation.mutate(id);
     }
   };
 
-  const filteredTiers = tiers?.filter((tier) =>
-    tier.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredSubscriptions = subscriptions?.filter((sub) =>
-    sub.stripeCustomerId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sub.status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const formatCurrency = (amount: number | string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(typeof amount === 'string' ? parseFloat(amount) : amount);
-  };
-
-  const formatDate = (date: string | null) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString();
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "trialing":
-        return "bg-blue-100 text-blue-800";
-      case "past_due":
-        return "bg-yellow-100 text-yellow-800";
-      case "canceled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const isLoading = isLoadingTiers || isLoadingSubscriptions;
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-purple-700 mb-2">Loading Subscription Data</h2>
-            <p className="text-gray-500">Please wait while we fetch the subscription information...</p>
-          </div>
-        </div>
-      </div>
-    );
+  if (!isAdmin) {
+    return null; // Not rendering if not admin
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/admin")}
-          className="mr-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+    <div className="container mx-auto p-6 pb-24">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/admin")}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <h1 className="text-3xl font-bold text-purple-800">Subscription Management</h1>
+        </div>
+        <Button onClick={() => navigate("/admin/subscriptions/tiers/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Tier
         </Button>
-        <h1 className="text-3xl font-bold text-purple-800">Subscription Management</h1>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full grid grid-cols-2">
+      <Tabs defaultValue="tiers" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-8">
           <TabsTrigger value="tiers">Subscription Tiers</TabsTrigger>
-          <TabsTrigger value="subscriptions">User Subscriptions</TabsTrigger>
+          <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="tiers">
+        
+        <TabsContent value="tiers" className="space-y-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Subscription Tiers</CardTitle>
+            <CardHeader>
+              <CardTitle>All Subscription Tiers</CardTitle>
               <CardDescription>
-                Manage subscription tiers available to users
+                Manage subscription tiers, pricing, and features
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex justify-between items-center mb-6">
-                <div className="relative w-72">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search tiers..."
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+              {isLoadingTiers ? (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-gray-500">Loading subscription tiers...</p>
                 </div>
-                <Button asChild>
-                  <Link href="/admin/subscriptions/tiers/new">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add New Tier
-                  </Link>
-                </Button>
-              </div>
-
-              <div className="rounded-md border">
+              ) : isErrorTiers ? (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-red-500">Error loading subscription tiers. Please try again.</p>
+                </div>
+              ) : subscriptionTiers && subscriptionTiers.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -194,248 +162,163 @@ const AdminSubscriptions = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredTiers && filteredTiers.length > 0 ? (
-                      filteredTiers.map((tier) => (
-                        <TableRow key={tier.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center">
-                              <div className="h-9 w-9 rounded-full bg-purple-100 p-2 mr-3 flex items-center justify-center">
-                                <CreditCard className="h-4 w-4 text-purple-700" />
-                              </div>
-                              {tier.name}
-                            </div>
-                          </TableCell>
-                          <TableCell>{formatCurrency(tier.price)}</TableCell>
-                          <TableCell className="capitalize">{tier.billingPeriod}</TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                tier.active
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }
-                            >
-                              {tier.active ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {tier.features ? (
-                              <span className="text-sm text-muted-foreground">
-                                {(tier.features as string[]).length} features
-                              </span>
-                            ) : (
-                              "No features"
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                              >
-                                <Link href={`/admin/subscriptions/tiers/${tier.id}`}>
-                                  <Eye className="h-4 w-4" />
-                                  <span className="sr-only">View</span>
-                                </Link>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                              >
-                                <Link href={`/admin/subscriptions/tiers/${tier.id}/edit`}>
-                                  <Pencil className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
-                                </Link>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setSelectedTier(tier);
-                                  setShowDeleteDialog(true);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete</span>
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center h-24">
-                          {searchTerm ? (
-                            <div>No tiers matching "{searchTerm}"</div>
+                    {subscriptionTiers.map((tier) => (
+                      <TableRow key={tier.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center">
+                            <CreditCard className="h-4 w-4 mr-2 text-purple-500" />
+                            {tier.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>${tier.price}</TableCell>
+                        <TableCell className="capitalize">{tier.billingPeriod}</TableCell>
+                        <TableCell>
+                          {tier.active ? (
+                            <Badge className="bg-green-500">Active</Badge>
                           ) : (
-                            <div className="flex flex-col items-center justify-center text-muted-foreground">
-                              <CreditCard className="h-10 w-10 mb-2" />
-                              <p>No subscription tiers found</p>
-                              <p className="text-sm">Create your first tier to get started</p>
-                            </div>
+                            <Badge variant="outline">Inactive</Badge>
                           )}
                         </TableCell>
+                        <TableCell>
+                          {Array.isArray(tier.features) && tier.features.length > 0 ? (
+                            <span className="text-sm text-gray-500">
+                              {tier.features.length} feature{tier.features.length > 1 ? 's' : ''}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">No features</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => navigate(`/admin/subscriptions/tiers/${tier.id}/edit`)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteTier(tier.id)}
+                                className="text-red-600"
+                              >
+                                <Trash className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
-              </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <CreditCard className="h-12 w-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Subscription Tiers Found</h3>
+                  <p className="text-gray-500 mb-4">
+                    You haven't created any subscription tiers yet. Get started by adding your first tier.
+                  </p>
+                  <Button onClick={() => navigate("/admin/subscriptions/tiers/new")}>
+                    Add Your First Tier
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="subscriptions">
+        
+        <TabsContent value="subscribers" className="space-y-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>User Subscriptions</CardTitle>
+            <CardHeader>
+              <CardTitle>All Subscribers</CardTitle>
               <CardDescription>
-                View and manage user subscription status
+                View and manage user subscriptions
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex justify-between items-center mb-6">
-                <div className="relative w-72">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search subscriptions..."
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+              {isLoadingSubscriptions ? (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-gray-500">Loading subscribers...</p>
                 </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline">
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Sync with Stripe
-                  </Button>
+              ) : isErrorSubscriptions ? (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-red-500">Error loading subscribers. Please try again.</p>
                 </div>
-              </div>
-
-              <div className="rounded-md border">
+              ) : userSubscriptions && userSubscriptions.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>User</TableHead>
-                      <TableHead>Tier</TableHead>
+                      <TableHead>Plan</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Current Period</TableHead>
+                      <TableHead>Billing Cycle</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
                       <TableHead>Auto Renew</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSubscriptions && filteredSubscriptions.length > 0 ? (
-                      filteredSubscriptions.map((subscription) => (
-                        <TableRow key={subscription.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center">
-                              <div className="h-9 w-9 rounded-full bg-purple-100 p-2 mr-3 flex items-center justify-center">
-                                <UserCheck className="h-4 w-4 text-purple-700" />
-                              </div>
-                              User #{subscription.userId}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {tiers?.find(t => t.id === subscription.tierId)?.name || `Tier #${subscription.tierId}`}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(subscription.status)}>
-                              {subscription.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {subscription.currentPeriodStart && subscription.currentPeriodEnd ? (
-                              <span className="text-sm">
-                                {formatDate(subscription.currentPeriodStart)} - {formatDate(subscription.currentPeriodEnd)}
-                              </span>
-                            ) : (
-                              "Not available"
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {subscription.cancelAtPeriodEnd ? (
-                              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                Cancels at period end
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                Auto-renews
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                              >
-                                <Link href={`/admin/subscriptions/users/${subscription.id}`}>
-                                  <Eye className="h-4 w-4" />
-                                  <span className="sr-only">View</span>
-                                </Link>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                              >
-                                <Link href={`/admin/users/${subscription.userId}`}>
-                                  <UserCheck className="h-4 w-4" />
-                                  <span className="sr-only">View User</span>
-                                </Link>
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center h-24">
-                          {searchTerm ? (
-                            <div>No subscriptions matching "{searchTerm}"</div>
+                    {userSubscriptions.map((subscription) => (
+                      <TableRow key={subscription.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center">
+                            <Users className="h-4 w-4 mr-2 text-purple-500" />
+                            User #{subscription.userId}
+                          </div>
+                        </TableCell>
+                        <TableCell>{subscription.tierName || `Tier #${subscription.tierId}`}</TableCell>
+                        <TableCell>
+                          {subscription.status === "active" ? (
+                            <Badge className="bg-green-500">Active</Badge>
+                          ) : subscription.status === "canceled" ? (
+                            <Badge variant="outline" className="border-red-500 text-red-500">Canceled</Badge>
+                          ) : subscription.status === "expired" ? (
+                            <Badge variant="outline">Expired</Badge>
                           ) : (
-                            <div className="flex flex-col items-center justify-center text-muted-foreground">
-                              <CreditCard className="h-10 w-10 mb-2" />
-                              <p>No user subscriptions found</p>
-                              <p className="text-sm">Users haven't subscribed to any plans yet</p>
-                            </div>
+                            <Badge>{subscription.status}</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="capitalize">{subscription.billingPeriod}</TableCell>
+                        <TableCell>
+                          {format(new Date(subscription.startDate), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          {subscription.endDate && format(new Date(subscription.endDate), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          {subscription.autoRenew ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <X className="h-4 w-4 text-red-500" />
                           )}
                         </TableCell>
                       </TableRow>
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
-              </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-center">
+                  <Users className="h-12 w-12 text-gray-300 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Subscribers Found</h3>
+                  <p className="text-gray-500 mb-4">
+                    There are no active subscribers at the moment.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you sure you want to delete this subscription tier?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will permanently delete the subscription tier.
-              Any users currently subscribed to this tier will not be affected.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteTier}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
+      <BottomNavigation activeTab="admin" />
     </div>
   );
-};
-
-export default AdminSubscriptions;
+}

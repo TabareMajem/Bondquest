@@ -1,14 +1,6 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -18,261 +10,218 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  PlusCircle,
-  Pencil,
-  Trash2,
-  ArrowLeft,
-  Gift,
-  Search,
-  Eye,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash, Gift } from "lucide-react";
+import { format } from "date-fns";
 import { queryClient } from "@/lib/queryClient";
 import { Reward } from "@shared/schema";
+import { useAuth } from "@/contexts/AuthContext";
+import BottomNavigation from "@/components/layout/BottomNavigation";
 import { apiRequest } from "@/lib/apiClient";
 
-const AdminRewards = () => {
+export default function AdminRewards() {
   const [, navigate] = useLocation();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  
+  // Check if user has admin access - in a real app, you would check user.role or similar
+  const isAdmin = user?.email === "admin@bondquest.com";
+  
+  // Redirect non-admin users
+  React.useEffect(() => {
+    if (!isAdmin) {
+      navigate("/home");
+    }
+  }, [isAdmin, navigate]);
 
-  const { data: rewards, isLoading } = useQuery<Reward[]>({
+  // Fetch rewards
+  const { data: rewards, isLoading, isError } = useQuery<Reward[]>({
     queryKey: ["/api/admin/rewards"],
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: isAdmin,
   });
 
-  const handleDeleteReward = async () => {
-    if (!selectedReward) return;
-
-    try {
-      await apiRequest(`/api/admin/rewards/${selectedReward.id}`, {
+  // Delete reward mutation
+  const deleteRewardMutation = useMutation({
+    mutationFn: (id: number) => {
+      return apiRequest(`/api/admin/rewards/${id}`, {
         method: "DELETE",
       });
-
-      // Invalidate cache
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/rewards"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
-      
-      setShowDeleteDialog(false);
-      setSelectedReward(null);
-    } catch (error) {
+      toast({
+        title: "Reward Deleted",
+        description: "The reward has been successfully deleted.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete the reward. Please try again.",
+        variant: "destructive",
+      });
       console.error("Failed to delete reward:", error);
+    },
+  });
+
+  const handleDeleteReward = (id: number) => {
+    if (window.confirm("Are you sure you want to delete this reward?")) {
+      deleteRewardMutation.mutate(id);
     }
   };
 
-  const filteredRewards = rewards?.filter((reward) =>
-    reward.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const formatDate = (date: string | null) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString();
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "digital":
-        return "bg-blue-100 text-blue-800";
+  const getRewardTypeLabel = (type: string) => {
+    switch (type) {
       case "physical":
-        return "bg-green-100 text-green-800";
-      case "discount":
-        return "bg-yellow-100 text-yellow-800";
-      case "points":
-        return "bg-purple-100 text-purple-800";
+        return <Badge className="bg-blue-500">Physical</Badge>;
+      case "digital":
+        return <Badge className="bg-green-500">Digital</Badge>;
+      case "experience":
+        return <Badge className="bg-purple-500">Experience</Badge>;
       default:
-        return "bg-gray-100 text-gray-800";
+        return <Badge>Other</Badge>;
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-purple-700 mb-2">Loading Rewards</h2>
-            <p className="text-gray-500">Please wait while we fetch the rewards...</p>
-          </div>
-        </div>
-      </div>
-    );
+  if (!isAdmin) {
+    return null; // Not rendering if not admin
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/admin")}
-          className="mr-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+    <div className="container mx-auto p-6 pb-24">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/admin")}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <h1 className="text-3xl font-bold text-purple-800">Rewards Management</h1>
+        </div>
+        <Button onClick={() => navigate("/admin/rewards/new")}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Reward
         </Button>
-        <h1 className="text-3xl font-bold text-purple-800">Rewards Management</h1>
       </div>
 
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
+      <Card>
+        <CardHeader>
           <CardTitle>All Rewards</CardTitle>
           <CardDescription>
-            Manage all rewards available in the system
+            Manage rewards that couples can earn through competitions
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-center mb-6">
-            <div className="relative w-72">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search rewards..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <p className="text-gray-500">Loading rewards...</p>
             </div>
-            <Button asChild>
-              <Link href="/admin/rewards/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add New Reward
-              </Link>
-            </Button>
-          </div>
-
-          <div className="rounded-md border">
+          ) : isError ? (
+            <div className="flex justify-center items-center h-64">
+              <p className="text-red-500">Error loading rewards. Please try again.</p>
+            </div>
+          ) : rewards && rewards.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Available From</TableHead>
+                  <TableHead>Points</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Quantity</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRewards && filteredRewards.length > 0 ? (
-                  filteredRewards.map((reward) => (
-                    <TableRow key={reward.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center">
-                          <div className="h-9 w-9 rounded-full bg-purple-100 p-2 mr-3 flex items-center justify-center">
-                            <Gift className="h-4 w-4 text-purple-700" />
-                          </div>
-                          {reward.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getTypeColor(reward.type)}>
-                          {reward.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{reward.value}</TableCell>
-                      <TableCell>{formatDate(reward.availableFrom)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            reward.active
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }
-                        >
-                          {reward.active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{reward.quantity}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                          >
-                            <Link href={`/admin/rewards/${reward.id}`}>
-                              <Eye className="h-4 w-4" />
-                              <span className="sr-only">View</span>
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                          >
-                            <Link href={`/admin/rewards/${reward.id}/edit`}>
-                              <Pencil className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedReward(reward);
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center h-24">
-                      {searchTerm ? (
-                        <div>No rewards matching "{searchTerm}"</div>
+                {rewards.map((reward) => (
+                  <TableRow key={reward.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center">
+                        <Gift className="h-4 w-4 mr-2 text-purple-500" />
+                        {reward.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getRewardTypeLabel(reward.type)}</TableCell>
+                    <TableCell>{reward.pointsRequired}</TableCell>
+                    <TableCell>
+                      {reward.active ? (
+                        <Badge className="bg-green-500">Active</Badge>
                       ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
-                          <Gift className="h-10 w-10 mb-2" />
-                          <p>No rewards found</p>
-                          <p className="text-sm">Create your first reward to get started</p>
-                        </div>
+                        <Badge variant="outline">Inactive</Badge>
                       )}
                     </TableCell>
+                    <TableCell>
+                      {reward.createdAt
+                        ? format(new Date(reward.createdAt), "MMM d, yyyy")
+                        : "Unknown"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/admin/rewards/${reward.id}/edit`)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteReward(reward.id)}
+                            className="text-red-600"
+                          >
+                            <Trash className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
-                )}
+                ))}
               </TableBody>
             </Table>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <Gift className="h-12 w-12 text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Rewards Found</h3>
+              <p className="text-gray-500 mb-4">
+                You haven't created any rewards yet. Get started by adding your first reward.
+              </p>
+              <Button onClick={() => navigate("/admin/rewards/new")}>
+                Add Your First Reward
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you sure you want to delete this reward?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will permanently delete the reward
-              and remove it from the system.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteReward}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
+      <BottomNavigation activeTab="admin" />
     </div>
   );
-};
-
-export default AdminRewards;
+}
