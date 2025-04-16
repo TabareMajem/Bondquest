@@ -47,7 +47,7 @@ router.post('/create-subscription', async (req, res) => {
 
       const price = await stripeService.createPrice(
         product.id,
-        Math.round(tier.price * 100), // Convert to cents
+        Math.round((tier.price as any) * 100), // Convert to cents
         'usd',
         { interval: tier.billingPeriod === 'monthly' ? 'month' : 'year' }
       );
@@ -99,8 +99,8 @@ router.post('/create-subscription', async (req, res) => {
           tierId,
           stripeSubscriptionId: stripeSubscription.id,
           status: stripeSubscription.status,
-          currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+          currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
+          currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
           updatedAt: new Date(),
         })
         .where(eq(userSubscriptions.id, subscription.id));
@@ -111,14 +111,14 @@ router.post('/create-subscription', async (req, res) => {
         stripeCustomerId,
         stripeSubscriptionId: stripeSubscription.id,
         status: stripeSubscription.status,
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
       });
     }
 
     // Get the client secret for checkout
     const clientSecret = 
-      stripeSubscription.latest_invoice?.payment_intent?.client_secret;
+      (stripeSubscription as any).latest_invoice?.payment_intent?.client_secret;
 
     res.json({
       subscriptionId: stripeSubscription.id,
@@ -211,8 +211,8 @@ router.post('/update-subscription', async (req, res) => {
       .set({
         tierId: newTierId,
         status: updatedSubscription.status,
-        currentPeriodStart: new Date(updatedSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date((updatedSubscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((updatedSubscription as any).current_period_end * 1000),
         updatedAt: new Date(),
       })
       .where(eq(userSubscriptions.id, subscription.id));
@@ -272,7 +272,7 @@ router.post('/create-payment-intent', async (req, res) => {
     );
 
     if (metadata) {
-      await paymentIntent.update({
+      await (paymentIntent as any).update({
         metadata
       });
     }
@@ -313,7 +313,7 @@ router.post('/webhook', async (req, res) => {
     res.json({ received: true });
   } catch (error) {
     console.error('Webhook Error:', error);
-    res.status(400).send(`Webhook Error: ${error.message}`);
+    res.status(400).send(`Webhook Error: ${(error as Error).message}`);
   }
 });
 
