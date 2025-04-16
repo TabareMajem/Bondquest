@@ -286,6 +286,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error sending partner invitation:", error);
+      // More detailed error logging
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       res.status(400).json({ 
         success: false,
         message: error instanceof Error ? error.message : "Invalid request" 
