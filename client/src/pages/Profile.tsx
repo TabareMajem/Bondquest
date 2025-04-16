@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import BottomNavigation from "../components/layout/BottomNavigation";
-import { Settings, User, Heart, Trophy, Award, CalendarDays, Bell, Shield, MessageSquare, CreditCard, HelpCircle, LogOut, UserPlus, Copy, Users } from "lucide-react";
+import { Settings, User, Heart, Trophy, Award, CalendarDays, Bell, Shield, MessageSquare, CreditCard, HelpCircle, LogOut, UserPlus, Copy, Users, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 
 export default function Profile() {
   const [, navigate] = useLocation();
@@ -20,6 +22,7 @@ export default function Profile() {
   
   const { toast } = useToast();
   const { user, couple, updateCouple } = useAuth();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     navigate("/");
@@ -90,14 +93,14 @@ export default function Profile() {
       {/* Profile Header */}
       <div className="pt-8 px-6 text-white">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Profile</h1>
+          <h1 className="text-2xl font-bold">{t('common.profile')}</h1>
           {activeTab === "profile" && (
             <button 
               onClick={() => setActiveTab("settings")}
               className="flex items-center gap-1 text-white rounded-full bg-purple-700/40 backdrop-blur-sm px-3 py-1.5 shadow-lg border border-purple-500/20"
             >
               <Settings className="w-4 h-4" />
-              <span className="text-sm">Settings</span>
+              <span className="text-sm">{t('profile.accountSettings')}</span>
             </button>
           )}
         </div>
@@ -108,19 +111,19 @@ export default function Profile() {
             className={`pb-2 px-4 text-sm font-medium ${activeTab === "profile" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
             onClick={() => setActiveTab("profile")}
           >
-            Profile
+            {t('common.profile')}
           </button>
           <button 
             className={`pb-2 px-4 text-sm font-medium ${activeTab === "achievements" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
             onClick={() => setActiveTab("achievements")}
           >
-            Achievements
+            {t('home.recentAchievements')}
           </button>
           <button 
             className={`pb-2 px-4 text-sm font-medium ${activeTab === "settings" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
             onClick={() => setActiveTab("settings")}
           >
-            Settings
+            {t('profile.accountSettings')}
           </button>
         </div>
       </div>
@@ -269,7 +272,7 @@ export default function Profile() {
                 <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
                   <div className="flex items-center">
                     <Bell className="w-5 h-5 text-pink-400 mr-3" />
-                    <span className="text-white">Notifications</span>
+                    <span className="text-white">{t('profile.notifications')}</span>
                   </div>
                   <span className="text-purple-300">→</span>
                 </button>
@@ -278,7 +281,7 @@ export default function Profile() {
                 <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
                   <div className="flex items-center">
                     <Shield className="w-5 h-5 text-pink-400 mr-3" />
-                    <span className="text-white">Privacy</span>
+                    <span className="text-white">{t('profile.privacy')}</span>
                   </div>
                   <span className="text-purple-300">→</span>
                 </button>
@@ -287,7 +290,7 @@ export default function Profile() {
                 <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
                   <div className="flex items-center">
                     <MessageSquare className="w-5 h-5 text-pink-400 mr-3" />
-                    <span className="text-white">AI Assistant Preferences</span>
+                    <span className="text-white">AI {t('common.ai')} {t('profile.preferences')}</span>
                   </div>
                   <span className="text-purple-300">→</span>
                 </button>
@@ -296,10 +299,19 @@ export default function Profile() {
                 <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
                   <div className="flex items-center">
                     <CreditCard className="w-5 h-5 text-pink-400 mr-3" />
-                    <span className="text-white">Subscriptions</span>
+                    <span className="text-white">{t('profile.subscriptions')}</span>
                   </div>
                   <span className="text-purple-300">→</span>
                 </button>
+              </li>
+              <li className="p-4 hover:bg-purple-700/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Globe className="w-5 h-5 text-pink-400 mr-3" />
+                    <span className="text-white">{t('profile.language')}</span>
+                  </div>
+                  <LanguageSelector />
+                </div>
               </li>
               <li>
                 <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
