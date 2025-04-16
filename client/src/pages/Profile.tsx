@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import LanguageSelector from "@/components/ui/LanguageSelector";
+import { usePartnerLink } from "@/hooks/usePartnerLink";
 
 export default function Profile() {
   const [, navigate] = useLocation();
@@ -31,6 +32,7 @@ export default function Profile() {
   const { toast } = useToast();
   const { user, couple, updateCouple, createMockCouple } = useAuth();
   const { t } = useTranslation();
+  const { sendInvitation, isLoading: isInviteLoading } = usePartnerLink();
 
   const handleLogout = () => {
     navigate("/");
@@ -65,12 +67,39 @@ export default function Profile() {
     },
   });
   
-  const handleSendInvite = () => {
-    // In a real app, this would send an email to the partner
-    toast({
-      title: "Invitation sent!",
-      description: `An invitation email has been sent to ${partnerEmail}`,
-    });
+  const handleSendInvite = async () => {
+    if (!partnerEmail || !partnerEmail.includes('@')) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const success = await sendInvitation(partnerEmail);
+      
+      if (success) {
+        toast({
+          title: "Invitation sent!",
+          description: `An invitation email has been sent to ${partnerEmail}`
+        });
+        setPartnerEmail(''); // Clear the input after successful submission
+      } else {
+        toast({
+          title: "Failed to send invitation",
+          description: "Please try again later",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleLinkPartner = () => {
