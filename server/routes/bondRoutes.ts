@@ -12,7 +12,11 @@ router.get('/questions', async (req, res) => {
     const questions = await storage.getBondQuestions();
     res.json(questions);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch bond questions' });
+    console.error('Error fetching bond questions:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch bond questions',
+      error: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+    });
   }
 });
 
