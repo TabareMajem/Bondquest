@@ -8,6 +8,7 @@ import { QuizProvider } from "./contexts/QuizContext";
 import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import SignUp from "./pages/SignUp";
+import Login from "./pages/Login";
 import PartnerLinking from "./pages/PartnerLinking";
 import ProfileSetup from "./pages/ProfileSetup";
 import QuizSelector from "./pages/QuizSelector";
