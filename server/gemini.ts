@@ -26,35 +26,45 @@ export function initializeGeminiAPI(apiKey: string) {
   
   googleAI = new GoogleGenerativeAI(apiKey);
   
-  // Try various model names that are confirmed available from our API response
-  const modelOptions = [
-    'models/gemini-1.5-pro',       // New confirmed models from API response
-    'models/gemini-1.5-flash',
-    'models/gemini-1.5-pro-latest',
-    'models/gemini-1.5-pro-001',
-    'models/gemini-1.5-flash-latest',
-    'models/gemini-pro-vision',    // Vision capability
-    'gemini-pro'                   // Legacy/original naming (likely not available)
-  ];
-  
+  // Use the confirmed working model based on our tests
+  const confirmedModel = 'models/gemini-1.5-pro';
   let modelInitialized = false;
   
-  // Try each model until one works
-  for (const modelName of modelOptions) {
-    if (modelInitialized) break;
+  try {
+    console.log(`Attempting to initialize Gemini API with model: ${confirmedModel}`);
+    geminiModel = googleAI.getGenerativeModel({ model: confirmedModel });
+    console.log(`Gemini API initialized successfully with model: ${confirmedModel}`);
+    modelInitialized = true;
+  } catch (error) {
+    console.error(`Error initializing Gemini model ${confirmedModel}:`, error);
     
-    try {
-      console.log(`Attempting to initialize Gemini API with model: ${modelName}`);
-      geminiModel = googleAI.getGenerativeModel({ model: modelName });
-      console.log(`Gemini API initialized successfully with model: ${modelName}`);
-      modelInitialized = true;
-    } catch (error) {
-      console.error(`Error initializing Gemini model ${modelName}:`, error);
+    // Fallback to trying other models if the preferred one fails
+    const fallbackModels = [
+      'models/gemini-1.5-flash',
+      'models/gemini-1.5-pro-latest',
+      'models/gemini-1.5-pro-001',
+      'models/gemini-1.5-flash-latest',
+      'models/gemini-pro-vision',
+      'gemini-pro'
+    ];
+    
+    // Try each fallback model until one works
+    for (const modelName of fallbackModels) {
+      if (modelInitialized) break;
+      
+      try {
+        console.log(`Attempting to initialize Gemini API with fallback model: ${modelName}`);
+        geminiModel = googleAI.getGenerativeModel({ model: modelName });
+        console.log(`Gemini API initialized successfully with fallback model: ${modelName}`);
+        modelInitialized = true;
+      } catch (fallbackError) {
+        console.error(`Error initializing Gemini fallback model ${modelName}:`, fallbackError);
+      }
     }
   }
   
   if (!modelInitialized) {
-    console.warn('None of the model options worked. Using fallback mechanism for all responses.');
+    console.warn('No Gemini models could be initialized. Using fallback response mechanisms.');
   }
 }
 
