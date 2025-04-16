@@ -6,8 +6,8 @@
  * tailored, actionable advice for couples.
  */
 
-import { bondDimensions, BondDimension } from './bondDimensions';
-import { aiCompanions, getCompanionPrompt } from './aiCompanions';
+import { aiCompanions, buildCompanionSystemPrompt, getCompanionPrompt } from './aiCompanions';
+import { BondDimension } from './bondDimensions';
 
 /**
  * Represents a bond insight with guidance for a specific relationship dimension
@@ -47,26 +47,28 @@ export interface InsertBondInsight {
  * Get the companion best suited for advice on a specific bond dimension
  */
 export function getBestCompanionForDimension(dimensionId: string): string {
-  // Match dimensions to the most appropriate companion
+  // Map dimensions to the most appropriate AI companion
   const dimensionToCompanion: Record<string, string> = {
-    // Venus is best for communication and emotional dimensions
-    'communication': 'venus',
-    'emotional_intimacy': 'venus',
-    'conflict_resolution': 'venus',
-    'mutual_support': 'venus',
+    // Venus specializes in communication-related dimensions
+    communication: 'venus',
+    emotionalIntimacy: 'venus',
+    conflict: 'venus',
+    trust: 'venus',
     
-    // Casanova is best for romance and fun dimensions
-    'physical_intimacy': 'casanova',
-    'fun_playfulness': 'casanova',
+    // Casanova specializes in romance and shared experience dimensions
+    physicalIntimacy: 'casanova',
+    romance: 'casanova',
+    playfulness: 'casanova',
+    sharedExperiences: 'casanova',
     
-    // Aurora is best for analytical and planning dimensions
-    'trust': 'aurora',
-    'shared_values': 'aurora',
-    'independence_balance': 'aurora',
-    'overall_satisfaction': 'aurora'
+    // Aurora specializes in growth and planning dimensions
+    growth: 'aurora',
+    goals: 'aurora',
+    boundaries: 'aurora',
+    balance: 'aurora',
   };
   
-  return dimensionToCompanion[dimensionId] || 'aurora'; // Default to Aurora if no match
+  return dimensionToCompanion[dimensionId] || 'aurora'; // Default to Aurora
 }
 
 /**
@@ -75,205 +77,215 @@ export function getBestCompanionForDimension(dimensionId: string): string {
 export function generateInsightPromptVariables(
   dimension: BondDimension,
   score: number,
-  relationshipLength?: string,
-  partnerInterests?: string[]
+  relationshipLength: string = "1-3 years"
 ): Record<string, string> {
-  const variables: Record<string, string> = {
+  // Determine score level category
+  let scoreLevel = "low";
+  if (score >= 7) {
+    scoreLevel = "high";
+  } else if (score >= 4) {
+    scoreLevel = "medium";
+  }
+  
+  // Generate challenges based on score level
+  let challenges = "";
+  if (scoreLevel === "low") {
+    challenges = `establishing consistent patterns, core trust issues, or fundamental misalignment in ${dimension.name} expectations`;
+  } else if (scoreLevel === "medium") {
+    challenges = `inconsistent application, competing priorities, or unaddressed minor issues in ${dimension.name}`;
+  } else {
+    challenges = `maintaining consistency during stress, avoiding complacency, or continuing to evolve as your relationship changes`;
+  }
+  
+  // Generate sample interests for personalization
+  const interestPairs = [
+    "travel and outdoor activities",
+    "movies and board games",
+    "cooking and trying new restaurants",
+    "fitness and wellness",
+    "reading and intellectual discussions",
+    "music and arts"
+  ];
+  
+  // Pick a random interest pair
+  const interests = interestPairs[Math.floor(Math.random() * interestPairs.length)];
+  
+  return {
     dimension: dimension.name,
-    score: score.toString(),
-    scoreLevel: score <= 3 ? 'low' : score <= 6 ? 'moderate' : 'high',
-    description: dimension.description
+    description: dimension.description,
+    scoreLevel,
+    challenges,
+    relationshipLength,
+    interests
   };
-  
-  if (relationshipLength) {
-    variables.relationshipLength = relationshipLength;
-  }
-  
-  if (partnerInterests && partnerInterests.length > 0) {
-    variables.interests = partnerInterests.join(', ');
-  }
-  
-  return variables;
 }
 
 /**
  * Get the appropriate scenario key for generating insights based on the dimension
  */
 export function getScenarioKeyForDimension(dimensionId: string, score: number): string {
-  // Match dimensions to companion-specific scenario templates
-  const dimensionToScenario: Record<string, Record<string, string>> = {
-    // Venus scenarios
-    'communication': {
-      low: 'difficultConversations',
-      moderate: 'activeListing',
-      high: 'emotionalIntimacy'
-    },
-    'emotional_intimacy': {
-      low: 'emotionalIntimacy',
-      moderate: 'emotionalIntimacy',
-      high: 'emotionalIntimacy'
-    },
-    'conflict_resolution': {
-      low: 'conflictResolution',
-      moderate: 'conflictResolution',
-      high: 'needsExpression'
-    },
-    'mutual_support': {
-      low: 'needsExpression',
-      moderate: 'activeListing',
-      high: 'emotionalIntimacy'
-    },
-    
-    // Casanova scenarios
-    'physical_intimacy': {
-      low: 'intimacyBuilding',
-      moderate: 'reignitingSpark',
-      high: 'surpriseIdeas'
-    },
-    'fun_playfulness': {
-      low: 'dateIdeas',
-      moderate: 'dateIdeas',
-      high: 'surpriseIdeas'
-    },
-    
-    // Aurora scenarios
-    'trust': {
-      low: 'patternIdentification',
-      moderate: 'habitBuilding',
-      high: 'relationshipMaintenance'
-    },
-    'shared_values': {
-      low: 'goalSetting',
-      moderate: 'goalSetting',
-      high: 'relationshipMaintenance'
-    },
-    'independence_balance': {
-      low: 'relationshipAssessment',
-      moderate: 'habitBuilding',
-      high: 'relationshipMaintenance'
-    },
-    'overall_satisfaction': {
-      low: 'relationshipAssessment',
-      moderate: 'habitBuilding',
-      high: 'relationshipMaintenance'
-    }
+  // High scores get maintenance recommendations
+  if (score >= 7) {
+    return 'relationshipMaintenance';
+  }
+  
+  // Map dimensions to the most relevant scenario template
+  const dimensionToScenario: Record<string, string> = {
+    communication: 'activeListing',
+    emotionalIntimacy: 'emotionalIntimacy',
+    trust: 'patternIdentification',
+    conflict: 'difficultConversations',
+    physicalIntimacy: 'intimacyBuilding',
+    romance: 'reignitingSpark',
+    playfulness: 'surpriseIdeas',
+    sharedExperiences: 'dateIdeas',
+    growth: 'habitBuilding',
+    goals: 'goalSetting',
+    boundaries: 'needsExpression',
+    balance: 'goalSetting'
   };
   
-  const scoreLevel = score <= 3 ? 'low' : score <= 6 ? 'moderate' : 'high';
-  
-  // Get scenario based on dimension and score level, default to assessment if not found
-  return dimensionToScenario[dimensionId]?.[scoreLevel] || 'relationshipAssessment';
+  return dimensionToScenario[dimensionId] || 'relationshipAssessment';
 }
 
 /**
  * Generate a bond insight prompt for a specific dimension and score
  */
 export function generateBondInsightPrompt(
-  dimensionId: string,
+  dimension: BondDimension,
   score: number,
-  contextInfo: {
-    relationshipLength?: string;
-    partnerInterests?: string[];
-    challenges?: string[];
-  } = {}
+  relationshipLength: string = "1-3 years"
 ): string {
-  // Get the dimension details
-  const dimension = bondDimensions.find(d => d.id === dimensionId);
-  if (!dimension) {
-    return "No specific insights available for this dimension.";
-  }
+  // Get the best companion for this dimension
+  const companionId = getBestCompanionForDimension(dimension.id);
   
-  // Determine best companion for this dimension
-  const companionId = getBestCompanionForDimension(dimensionId);
+  // Get the appropriate scenario for this dimension and score
+  const scenarioKey = getScenarioKeyForDimension(dimension.id, score);
   
-  // Get the appropriate scenario key for this dimension and score
-  const scenarioKey = getScenarioKeyForDimension(dimensionId, score);
+  // Generate context variables
+  const variables = generateInsightPromptVariables(dimension, score, relationshipLength);
   
-  // Create variables for the prompt template
-  const variables = generateInsightPromptVariables(
-    dimension, 
-    score, 
-    contextInfo.relationshipLength,
-    contextInfo.partnerInterests
-  );
+  // Get the specific prompt for this scenario from the companion
+  const specificPrompt = getCompanionPrompt(companionId, scenarioKey, variables);
   
-  // Add challenges if provided
-  if (contextInfo.challenges && contextInfo.challenges.length > 0) {
-    variables.challenges = contextInfo.challenges.join(', ');
-  }
+  // Build a complete prompt
+  const systemPrompt = buildCompanionSystemPrompt(companionId, {
+    scenario: scenarioKey,
+    variables
+  });
   
-  // Get the appropriate prompt for this companion and scenario
-  const prompt = getCompanionPrompt(companionId, scenarioKey, variables);
-  
-  return prompt;
+  return systemPrompt;
 }
 
 /**
  * Generate structured action items for a bond dimension based on score
  */
 export function generateActionItemsForDimension(dimensionId: string, score: number): string[] {
-  // Basic templates for action items that would normally be generated by AI
-  const actionTemplates: Record<string, string[]> = {
-    'communication': [
-      "Schedule a weekly 'heart-to-heart' talk with no distractions",
-      "Practice active listening techniques during difficult conversations",
-      "Use 'I feel' statements instead of accusatory language"
-    ],
-    'trust': [
-      "Share one vulnerable thought or feeling each day",
-      "Follow through on small promises consistently",
-      "Create shared passwords or access to each other's devices"
-    ],
-    'emotional_intimacy': [
-      "Share a childhood memory you've never told your partner",
-      "Express appreciation for something specific your partner did today",
-      "Create a shared journal where you both write thoughts and feelings"
-    ],
-    'conflict_resolution': [
-      "Establish a 'time-out' word to pause heated discussions",
-      "Wait 24 hours before discussing major disagreements",
-      "Focus on finding solutions rather than assigning blame"
-    ],
-    'physical_intimacy': [
-      "Create a list of physical touch preferences you both enjoy",
-      "Schedule regular date nights focused on connection",
-      "Try a new physical activity together like dancing or massage"
-    ],
-    'shared_values': [
-      "Create a vision board for your relationship's future",
-      "Discuss one life goal and how you can support each other",
-      "Volunteer together for a cause you both believe in"
-    ],
-    'fun_playfulness': [
-      "Plan a surprise activity for your partner this week",
-      "Try a new hobby or game together",
-      "Create a bucket list of fun experiences to share"
-    ],
-    'mutual_support': [
-      "Identify your partner's current stressors and offer support",
-      "Celebrate a recent accomplishment of your partner's",
-      "Ask your partner what kind of support they most need right now"
-    ],
-    'independence_balance': [
-      "Schedule dedicated 'me time' for each partner weekly",
-      "Support each other in pursuing individual interests",
-      "Share what you gained from your individual experiences"
-    ],
-    'overall_satisfaction': [
-      "Create a gratitude practice focusing on relationship positives",
-      "Identify one small daily habit that would improve your connection",
-      "Discuss your relationship strengths and build on them"
-    ]
-  };
-  
-  // Get action items for this dimension, or use default if not found
-  const actions = actionTemplates[dimensionId] || actionTemplates.overall_satisfaction;
-  
-  // Select appropriate number of actions based on score
-  // Low scores get more actions, high scores get fewer maintenance actions
-  const actionCount = score <= 3 ? 3 : score <= 6 ? 2 : 1;
-  
-  return actions.slice(0, actionCount);
+  // Low score action items (foundational)
+  if (score <= 3) {
+    switch(dimensionId) {
+      case 'communication':
+        return [
+          "Schedule a weekly 'communication check-in' for 15 minutes",
+          "Practice active listening by repeating back what your partner says",
+          "Write down one thing you appreciate about your partner daily"
+        ];
+      case 'trust':
+        return [
+          "Share one small vulnerability with your partner this week",
+          "Follow through on a small promise to build reliability",
+          "Practice transparent communication about your schedule"
+        ];
+      case 'emotionalIntimacy':
+        return [
+          "Share one meaningful feeling each day with your partner",
+          "Create a 'connection ritual' before bed (like sharing highlights)",
+          "Ask deeper questions beyond daily logistics"
+        ];
+      case 'physicalIntimacy':
+        return [
+          "Establish a daily 6-second kiss ritual",
+          "Practice non-sexual touch daily (hand holding, hugs, shoulder rubs)",
+          "Create a 'touch menu' of physical connections you both enjoy"
+        ];
+      default:
+        return [
+          "Set aside 10 minutes daily to focus on this dimension",
+          "Identify one small step to improve in this area",
+          "Discuss your expectations for this dimension with your partner"
+        ];
+    }
+  }
+  // Medium score action items (strengthening)
+  else if (score <= 6) {
+    switch(dimensionId) {
+      case 'communication':
+        return [
+          "Try the 'speaker-listener' technique for difficult conversations",
+          "Create code words for when you need space or support",
+          "Schedule a monthly deeper conversation about relationship growth"
+        ];
+      case 'trust':
+        return [
+          "Share a deeper fear or insecurity with your partner",
+          "Discuss a past trust breach and what you learned from it",
+          "Identify one way you could be more reliable to each other"
+        ];
+      case 'emotionalIntimacy':
+        return [
+          "Share your personal goals and ask for your partner's support",
+          "Create a 'emotional weather report' ritual to check in regularly",
+          "Discuss what makes you feel truly seen and understood"
+        ];
+      case 'physicalIntimacy':
+        return [
+          "Try the 'sensate focus' exercise to deepen physical connection",
+          "Create a relaxing bedtime ritual together",
+          "Share three things that help you feel more connected physically"
+        ];
+      default:
+        return [
+          "Identify patterns that strengthen and weaken this dimension",
+          "Schedule a dedicated time weekly to focus on this area",
+          "Read a book or article together about this dimension"
+        ];
+    }
+  }
+  // High score action items (maintaining/advancing)
+  else {
+    switch(dimensionId) {
+      case 'communication':
+        return [
+          "Learn a new communication skill together (like non-violent communication)",
+          "Practice communicating effectively during stress or conflict",
+          "Create a 'state of the relationship' monthly discussion"
+        ];
+      case 'trust':
+        return [
+          "Share dreams and vulnerabilities you haven't yet expressed",
+          "Create a ritual to acknowledge and appreciate trustworthy actions",
+          "Discuss how you might support each other through a major life change"
+        ];
+      case 'emotionalIntimacy':
+        return [
+          "Create a deeper intimacy practice like meditation together",
+          "Write a letter to your partner about your hopes for your future",
+          "Discuss how your emotional needs have evolved over time"
+        ];
+      case 'physicalIntimacy':
+        return [
+          "Create a 'desire map' to understand patterns in your connection",
+          "Try a new physical practice together (dance, yoga, massage)",
+          "Plan a sensual experience focusing entirely on each other"
+        ];
+      default:
+        return [
+          "Mentor another couple in strengthening this dimension",
+          "Create a vision for how this dimension might evolve over years",
+          "Challenge yourselves to take this dimension to a new level"
+        ];
+    }
+  }
 }
 
 /**
@@ -281,50 +293,61 @@ export function generateActionItemsForDimension(dimensionId: string, score: numb
  */
 export function generateBondInsight(
   coupleId: number,
-  dimensionId: string,
+  dimension: BondDimension,
   score: number,
-  contextInfo: {
-    relationshipLength?: string;
-    partnerInterests?: string[];
-    challenges?: string[];
-  } = {}
+  relationshipLength: string = "1-3 years"
 ): InsertBondInsight {
-  // Get the dimension details
-  const dimension = bondDimensions.find(d => d.id === dimensionId) || bondDimensions[0];
-  
-  // Get difficulty level based on score
-  const difficulty = score <= 3 ? "challenging" : score <= 6 ? "medium" : "easy";
-  
-  // Generate content (this would normally come from AI)
-  const content = generateBondInsightPrompt(dimensionId, score, contextInfo);
-  
-  // Generate action items
-  const actionItems = generateActionItemsForDimension(dimensionId, score);
-  
-  // Create expiration date (30 days from now)
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 30);
-  
-  // Create insight title based on dimension and score
-  let title: string;
+  // Determine difficulty based on score
+  let difficulty = "medium";
   if (score <= 3) {
-    title = `Strengthening Your ${dimension.name}`;
+    difficulty = "easy"; // Easier tasks for struggling areas
+  } else if (score >= 7) {
+    difficulty = "challenging"; // More advanced tasks for strong areas
+  }
+  
+  // Set expiration date to 14 days from now
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 14);
+  
+  // Generate action items specific to this dimension and score
+  const actionItems = generateActionItemsForDimension(dimension.id, score);
+  
+  // Generate insight title based on score
+  let title = `Strengthening ${dimension.name} in Your Relationship`;
+  if (score <= 3) {
+    title = `Building a Foundation of ${dimension.name}`;
+  } else if (score >= 7) {
+    title = `Maintaining Excellence in ${dimension.name}`;
+  }
+  
+  // Generate content placeholder (would be replaced by AI content in production)
+  const content = `This insight focuses on ${dimension.name} in your relationship, which currently scores ${score}/10.
+  
+  ${dimension.description}
+  
+  Based on your score, we recommend focusing on strengthening this area through consistent small actions.
+  The action items below are designed to help you make meaningful progress.`;
+  
+  // Define score range this insight applies to
+  let targetScoreRange: [number, number] = [0, 10];
+  if (score <= 3) {
+    targetScoreRange = [0, 3];
   } else if (score <= 6) {
-    title = `Enhancing Your ${dimension.name}`;
+    targetScoreRange = [4, 6];
   } else {
-    title = `Maintaining Strong ${dimension.name}`;
+    targetScoreRange = [7, 10];
   }
   
   return {
     title,
     coupleId,
-    dimensionId,
+    dimensionId: dimension.id,
     content,
     actionItems,
-    targetScoreRange: [Math.max(0, score - 2), Math.min(10, score + 2)],
+    targetScoreRange,
     difficulty,
     expiresAt,
-    completed: null,
+    completed: false,
     viewed: false
   };
 }

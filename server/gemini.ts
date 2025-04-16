@@ -274,56 +274,65 @@ export async function generateGeminiResponse(
 
 /**
  * Generate a fallback response when the AI API is unavailable
+ * 
+ * Note: This is a synchronous function that returns predefined responses
+ * based on the user's message and conversation stage.
  */
 function generateFallbackResponse(
   sessionId: number,
   userMessage: string,
   systemContext?: string
 ): string {
-  // Get the session info to determine what type of response to generate
-  return db.select()
-    .from(conversationSessions)
-    .where(eq(conversationSessions.id, sessionId))
-    .then(sessions => {
-      const session = sessions[0];
-      
-      if (session && session.sessionType === 'onboarding') {
-        // Get all previous messages to determine conversation state
-        return getConversationMessages(sessionId).then(messages => {
-          const userMessages = messages.filter(m => m.sender === 'user');
-          
-          // First response in onboarding - welcome message
-          if (userMessages.length <= 1) {
-            return "Hello and welcome to BondQuest! 👋 I'm your relationship assistant, here to help you strengthen your bond with your partner. What's your name, and what's your partner's name? I'd love to get to know you both better!";
-          }
-          
-          // Second response - asking about relationship duration
-          if (userMessages.length === 2) {
-            return "It's great to meet you! How long have you and your partner been together? Understanding your relationship journey helps me provide more personalized suggestions and activities.";
-          }
-          
-          // Third response - asking about hopes for the app
-          if (userMessages.length === 3) {
-            return "Thanks for sharing! What are you hoping to gain from using BondQuest? Whether it's better communication, fun activities to do together, or deeper understanding of each other - knowing your goals will help me customize your experience.";
-          }
-          
-          // Fourth response - wrapping up onboarding
-          if (userMessages.length === 4) {
-            return "That's wonderful! BondQuest has lots of features to help with that. You'll find relationship quizzes, suggested activities, and tools to track your bond strength as you grow together. I'm excited to be part of your relationship journey! Is there anything specific you'd like to explore first?";
-          }
-          
-          // General fallback for other situations
-          return "I understand! BondQuest is all about helping couples like you strengthen your connection through fun, meaningful interactions. Let's continue this journey together. What would you like to explore next?";
-        });
-      }
-      
-      // Default fallback response for non-onboarding contexts
-      return "I'm here to help you build a stronger relationship. What would you like to know about BondQuest?";
-    })
-    .catch(error => {
-      console.error('Error generating fallback response:', error);
-      return "I'm here to help you build a stronger relationship. What would you like to know about BondQuest?";
-    });
+  try {
+    // Extract conversation stage from system context if available
+    let stage = 'unknown';
+    if (systemContext && systemContext.includes('welcome')) {
+      stage = 'welcome';
+    } else if (systemContext && systemContext.includes('relationship_status')) {
+      stage = 'relationship_status';
+    } else if (systemContext && systemContext.includes('communication')) {
+      stage = 'communication';
+    } else if (systemContext && systemContext.includes('interests')) {
+      stage = 'interests';
+    } else if (systemContext && systemContext.includes('goals')) {
+      stage = 'goals';
+    } else if (systemContext && systemContext.includes('wrap_up')) {
+      stage = 'wrap_up';
+    }
+    
+    // Companion-specific responses based on stage
+    const venusResponses: Record<string, string> = {
+      welcome: "Hello and welcome to BondQuest! 👋 I'm Venus, your relationship communication guide. I'm here to help you strengthen your bond with your partner. What's your name, and what's your partner's name? I'd love to get to know you both better!",
+      relationship_status: "It's great to meet you! How long have you and your partner been together? Understanding your relationship journey helps me provide more personalized suggestions for improving your communication.",
+      communication: "How do you and your partner typically communicate throughout the day? Understanding your communication patterns helps me provide better guidance for deepening your connection.",
+      unknown: "I'm Venus, your communication specialist at BondQuest. I'm here to help you build a stronger relationship through better communication. What would you like to know?"
+    };
+    
+    const casanovaResponses: Record<string, string> = {
+      interests: "Let's talk about the fun side of your relationship! What activities do you and your partner enjoy doing together? I love helping couples discover new exciting ways to connect.",
+      unknown: "I'm Casanova, your romantic activities guide at BondQuest. I'm here to help you keep the spark alive with creative date ideas and romantic inspiration. What would you like to explore?"
+    };
+    
+    const auroraResponses: Record<string, string> = {
+      goals: "Looking toward the future is important for every relationship. What are some of your short-term and long-term goals together? Understanding these helps me analyze patterns and suggest personalized growth opportunities.",
+      unknown: "I'm Aurora, your data-driven relationship scientist at BondQuest. I help couples understand the patterns in their relationship and make evidence-based improvements. How can I assist you today?"
+    };
+    
+    // Select the appropriate response based on detected stage
+    if (stage === 'welcome' || stage === 'relationship_status' || stage === 'communication') {
+      return venusResponses[stage] || venusResponses.unknown;
+    } else if (stage === 'interests') {
+      return casanovaResponses.interests || casanovaResponses.unknown;
+    } else if (stage === 'goals') {
+      return auroraResponses.goals || auroraResponses.unknown;
+    }
+    
+    // Default fallback response if stage cannot be determined
+    return "I'm here to help you build a stronger relationship through BondQuest. What specific area of your relationship would you like to focus on improving?";
+  } catch (error) {
+    console.error('Error generating fallback response:', error);
+    return "I'm here to help you build a stronger relationship. What would you like to know about BondQuest?";
+  }
 }
 
 /**
@@ -507,27 +516,42 @@ async function generateFallbackInsights(
 
 /**
  * Get a prompt for different stages of the onboarding process
+ * Uses AI companions system for more personalized and engaging onboarding
  */
 export function getOnboardingPrompt(stage: string): string {
-  const prompts: Record<string, string> = {
+  // Map onboarding stages to the most appropriate AI companion
+  const stageToCompanion: Record<string, string> = {
+    welcome: 'venus',             // Venus is warm and welcoming
+    relationship_status: 'venus', // Venus understands relationship dynamics 
+    communication: 'venus',       // Venus specializes in communication
+    interests: 'casanova',        // Casanova is passionate about shared activities
+    goals: 'aurora',              // Aurora is analytical and future-oriented
+    wrap_up: 'venus'              // Venus is empathetic for closing conversation
+  };
+  
+  // Get the appropriate companion for this stage
+  const companionId = stageToCompanion[stage] || 'venus';
+  const companion = aiCompanions.find(c => c.id === companionId);
+  
+  // Stage-specific instructions that will be added to the companion's system prompt
+  const stageInstructions: Record<string, string> = {
     welcome: `
-      You are BondQuest's friendly relationship assistant. Your goal is to make the user feel comfortable sharing
-      information about their relationship in a natural, conversational way. You're warmly welcoming them to the
-      relationship app.
+      Your goal is to make the user feel comfortable sharing information about their relationship in a 
+      natural, conversational way. You're warmly welcoming them to BondQuest.
       
       In this initial conversation:
-      1. Introduce yourself and welcome them to BondQuest
+      1. Introduce yourself as ${companion?.name || 'a relationship assistant'} and welcome them to BondQuest
       2. Ask about their name and their partner's name (if they have one)
       3. Inquire about how long they've been together
       4. Ask what they hope to gain from using this relationship app
       
-      Keep your messages friendly, supportive and relatively short. Show genuine interest in their relationship
-      and make them feel comfortable sharing.
+      Keep your messages friendly, supportive and relatively short (3-4 sentences max).
+      Show genuine interest in their relationship and make them feel comfortable sharing.
     `,
     
     relationship_status: `
-      You are BondQuest's friendly relationship assistant. Your goal is to gently learn more about the user's
-      current relationship status and dynamics in a conversational way.
+      Your goal is to gently learn more about the user's current relationship status and dynamics
+      in a conversational way.
       
       In this conversation:
       1. Ask about their current relationship status (dating, engaged, married, etc.)
@@ -540,8 +564,7 @@ export function getOnboardingPrompt(stage: string): string {
     `,
     
     communication: `
-      You are BondQuest's friendly relationship assistant. Your goal is to understand how the user and their
-      partner communicate and handle conflicts.
+      Your goal is to understand how the user and their partner communicate and handle conflicts.
       
       In this conversation:
       1. Ask how they typically communicate with their partner (text, calls, in-person, etc.)
@@ -554,8 +577,7 @@ export function getOnboardingPrompt(stage: string): string {
     `,
     
     interests: `
-      You are BondQuest's friendly relationship assistant. Your goal is to learn about the couple's shared
-      interests and activities they enjoy together.
+      Your goal is to learn about the couple's shared interests and activities they enjoy together.
       
       In this conversation:
       1. Ask about activities they enjoy doing together
@@ -568,8 +590,7 @@ export function getOnboardingPrompt(stage: string): string {
     `,
     
     goals: `
-      You are BondQuest's friendly relationship assistant. Your goal is to understand the couple's relationship
-      goals and aspirations.
+      Your goal is to understand the couple's relationship goals and aspirations.
       
       In this conversation:
       1. Ask about their short-term relationship goals
@@ -582,8 +603,7 @@ export function getOnboardingPrompt(stage: string): string {
     `,
     
     wrap_up: `
-      You are BondQuest's friendly relationship assistant. Your goal is to wrap up the onboarding conversation
-      positively and set expectations for using the app.
+      Your goal is to wrap up the onboarding conversation positively and set expectations for using the app.
       
       In this conversation:
       1. Thank them for sharing about their relationship
@@ -596,5 +616,26 @@ export function getOnboardingPrompt(stage: string): string {
     `
   };
   
-  return prompts[stage] || prompts.welcome;
+  // Start with the companion's basic system prompt
+  let fullPrompt = companion?.systemPrompt || 
+    "You are BondQuest's friendly relationship assistant helping couples strengthen their relationship.";
+  
+  // Add stage-specific instructions
+  if (stageInstructions[stage]) {
+    fullPrompt += `\n\n${stageInstructions[stage]}`;
+  }
+  
+  // Add general conversation guidelines for all onboarding chats
+  fullPrompt += `\n
+    General guidelines:
+    - Keep responses conversational, warm, and engaging
+    - Use emoji occasionally to convey warmth (1-2 per message maximum)
+    - Ask only one question at a time
+    - Responses should be brief (2-4 sentences)
+    - Show authentic interest in the user's relationship
+    - Avoid clichés and generic relationship advice
+    - Remember this is just the beginning of their journey with BondQuest
+  `;
+  
+  return fullPrompt;
 }
