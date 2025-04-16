@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { 
@@ -1726,6 +1727,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: "Failed to extract profile insights",
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  });
+  
+  // Diagnostic endpoint to check Gemini API status
+  app.get("/api/gemini/status", async (req, res) => {
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        return res.json({
+          status: "error",
+          message: "GEMINI_API_KEY environment variable is not set",
+          availableModels: []
+        });
+      }
+      
+      const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      
+      try {
+        // Try to list available models
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
+          headers: {
+            "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        return res.json({
+          status: "success",
+          apiKey: "present (masked)",
+          response: data
+        });
+      } catch (error) {
+        return res.json({
+          status: "error",
+          message: "Failed to list models",
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    } catch (error) {
+      return res.status(500).json({
+        status: "error",
+        message: "Internal server error",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

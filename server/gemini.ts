@@ -26,23 +26,34 @@ export function initializeGeminiAPI(apiKey: string) {
   
   googleAI = new GoogleGenerativeAI(apiKey);
   
-  // Test with a simplified text generation first to check API health
-  try {
-    console.log('Initializing Gemini API with model: gemini-pro');
-    geminiModel = googleAI.getGenerativeModel({ model: 'gemini-pro' });
-    // Let's fallback to a basic text-only interaction to help with debugging
-    console.log('Gemini API initialized successfully with model: gemini-pro');
-  } catch (error) {
-    console.error('Error initializing Gemini model:', error);
-    // Try fallback to a different model if available
+  // Try various model names to find one that works with the current API
+  const modelOptions = [
+    'gemini-pro',          // Standard naming
+    'gemini-1.0-pro',      // Alternative with version
+    'models/gemini-pro',   // Full path
+    'gemini-pro-vision',   // Vision capability
+    'models/gemini-1.5-pro', // Newer version
+    'gemini-1.5-pro'       // Newer version without path
+  ];
+  
+  let modelInitialized = false;
+  
+  // Try each model until one works
+  for (const modelName of modelOptions) {
+    if (modelInitialized) break;
+    
     try {
-      console.log('Attempting fallback to model: gemini-1.0-pro');
-      geminiModel = googleAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
-      console.log('Gemini API initialized with fallback model: gemini-1.0-pro');
-    } catch (fallbackError) {
-      console.error('Fallback also failed:', fallbackError);
-      throw new Error('Failed to initialize any Gemini model');
+      console.log(`Attempting to initialize Gemini API with model: ${modelName}`);
+      geminiModel = googleAI.getGenerativeModel({ model: modelName });
+      console.log(`Gemini API initialized successfully with model: ${modelName}`);
+      modelInitialized = true;
+    } catch (error) {
+      console.error(`Error initializing Gemini model ${modelName}:`, error);
     }
+  }
+  
+  if (!modelInitialized) {
+    console.warn('None of the model options worked. Using fallback mechanism for all responses.');
   }
 }
 
