@@ -46,9 +46,38 @@ export function BondAssessmentQuiz() {
   const coupleId = couple?.id || 0;
 
   // Fetch questions for each bond dimension
-  const { data: questions, isLoading } = useQuery<BondQuestion[]>({
+  const { data: questions, isLoading, refetch: refetchQuestions } = useQuery<BondQuestion[]>({
     queryKey: [`/api/bond-questions`],
     queryFn: () => get(`/api/bond-questions`),
+  });
+  
+  // Mutation for generating AI-powered questions
+  const generateAIMutation = useMutation({
+    mutationFn: (dimensionId: string) => {
+      return post(`/api/bond/ai-generate-assessment`, {
+        coupleId,
+        dimensionId,
+      });
+    },
+    onSuccess: () => {
+      // Refetch questions to include the newly generated ones
+      refetchQuestions();
+      setIsGeneratingAI(false);
+      toast({
+        title: t('bond.aiGeneratedSuccess'),
+        description: t('bond.aiGeneratedDescription'),
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error("Error generating AI questions:", error);
+      setIsGeneratingAI(false);
+      toast({
+        title: t('bond.aiGeneratedError'),
+        description: t('bond.aiGeneratedErrorDescription'),
+        variant: "destructive",
+      });
+    }
   });
 
   // Group questions by dimension
@@ -64,6 +93,22 @@ export function BondAssessmentQuiz() {
   // Current dimension and its questions
   const currentDimension = questionsByDimension[currentDimensionIndex]?.dimension;
   const currentQuestions = questionsByDimension[currentDimensionIndex]?.questions || [];
+  
+  // Check if we need to show AI generation buttons
+  const needsAIGeneration = currentDimension && currentQuestions.length === 0;
+  
+  // Handler for generating AI questions for the current dimension
+  const handleGenerateAIQuestions = () => {
+    if (!currentDimension || coupleId === 0) return;
+    
+    setIsGeneratingAI(true);
+    toast({
+      title: t('bond.aiGeneratingForDimension', { dimension: currentDimension.name }),
+      description: t('bond.aiPersonalizing'),
+    });
+    
+    generateAIMutation.mutate(currentDimension.id);
+  };
 
   // Create form schema based on current questions
   const createFormSchema = () => {
@@ -206,11 +251,48 @@ export function BondAssessmentQuiz() {
       <Card className="p-6 text-center">
         <h3 className="text-lg font-medium mb-2">{t('bond.noQuestionsAvailable')}</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          {t('bond.tryAgainLater')}
+          {t('bond.tryGeneratingAI')}
         </p>
-        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-          {t('common.retry')}
-        </Button>
+        <div className="flex flex-col gap-3 items-center">
+          <Button 
+            variant="default" 
+            className="gap-2"
+            disabled={isGeneratingAI} 
+            onClick={() => {
+              if (coupleId === 0) {
+                toast({
+                  title: t('bond.partnerRequired'),
+                  description: t('bond.connectWithPartner'),
+                  variant: "destructive",
+                });
+                return;
+              }
+              
+              // Generate AI questions for all dimensions
+              setIsGeneratingAI(true);
+              toast({
+                title: t('bond.aiGenerating'),
+                description: t('bond.aiGeneratingDescription'),
+              });
+              
+              // Generate questions for the first dimension to start
+              const firstDimension = BOND_DIMENSIONS[0];
+              if (firstDimension) {
+                generateAIMutation.mutate(firstDimension.id);
+              }
+            }}
+          >
+            {isGeneratingAI ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isGeneratingAI ? t('bond.generatingQuestions') : t('bond.generateAIQuestions')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            {t('common.retry')}
+          </Button>
+        </div>
       </Card>
     );
   }
@@ -257,7 +339,23 @@ export function BondAssessmentQuiz() {
               {currentDimensionIndex + 1}/{questionsByDimension.length}
             </span>
           </div>
-          <h2 className="text-xl font-bold mb-1">{currentDimension?.name}</h2>
+          <div className="flex justify-between items-start mb-1">
+            <h2 className="text-xl font-bold">{currentDimension?.name}</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-xs"
+              disabled={isGeneratingAI}
+              onClick={handleGenerateAIQuestions}
+            >
+              {isGeneratingAI ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
+              {isGeneratingAI ? t('bond.regenerating') : t('bond.regenerateWithAI')}
+            </Button>
+          </div>
           <p className="text-muted-foreground">
             {currentDimension?.description}
           </p>
