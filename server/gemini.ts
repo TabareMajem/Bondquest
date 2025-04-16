@@ -11,6 +11,7 @@ import {
   ProfileInsight
 } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { aiCompanions, buildCompanionSystemPrompt } from '@shared/aiCompanions';
 
 // GoogleAI instance
 let googleAI: GoogleGenerativeAI;
