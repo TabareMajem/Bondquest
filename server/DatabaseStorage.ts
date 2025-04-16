@@ -5,6 +5,7 @@ import { IStorage } from './storage';
 import {
   users, couples, quizzes, questions, quizSessions, dailyCheckIns, achievements, activities, chats,
   subscriptionTiers, userSubscriptions, rewards, competitions, competitionRewards, competitionEntries, coupleRewards,
+  bondQuestions, bondAssessments, bondInsights,
   type User, type InsertUser, type Couple, type InsertCouple, type Quiz, type InsertQuiz,
   type Question, type InsertQuestion, type QuizSession, type InsertQuizSession,
   type DailyCheckIn, type InsertDailyCheckIn, type Achievement, type InsertAchievement,
@@ -12,7 +13,9 @@ import {
   type SubscriptionTier, type InsertSubscriptionTier, type UserSubscription, type InsertUserSubscription,
   type Reward, type InsertReward, type Competition, type InsertCompetition,
   type CompetitionReward, type InsertCompetitionReward, type CompetitionEntry, type InsertCompetitionEntry,
-  type CoupleReward, type InsertCoupleReward
+  type CoupleReward, type InsertCoupleReward,
+  type BondQuestion, type InsertBondQuestion, type BondAssessment, type InsertBondAssessment,
+  type BondInsight, type InsertBondInsight
 } from '@shared/schema';
 
 export class DatabaseStorage implements IStorage {
@@ -496,5 +499,106 @@ export class DatabaseStorage implements IStorage {
       .where(eq(coupleRewards.id, id))
       .returning();
     return updatedReward;
+  }
+
+  // Bond Dimension Methods
+  
+  // Bond Question Methods
+  async getBondQuestions(): Promise<BondQuestion[]> {
+    return await db.select().from(bondQuestions);
+  }
+
+  async getBondQuestionsByDimension(dimensionId: string): Promise<BondQuestion[]> {
+    return await db.select().from(bondQuestions)
+      .where(eq(bondQuestions.dimensionId, dimensionId));
+  }
+
+  async getBondQuestion(id: number): Promise<BondQuestion | undefined> {
+    const [question] = await db.select().from(bondQuestions).where(eq(bondQuestions.id, id));
+    return question;
+  }
+
+  async createBondQuestion(question: InsertBondQuestion): Promise<BondQuestion> {
+    // Ensure options is properly formatted as a string array for database storage
+    const processedQuestion = {
+      ...question,
+      options: Array.isArray(question.options) ? question.options : null
+    };
+    
+    const [newQuestion] = await db.insert(bondQuestions)
+      .values(processedQuestion)
+      .returning();
+    return newQuestion;
+  }
+
+  // Bond Assessment Methods
+  async getBondAssessmentsByCouple(coupleId: number): Promise<BondAssessment[]> {
+    return await db.select().from(bondAssessments)
+      .where(eq(bondAssessments.coupleId, coupleId))
+      .orderBy(desc(bondAssessments.createdAt));
+  }
+
+  async getBondAssessment(id: number): Promise<BondAssessment | undefined> {
+    const [assessment] = await db.select().from(bondAssessments).where(eq(bondAssessments.id, id));
+    return assessment;
+  }
+
+  async createBondAssessment(assessment: InsertBondAssessment): Promise<BondAssessment> {
+    const now = new Date();
+    
+    const [newAssessment] = await db.insert(bondAssessments)
+      .values({
+        ...assessment,
+        answeredAt: now,
+        updatedAt: now
+      })
+      .returning();
+    
+    return newAssessment;
+  }
+
+  // Bond Insight Methods
+  async getBondInsightsByCouple(coupleId: number): Promise<BondInsight[]> {
+    return await db.select().from(bondInsights)
+      .where(eq(bondInsights.coupleId, coupleId))
+      .orderBy(desc(bondInsights.createdAt));
+  }
+
+  async getBondInsight(id: number): Promise<BondInsight | undefined> {
+    const [insight] = await db.select().from(bondInsights).where(eq(bondInsights.id, id));
+    return insight;
+  }
+
+  async createBondInsight(insight: InsertBondInsight): Promise<BondInsight> {
+    // Set expiration date to 30 days from now
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+    
+    const [newInsight] = await db.insert(bondInsights)
+      .values({
+        ...insight,
+        expiresAt
+      })
+      .returning();
+    
+    return newInsight;
+  }
+
+  async updateBondInsightViewed(id: number, viewed: boolean): Promise<BondInsight | undefined> {
+    const [updatedInsight] = await db.update(bondInsights)
+      .set({ viewed })
+      .where(eq(bondInsights.id, id))
+      .returning();
+    
+    return updatedInsight;
+  }
+
+  async updateBondInsightCompleted(id: number, completed: boolean): Promise<BondInsight | undefined> {
+    const [updatedInsight] = await db.update(bondInsights)
+      .set({ completed })
+      .where(eq(bondInsights.id, id))
+      .returning();
+    
+    return updatedInsight;
   }
 }
