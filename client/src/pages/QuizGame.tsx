@@ -19,7 +19,7 @@ export default function QuizGame() {
   const [, navigate] = useLocation();
   const { user, couple } = useAuth();
   const { toast } = useToast();
-  const quizId = parseInt(id);
+  const quizId = id ? parseInt(id) : NaN;
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -142,10 +142,10 @@ export default function QuizGame() {
 
   // Handle proceeding to next question
   const handleNextQuestion = () => {
-    if (data) {
+    if (data && data.questions && data.questions.length > 0) {
       // Save the answer
-      if (selectedAnswer) {
-        const questionId = data.questions[currentQuestionIndex].id.toString();
+      if (selectedAnswer && currentQuestion) {
+        const questionId = currentQuestion.id.toString();
         setAnswers(prev => ({
           ...prev,
           [questionId]: selectedAnswer
@@ -193,7 +193,7 @@ export default function QuizGame() {
     );
   }
 
-  const currentQuestion = data.questions[currentQuestionIndex];
+  const currentQuestion = data?.questions?.[currentQuestionIndex];
 
   // Show results screen if quiz is completed
   if (quizCompleted && quizSessionId && data) {
@@ -237,7 +237,7 @@ export default function QuizGame() {
       {/* Question Area */}
       <div className="px-6 mb-8">
         <div className="bg-white rounded-xl p-5 shadow-md mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 mb-1">{currentQuestion.text}</h2>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">{currentQuestion?.text || "Loading question..."}</h2>
           <p className="text-gray-500 text-sm">Select what you think they will answer</p>
         </div>
         
@@ -254,14 +254,14 @@ export default function QuizGame() {
         
         {/* Answer Options */}
         <div className="space-y-3">
-          {currentQuestion.options?.map((option, index) => (
+          {currentQuestion?.options?.map((option, index) => (
             <AnswerOption
               key={index}
               text={option}
               isSelected={selectedAnswer === option}
               onClick={() => handleAnswerSelect(option)}
             />
-          ))}
+          )) || <div className="text-center py-4 text-gray-500">Loading options...</div>}
         </div>
       </div>
       
