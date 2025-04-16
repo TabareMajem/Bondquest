@@ -429,7 +429,7 @@ export async function extractProfileInsightsFromConversation(
               insightType: insight.insightType,
               insight: insight.insight,
               confidenceScore: insight.confidenceScore || 'medium',
-              metadata: { sessionId }
+              sourceSessionIds: [sessionId]
             });
             
             savedInsights.push(savedInsight);
@@ -495,10 +495,7 @@ async function generateFallbackInsights(
       insightType: insight.insightType,
       insight: insight.insight,
       confidenceScore: insight.confidenceScore,
-      metadata: { 
-        sessionId,
-        isFallback: true
-      }
+      sourceSessionIds: [sessionId]
     });
     
     savedInsights.push(savedInsight);
