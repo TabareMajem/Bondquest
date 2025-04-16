@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import BottomNavigation from "../components/layout/BottomNavigation";
-import { Settings, User, Heart, Trophy, Award, CalendarDays, Bell, Shield, MessageSquare, CreditCard, HelpCircle, LogOut, UserPlus, Copy, Users, Globe } from "lucide-react";
+import { Settings, User, Heart, Trophy, Award, CalendarDays, Bell, Shield, MessageSquare, CreditCard, HelpCircle, LogOut, UserPlus, Copy, Users, Globe, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,14 @@ export default function Profile() {
   const [partnerLinkModalOpen, setPartnerLinkModalOpen] = useState(false);
   const [partnerEmail, setPartnerEmail] = useState("");
   const [partnerCode, setPartnerCode] = useState("");
+  
+  // Modal states for different settings sections
+  const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
+  const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+  const [aiPreferencesModalOpen, setAiPreferencesModalOpen] = useState(false);
+  const [subscriptionsModalOpen, setSubscriptionsModalOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
   
   const { toast } = useToast();
   const { user, couple, updateCouple } = useAuth();
@@ -149,8 +157,12 @@ export default function Profile() {
                 </div>
                 
                 <div className="flex gap-2 mt-3">
-                  <button className="flex items-center gap-1 bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-1.5 rounded-full text-sm text-white shadow-md">
-                    <span>Edit Profile</span>
+                  <button 
+                    onClick={() => setEditProfileModalOpen(true)}
+                    className="flex items-center gap-1 bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-1.5 rounded-full text-sm text-white shadow-md"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    <span>{t('profile.editProfile')}</span>
                   </button>
                   
                   {!couple && (
@@ -269,7 +281,10 @@ export default function Profile() {
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden mb-6 shadow-xl border border-purple-500/20">
             <ul className="divide-y divide-purple-700/30">
               <li>
-                <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
+                <button 
+                  onClick={() => setNotificationsModalOpen(true)}
+                  className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20"
+                >
                   <div className="flex items-center">
                     <Bell className="w-5 h-5 text-pink-400 mr-3" />
                     <span className="text-white">{t('profile.notifications')}</span>
@@ -278,7 +293,10 @@ export default function Profile() {
                 </button>
               </li>
               <li>
-                <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
+                <button 
+                  onClick={() => setPrivacyModalOpen(true)}
+                  className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20"
+                >
                   <div className="flex items-center">
                     <Shield className="w-5 h-5 text-pink-400 mr-3" />
                     <span className="text-white">{t('profile.privacy')}</span>
@@ -287,7 +305,10 @@ export default function Profile() {
                 </button>
               </li>
               <li>
-                <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
+                <button 
+                  onClick={() => setAiPreferencesModalOpen(true)}
+                  className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20"
+                >
                   <div className="flex items-center">
                     <MessageSquare className="w-5 h-5 text-pink-400 mr-3" />
                     <span className="text-white">AI {t('common.ai')} {t('profile.preferences')}</span>
@@ -296,7 +317,10 @@ export default function Profile() {
                 </button>
               </li>
               <li>
-                <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
+                <button 
+                  onClick={() => setSubscriptionsModalOpen(true)}
+                  className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20"
+                >
                   <div className="flex items-center">
                     <CreditCard className="w-5 h-5 text-pink-400 mr-3" />
                     <span className="text-white">{t('profile.subscriptions')}</span>
@@ -314,7 +338,10 @@ export default function Profile() {
                 </div>
               </li>
               <li>
-                <button className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20">
+                <button 
+                  onClick={() => setHelpModalOpen(true)}
+                  className="flex items-center justify-between w-full text-left p-4 hover:bg-purple-700/20"
+                >
                   <div className="flex items-center">
                     <HelpCircle className="w-5 h-5 text-pink-400 mr-3" />
                     <span className="text-white">{t('profile.help')}</span>
@@ -337,6 +364,81 @@ export default function Profile() {
       )}
 
       <BottomNavigation activeTab="profile" />
+      
+      {/* Edit Profile Modal */}
+      <Dialog open={editProfileModalOpen} onOpenChange={setEditProfileModalOpen}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-center">{t('profile.editProfile')}</DialogTitle>
+            <DialogDescription className="text-purple-200 text-center">
+              Update your profile information
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm text-purple-200">{t('common.username')}</label>
+              <Input 
+                className="bg-purple-800/50 border-purple-500/30 text-white" 
+                placeholder="Your username"
+                defaultValue="BondQuest User"
+              />
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm text-purple-200">Email</label>
+              <Input 
+                type="email"
+                className="bg-purple-800/50 border-purple-500/30 text-white" 
+                placeholder="Your email"
+                defaultValue="user@example.com"
+              />
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm text-purple-200">Avatar</label>
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-3xl font-bold text-white mr-4 shadow-lg border-2 border-white/20">
+                  <User className="w-8 h-8" />
+                </div>
+                <Button variant="outline" className="border-purple-500/30 text-white hover:bg-purple-700/50">
+                  {t('profile.changePhoto')}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              <label className="text-sm text-purple-200">Love Language</label>
+              <Input 
+                className="bg-purple-800/50 border-purple-500/30 text-white" 
+                placeholder="Your love language"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="mt-6 flex gap-3">
+            <Button 
+              variant="outline" 
+              className="flex-1 border-purple-500/30 text-white hover:bg-purple-700/50"
+              onClick={() => setEditProfileModalOpen(false)}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white"
+              onClick={() => {
+                toast({
+                  title: "Profile updated",
+                  description: "Your profile has been updated successfully",
+                });
+                setEditProfileModalOpen(false);
+              }}
+            >
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Partner Linking Modal */}
       <Dialog open={partnerLinkModalOpen} onOpenChange={setPartnerLinkModalOpen}>
