@@ -26,7 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const [, navigate] = useLocation();
-  const { login, isAdmin } = useAuth();
+  const { login, socialLogin, isAdmin } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
@@ -74,33 +74,22 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      // In a real implementation, this would redirect to Google OAuth
-      // For now, we'll simulate a successful login
-      setTimeout(async () => {
-        try {
-          // Simulate login with dummy data
-          await login({ username: "google_user", password: "google_auth" });
-          navigate("/home");
-          toast({
-            title: t('auth.loginSuccess'),
-            description: t('auth.loginSuccess'),
-          });
-        } catch (error: any) {
-          toast({
-            title: t('auth.loginFailed'),
-            description: error.message || t('auth.loginFailed'),
-            variant: "destructive",
-          });
-        } finally {
-          setIsGoogleLoading(false);
-        }
-      }, 1500);
+      // In a real implementation, this would redirect to Google OAuth and get a token
+      // For now, we're using our socialLogin method directly
+      await socialLogin('google');
+      
+      navigate("/home");
+      toast({
+        title: t('auth.loginSuccess'),
+        description: t('auth.loginSuccess'),
+      });
     } catch (error: any) {
       toast({
         title: t('auth.loginFailed'),
         description: error.message || "Google authentication failed. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsGoogleLoading(false);
     }
   };
@@ -108,33 +97,22 @@ export default function Login() {
   const handleInstagramLogin = async () => {
     setIsInstagramLoading(true);
     try {
-      // In a real implementation, this would redirect to Instagram OAuth
-      // For now, we'll simulate a successful login
-      setTimeout(async () => {
-        try {
-          // Simulate login with dummy data
-          await login({ username: "instagram_user", password: "instagram_auth" });
-          navigate("/home");
-          toast({
-            title: t('auth.loginSuccess'),
-            description: t('auth.loginSuccess'),
-          });
-        } catch (error: any) {
-          toast({
-            title: t('auth.loginFailed'),
-            description: error.message || t('auth.loginFailed'),
-            variant: "destructive",
-          });
-        } finally {
-          setIsInstagramLoading(false);
-        }
-      }, 1500);
+      // In a real implementation, this would redirect to Instagram OAuth and get a token
+      // For now, we're using our socialLogin method directly
+      await socialLogin('instagram');
+      
+      navigate("/home");
+      toast({
+        title: t('auth.loginSuccess'),
+        description: t('auth.loginSuccess'),
+      });
     } catch (error: any) {
       toast({
         title: t('auth.loginFailed'),
         description: error.message || "Instagram authentication failed. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsInstagramLoading(false);
     }
   };

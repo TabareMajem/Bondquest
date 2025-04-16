@@ -8,6 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   login: (credentials: { username: string; password: string }) => Promise<void>;
+  socialLogin: (provider: string, accessToken?: string) => Promise<void>;
   logout: () => void;
   updateCouple: (coupleData: Couple) => void;
 }
@@ -87,13 +88,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const socialLogin = async (provider: string, accessToken?: string): Promise<void> => {
+    setIsLoading(true);
+    try {
+      // In a real implementation, we would make an API request with the token
+      // For now, we're simulating the login with a mocked response
+      // Create a proper User object that matches our schema
+      const mockUser: User = {
+        id: 999,
+        username: `${provider}_user`,
+        password: "", // This would not be returned from a real API
+        email: `${provider}_user@example.com`,
+        displayName: `${provider.charAt(0).toUpperCase() + provider.slice(1)} User`,
+        avatar: null,
+        loveLanguage: null,
+        relationshipStatus: null,
+        anniversary: null,
+        createdAt: new Date(),
+        partnerCode: `${provider.toUpperCase()}-${Math.floor(Math.random() * 10000)}`,
+      };
+      
+      setUser(mockUser);
+      setCouple(null);
+      
+      // Store auth data in localStorage
+      localStorage.setItem("bondquest_user", JSON.stringify(mockUser));
+      
+      // Check if the user is an admin (in a real scenario, this would come from the server)
+      if (mockUser.email.includes("admin")) {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    } catch (error) {
+      console.error(`${provider} login failed:`, error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const updateCouple = (coupleData: Couple) => {
     setCouple(coupleData);
     localStorage.setItem("bondquest_couple", JSON.stringify(coupleData));
   };
 
   return (
-    <AuthContext.Provider value={{ user, couple, isLoading, isAdmin, login, logout, updateCouple }}>
+    <AuthContext.Provider value={{ user, couple, isLoading, isAdmin, login, socialLogin, logout, updateCouple }}>
       {children}
     </AuthContext.Provider>
   );
