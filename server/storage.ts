@@ -1,6 +1,7 @@
 import { 
   users, couples, quizzes, questions, quizSessions, dailyCheckIns, achievements, activities, chats,
   subscriptionTiers, userSubscriptions, rewards, competitions, competitionRewards, competitionEntries, coupleRewards,
+  userProfiles, profileQuestions, userResponses, partnerQuizQuestions, partnerQuizResponses,
   type User, type InsertUser, type Couple, type InsertCouple, type Quiz, type InsertQuiz, 
   type Question, type InsertQuestion, type QuizSession, type InsertQuizSession, 
   type DailyCheckIn, type InsertDailyCheckIn, type Achievement, type InsertAchievement,
@@ -8,7 +9,10 @@ import {
   type SubscriptionTier, type InsertSubscriptionTier, type UserSubscription, type InsertUserSubscription,
   type Reward, type InsertReward, type Competition, type InsertCompetition,
   type CompetitionReward, type InsertCompetitionReward, type CompetitionEntry, type InsertCompetitionEntry,
-  type CoupleReward, type InsertCoupleReward
+  type CoupleReward, type InsertCoupleReward,
+  type UserProfile, type InsertUserProfile, type ProfileQuestion, type InsertProfileQuestion,
+  type UserResponse, type InsertUserResponse, type PartnerQuizQuestion, type InsertPartnerQuizQuestion,
+  type PartnerQuizResponse, type InsertPartnerQuizResponse
 } from "@shared/schema";
 import { nanoid } from "nanoid";
 
@@ -99,6 +103,28 @@ export interface IStorage {
   createCoupleReward(coupleReward: InsertCoupleReward): Promise<CoupleReward>;
   updateCoupleRewardStatus(id: number, status: string): Promise<CoupleReward | undefined>;
   updateCoupleRewardShipping(id: number, trackingNumber: string, shippingAddress: any): Promise<CoupleReward | undefined>;
+  
+  // User Profile Methods
+  getUserProfile(userId: number): Promise<UserProfile | undefined>;
+  createUserProfile(profile: InsertUserProfile): Promise<UserProfile>;
+  updateUserProfile(userId: number, updates: Partial<UserProfile>): Promise<UserProfile | undefined>;
+  
+  // Profile Questions Methods
+  getProfileQuestions(category?: string): Promise<ProfileQuestion[]>;
+  getProfileQuestion(id: number): Promise<ProfileQuestion | undefined>;
+  createProfileQuestion(question: InsertProfileQuestion): Promise<ProfileQuestion>;
+  
+  // User Response Methods
+  getUserResponses(userId: number): Promise<UserResponse[]>;
+  getUserResponsesByQuestion(userId: number, questionId: number): Promise<UserResponse | undefined>;
+  createUserResponse(response: InsertUserResponse): Promise<UserResponse>;
+  
+  // Partner Quiz Methods
+  getPartnerQuizQuestions(quizSessionId: number): Promise<PartnerQuizQuestion[]>;
+  getPartnerQuizQuestion(id: number): Promise<PartnerQuizQuestion | undefined>;
+  createPartnerQuizQuestion(question: InsertPartnerQuizQuestion): Promise<PartnerQuizQuestion>;
+  getPartnerQuizResponses(questionId: number): Promise<PartnerQuizResponse[]>;
+  createPartnerQuizResponse(response: InsertPartnerQuizResponse): Promise<PartnerQuizResponse>;
 }
 
 export class MemStorage implements IStorage {
@@ -111,6 +137,18 @@ export class MemStorage implements IStorage {
   private achievements: Map<number, Achievement>;
   private activities: Map<number, Activity>;
   private chats: Map<number, Chat>;
+  private userProfiles: Map<number, UserProfile>;
+  private profileQuestions: Map<number, ProfileQuestion>;
+  private userResponses: Map<number, UserResponse>;
+  private partnerQuizQuestions: Map<number, PartnerQuizQuestion>;
+  private partnerQuizResponses: Map<number, PartnerQuizResponse>;
+  private subscriptionTiers: Map<number, SubscriptionTier>;
+  private userSubscriptions: Map<number, UserSubscription>;
+  private rewards: Map<number, Reward>;
+  private competitions: Map<number, Competition>;
+  private competitionRewards: Map<number, CompetitionReward>;
+  private competitionEntries: Map<number, CompetitionEntry>;
+  private coupleRewards: Map<number, CoupleReward>;
   
   private userId: number = 1;
   private coupleId: number = 1;
@@ -121,6 +159,18 @@ export class MemStorage implements IStorage {
   private achievementId: number = 1;
   private activityId: number = 1;
   private chatId: number = 1;
+  private userProfileId: number = 1;
+  private profileQuestionId: number = 1;
+  private userResponseId: number = 1;
+  private partnerQuizQuestionId: number = 1;
+  private partnerQuizResponseId: number = 1;
+  private subscriptionTierId: number = 1;
+  private userSubscriptionId: number = 1;
+  private rewardId: number = 1;
+  private competitionId: number = 1;
+  private competitionRewardId: number = 1;
+  private competitionEntryId: number = 1;
+  private coupleRewardId: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -132,6 +182,18 @@ export class MemStorage implements IStorage {
     this.achievements = new Map();
     this.activities = new Map();
     this.chats = new Map();
+    this.userProfiles = new Map();
+    this.profileQuestions = new Map();
+    this.userResponses = new Map();
+    this.partnerQuizQuestions = new Map();
+    this.partnerQuizResponses = new Map();
+    this.subscriptionTiers = new Map();
+    this.userSubscriptions = new Map();
+    this.rewards = new Map();
+    this.competitions = new Map();
+    this.competitionRewards = new Map();
+    this.competitionEntries = new Map();
+    this.coupleRewards = new Map();
     
     // Initialize with sample quizzes and questions
     this.initializeSampleData();

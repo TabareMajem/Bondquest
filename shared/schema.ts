@@ -285,3 +285,94 @@ export type InsertCompetitionEntry = z.infer<typeof insertCompetitionEntrySchema
 
 export type CoupleReward = typeof coupleRewards.$inferSelect;
 export type InsertCoupleReward = z.infer<typeof insertCoupleRewardSchema>;
+
+// User Profile Detail Model - Stores detailed information about a user
+export const userProfiles = pgTable("user_profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  favoriteColors: json("favorite_colors").$type<string[]>(),
+  favoriteFood: text("favorite_food"),
+  favoriteMovies: json("favorite_movies").$type<string[]>(),
+  favoriteSongs: json("favorite_songs").$type<string[]>(),
+  hobbies: json("hobbies").$type<string[]>(),
+  dreamVacation: text("dream_vacation"),
+  biggestFear: text("biggest_fear"),
+  petPeeves: json("pet_peeves").$type<string[]>(),
+  childhoodMemories: json("childhood_memories").$type<string[]>(),
+  loveLanguage: text("love_language"),
+  communicationStyle: text("communication_style"),
+  weekendPreference: text("weekend_preference"),
+  stressRelievers: json("stress_relievers").$type<string[]>(),
+  lifeGoals: json("life_goals").$type<string[]>(),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+  metadata: json("metadata").$type<Record<string, any>>(),
+});
+
+// Profile Questions - Template questions for profile creation
+export const profileQuestions = pgTable("profile_questions", {
+  id: serial("id").primaryKey(),
+  category: text("category").notNull(), // personal, relationship, etc.
+  questionText: text("question_text").notNull(),
+  responseType: text("response_type").notNull(), // "text", "multiple_choice", "list"
+  options: json("options").$type<string[]>(), // For multiple choice questions
+  isRequired: boolean("is_required").default(false),
+  sortOrder: integer("sort_order").default(0),
+});
+
+// User Responses - Stores answers to profile questions
+export const userResponses = pgTable("user_responses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  questionId: integer("question_id").notNull().references(() => profileQuestions.id),
+  response: text("response").notNull(),
+  additionalContext: text("additional_context"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Partner Quiz Questions - Questions one partner creates about themselves for the other to answer
+export const partnerQuizQuestions = pgTable("partner_quiz_questions", {
+  id: serial("id").primaryKey(),
+  quizSessionId: integer("quiz_session_id").notNull().references(() => quizSessions.id),
+  authorUserId: integer("author_user_id").notNull().references(() => users.id),
+  targetUserId: integer("target_user_id").notNull().references(() => users.id),
+  questionText: text("question_text").notNull(),
+  correctAnswer: text("correct_answer").notNull(),
+  options: json("options").$type<string[]>().notNull(),
+  difficulty: text("difficulty").default("medium"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Partner Quiz Responses - Answers submitted by the target partner
+export const partnerQuizResponses = pgTable("partner_quiz_responses", {
+  id: serial("id").primaryKey(),
+  questionId: integer("question_id").notNull().references(() => partnerQuizQuestions.id),
+  respondentUserId: integer("respondent_user_id").notNull().references(() => users.id),
+  selectedAnswer: text("selected_answer").notNull(),
+  isCorrect: boolean("is_correct").notNull(),
+  responseTime: integer("response_time"), // in seconds
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Schema definitions for the new tables
+export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({ id: true });
+export const insertProfileQuestionSchema = createInsertSchema(profileQuestions).omit({ id: true });
+export const insertUserResponseSchema = createInsertSchema(userResponses).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPartnerQuizQuestionSchema = createInsertSchema(partnerQuizQuestions).omit({ id: true, createdAt: true });
+export const insertPartnerQuizResponseSchema = createInsertSchema(partnerQuizResponses).omit({ id: true, createdAt: true });
+
+// Types for the new tables
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
+
+export type ProfileQuestion = typeof profileQuestions.$inferSelect;
+export type InsertProfileQuestion = z.infer<typeof insertProfileQuestionSchema>;
+
+export type UserResponse = typeof userResponses.$inferSelect;
+export type InsertUserResponse = z.infer<typeof insertUserResponseSchema>;
+
+export type PartnerQuizQuestion = typeof partnerQuizQuestions.$inferSelect;
+export type InsertPartnerQuizQuestion = z.infer<typeof insertPartnerQuizQuestionSchema>;
+
+export type PartnerQuizResponse = typeof partnerQuizResponses.$inferSelect;
+export type InsertPartnerQuizResponse = z.infer<typeof insertPartnerQuizResponseSchema>;
