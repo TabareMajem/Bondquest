@@ -440,6 +440,30 @@ export default function Home() {
           </div>
         </div>
         
+        {/* Bond Assessment Card */}
+        <div 
+          className="relative p-5 bg-gradient-to-br from-blue-500/90 to-violet-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-blue-500/20 mb-6"
+          onClick={() => navigate('/bond-assessment')}
+        >
+          <div className="absolute right-4 top-4 w-12 h-12 opacity-50">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="white" strokeWidth="2"/>
+              <path d="M12 8V16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M8 12H16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <h3 className="text-white text-sm font-medium mb-1">Relationship Assessment</h3>
+          <h2 className="text-white text-xl font-bold mb-1">Bond Dimensions</h2>
+          <p className="text-white/80 text-sm mb-3">
+            Assess and visualize the strength of your relationship across 10 key dimensions
+          </p>
+          <div className="flex justify-end">
+            <button className="bg-white/20 text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg">
+              ASSESS NOW
+            </button>
+          </div>
+        </div>
+        
         {/* Daily Challenge Card */}
         <div 
           className="relative p-5 bg-gradient-to-br from-pink-500/90 to-purple-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-pink-500/20 mb-6"
