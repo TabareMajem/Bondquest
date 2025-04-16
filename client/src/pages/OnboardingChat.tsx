@@ -139,8 +139,8 @@ export default function OnboardingChat() {
     navigate("/partner-linking");
     
     toast({
-      title: t('onboarding.chatCompleted'),
-      description: t('onboarding.chatCompletedDescription'),
+      title: t('onboarding.chatCompleted', 'Great conversation!'),
+      description: t('onboarding.chatCompletedDescription', 'Thanks for sharing! Now let\'s connect you with your partner.'),
     });
   };
   

@@ -92,7 +92,10 @@ export default function PartnerLinking() {
     >
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold font-poppins mb-3 text-center">Connect with Your Partner</h1>
-        <p className="text-center opacity-80 mb-8">Link your account with your partner to start your journey together</p>
+        <p className="text-center opacity-80 mb-2">Link your account with your partner to start your journey together</p>
+        <p className="text-center text-yellow-200 text-sm italic mb-8">
+          Thanks for sharing about your relationship! We'll use these insights to personalize your experience.
+        </p>
         
         <div className="bg-white bg-opacity-20 backdrop-filter backdrop-blur-sm rounded-2xl p-6 mb-8">
           <div className="space-y-6">

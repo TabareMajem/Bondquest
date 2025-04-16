@@ -45,12 +45,12 @@ export default function SignUp() {
       // Log in the user after registration
       login({ ...data, password: form.getValues().password });
       
-      // Navigate to partner linking page
-      navigate("/partner-linking");
+      // Navigate to onboarding chat first
+      navigate("/onboarding-chat");
       
       toast({
         title: "Account created!",
-        description: "Your account has been created successfully. Let's link with your partner!",
+        description: "Your account has been created successfully. Let's get to know each other better!",
       });
     },
     onError: (error) => {

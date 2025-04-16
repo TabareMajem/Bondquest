@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
+import OnboardingChat from "./pages/OnboardingChat";
 import PartnerLinking from "./pages/PartnerLinking";
 import ProfileSetup from "./pages/ProfileSetup";
 import QuizSelector from "./pages/QuizSelector";
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/" component={Onboarding} />
       <Route path="/signup" component={SignUp} />
       <Route path="/login" component={Login} />
+      <Route path="/onboarding-chat" component={OnboardingChat} />
       <Route path="/partner-linking" component={PartnerLinking} />
       <Route path="/profile-setup" component={ProfileSetup} />
       <Route path="/home" component={Home} />

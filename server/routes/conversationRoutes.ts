@@ -151,7 +151,7 @@ router.post("/sessions/:sessionId/extract-insights", async (req: Request, res: R
     }
     res.status(500).json({ 
       message: "Failed to extract insights",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     });
   }
 });
