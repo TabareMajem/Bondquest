@@ -23,15 +23,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ArrowRight, Send, CheckCircle2 } from "lucide-react";
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  Send, 
+  CheckCircle2, 
+  Sparkles, 
+  Loader2, 
+  Brain
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 // Component to display a bond assessment quiz
 export function BondAssessmentQuiz() {
   const { t } = useTranslation();
   const { couple, user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [currentDimensionIndex, setCurrentDimensionIndex] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const coupleId = couple?.id || 0;
 
   // Fetch questions for each bond dimension

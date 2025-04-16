@@ -3,6 +3,7 @@ import { storage } from '../storage';
 import { z } from 'zod';
 import { insertBondQuestionSchema, insertBondAssessmentSchema, insertBondInsightSchema } from '@shared/schema';
 import { BOND_DIMENSIONS } from '@shared/bondDimensions';
+import { generateGeminiResponse } from '../gemini';
 
 const router = express.Router();
 
@@ -244,6 +245,163 @@ router.patch('/insights/:id/completed', async (req, res) => {
       return res.status(400).json({ message: error.errors });
     }
     res.status(500).json({ message: 'Failed to update bond insight completed status' });
+  }
+});
+
+// AI-powered Bond Assessment Generation
+router.post('/ai-generate-assessment', async (req, res) => {
+  try {
+    const { coupleId, dimensionId, sessionId } = z.object({
+      coupleId: z.number(),
+      dimensionId: z.string(),
+      sessionId: z.number().optional()
+    }).parse(req.body);
+    
+    // Validate dimension exists
+    const dimension = BOND_DIMENSIONS.find(dim => dim.id === dimensionId);
+    if (!dimension) {
+      return res.status(400).json({ message: 'Invalid dimension ID' });
+    }
+    
+    // Get couple information for context
+    const couple = await storage.getCouple(coupleId);
+    if (!couple) {
+      return res.status(404).json({ message: 'Couple not found' });
+    }
+    
+    // Get user information
+    const user1 = await storage.getUser(couple.userId1);
+    const user2 = await storage.getUser(couple.userId2);
+    
+    if (!user1 || !user2) {
+      return res.status(404).json({ message: 'User information not found' });
+    }
+    
+    // Get existing bond assessments for context
+    const existingAssessments = await storage.getBondAssessmentsByCouple(coupleId);
+    
+    // Get existing chat history if sessionId is provided
+    let chatContext = '';
+    if (sessionId) {
+      const chats = await storage.getChatsByCouple(coupleId);
+      if (chats.length > 0) {
+        chatContext = 'Recent conversation history:\n' + 
+          chats.slice(-5).map(chat => `${chat.sender}: ${chat.message}`).join('\n');
+      }
+    }
+    
+    // Create system prompt for AI
+    const systemPrompt = `You are Aurora, a data-driven relationship scientist and AI assistant specialized in relationship assessments.
+    
+You are creating personalized bond assessment questions for the dimension: "${dimension.name}" (${dimension.description}).
+
+The couple consists of ${user1.displayName} and ${user2.displayName}.
+${chatContext ? chatContext : ''}
+${existingAssessments.length > 0 ? 'They have completed some bond assessments before.' : 'This is their first bond assessment.'}
+
+Create 5 personalized questions to assess their relationship in this dimension. Include:
+- 3 Likert scale questions (1-10 rating)
+- 1 multiple choice question with 5 options
+- 1 open-ended text question
+
+Format your response as a JSON array with this structure:
+[
+  {
+    "text": "Question text here?",
+    "type": "likert",
+    "weight": 2  // importance weight 1-2, with 2 being more important
+  },
+  {
+    "text": "Multiple choice question here?",
+    "type": "multiple_choice",
+    "weight": 1,
+    "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"]
+  },
+  {
+    "text": "Open ended question here?",
+    "type": "text",
+    "weight": 0  // text questions don't contribute to score
+  }
+]
+
+Make questions engaging, insightful, and tailored to their specific relationship dynamic. Avoid generic questions.`;
+
+    try {
+      // Generate assessment questions with AI
+      let responseText = '';
+      if (sessionId) {
+        responseText = await generateGeminiResponse(sessionId, 'Generate personalized bond assessment questions', systemPrompt);
+      } else {
+        // Use direct generation (no conversation history/session)
+        responseText = await generateGeminiResponse(0, 'Generate personalized bond assessment questions', systemPrompt);
+      }
+      
+      // Parse JSON response
+      // Clean the response to ensure valid JSON
+      const jsonRegex = /\[[\s\S]*\]/;
+      const match = responseText.match(jsonRegex);
+      
+      if (!match) {
+        return res.status(500).json({ 
+          message: 'Failed to parse AI response',
+          error: 'Invalid JSON format'
+        });
+      }
+      
+      const cleanedJSON = match[0].replace(/```json|```/g, '').trim();
+      const questions = JSON.parse(cleanedJSON);
+      
+      // Validate questions array
+      if (!Array.isArray(questions) || questions.length === 0) {
+        return res.status(500).json({ 
+          message: 'Invalid AI response format', 
+          error: 'Response did not contain a valid questions array'
+        });
+      }
+      
+      // Process each question with the Bond Question schema
+      const processedQuestions = [];
+      
+      for (const q of questions) {
+        // Validate question has required fields
+        if (!q.text || !q.type) continue;
+        
+        // Create bond question
+        const questionData = {
+          dimensionId,
+          text: q.text,
+          type: q.type,
+          weight: q.weight || 1,
+          options: q.options || null
+        };
+        
+        const newQuestion = await storage.createBondQuestion(questionData);
+        processedQuestions.push(newQuestion);
+      }
+      
+      res.status(201).json({
+        message: 'Successfully created AI-generated bond assessment questions',
+        dimension,
+        questions: processedQuestions
+      });
+      
+    } catch (aiError) {
+      console.error('Error generating AI bond assessment:', aiError);
+      res.status(500).json({ 
+        message: 'Failed to generate AI bond assessment', 
+        error: aiError instanceof Error ? aiError.message : 'Unknown error'
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error in AI bond assessment generation:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: error.errors });
+    }
+    res.status(500).json({ 
+      message: 'Failed to process AI bond assessment generation',
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
   }
 });
 
