@@ -41,9 +41,10 @@ export function usePartnerLink() {
     },
     onSuccess: (data) => {
       setError(null);
-      // Optional: You can log the invite details in development
-      if (process.env.NODE_ENV === 'development') {
+      // For development: open the email preview URL in a new tab if available
+      if (process.env.NODE_ENV === 'development' && data.debug?.emailPreviewUrl) {
         console.log('Invitation details:', data.debug);
+        window.open(data.debug.emailPreviewUrl, '_blank');
       }
     },
     onError: (error: Error) => {

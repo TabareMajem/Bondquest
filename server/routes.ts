@@ -250,23 +250,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appUrl = process.env.APP_URL || "http://localhost:3000";
       const inviteLink = `${appUrl}/partner-invite?code=${user.partnerCode}&sender=${encodeURIComponent(user.displayName || user.username)}`;
       
-      // Log the invite - in a production app, we would send an actual email here
-      console.log("--------------------------------");
-      console.log("PARTNER INVITATION");
-      console.log(`From: ${user.displayName || user.username} (${user.email})`);
-      console.log(`To: ${partnerEmail}`);
-      console.log(`Invitation Link: ${inviteLink}`);
-      console.log(`Partner Code: ${user.partnerCode}`);
-      console.log("--------------------------------");
+      // Import email service functions
+      const { sendEmail, getPartnerInvitationEmailTemplate } = await import('./services/emailService');
       
-      // For development, we'll return the invitation details in the response
+      // Send invitation email
+      const senderName = user.displayName || user.username;
+      const emailTemplate = getPartnerInvitationEmailTemplate(senderName, inviteLink, user.partnerCode);
+      
+      const emailResult = await sendEmail({
+        to: partnerEmail,
+        subject: `${senderName} has invited you to join BondQuest`,
+        html: emailTemplate
+      });
+      
+      // Log email results
+      if (emailResult.success) {
+        console.log("Invitation email sent successfully");
+        if (emailResult.previewUrl) {
+          console.log("Email preview URL:", emailResult.previewUrl);
+        }
+      } else {
+        console.error("Failed to send invitation email:", emailResult.error);
+      }
+      
+      // Return success response with appropriate debug info
       res.status(200).json({ 
-        success: true, 
-        message: "Invitation sent successfully",
+        success: emailResult.success, 
+        message: emailResult.success ? "Invitation sent successfully" : "Failed to send invitation",
         debug: {
           inviteLink,
           partnerCode: user.partnerCode,
-          existingUser: existingPartner ? true : false
+          existingUser: existingPartner ? true : false,
+          emailPreviewUrl: emailResult.previewUrl
         }
       });
     } catch (error) {
