@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeGeminiAPI } from "./gemini";
+import { initializeEmailTransporter } from "./services/emailService";
 
 // Initialize Gemini API with environment variable if available
 if (process.env.GEMINI_API_KEY) {
@@ -47,6 +48,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize email transporter
+  try {
+    await initializeEmailTransporter();
+    console.log("Email service initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize email service:", error);
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
