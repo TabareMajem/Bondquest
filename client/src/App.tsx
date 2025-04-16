@@ -19,6 +19,7 @@ import Insights from "./pages/Insights";
 import Profile from "./pages/Profile";
 import Compete from "./pages/Compete";
 import RewardsWall from "./pages/RewardsWall";
+import BondAssessment from "./pages/BondAssessment";
 
 // Admin Pages
 import AdminDashboard from "./pages/AdminDashboard";
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/compete" component={Compete} />
       <Route path="/rewards" component={RewardsWall} />
+      <Route path="/bond-assessment" component={BondAssessment} />
       
       {/* Admin Routes */}
       <Route path="/admin" component={AdminDashboard} />

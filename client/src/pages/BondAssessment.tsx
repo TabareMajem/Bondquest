@@ -12,8 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowRight, BrainCircuit } from 'lucide-react';
-import { queryClient } from '@/lib/queryClient';
-import { apiRequest } from '@/lib/utils';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { InsertBondAssessment } from '@shared/schema';
@@ -26,25 +25,25 @@ const BondAssessment: React.FC = () => {
   const [step, setStep] = useState<'intro' | 'assessment' | 'results'>('intro');
   
   // Get couple info
-  const { data: coupleData, isLoading: isLoadingCouple } = useQuery({
+  const { data: coupleData, isLoading: isLoadingCouple } = useQuery<{coupleId: number}>({
     queryKey: ['/api/couple/current'],
     retry: false,
   });
 
   // Get previous assessments
-  const { data: assessments, isLoading: isLoadingAssessments } = useQuery({
+  const { data: assessments, isLoading: isLoadingAssessments } = useQuery<any[]>({
     queryKey: ['/api/bond/assessments'],
     enabled: !!coupleData?.coupleId,
   });
 
   // Get bond questions for current dimension
-  const { data: questions, isLoading: isLoadingQuestions } = useQuery({
+  const { data: questions, isLoading: isLoadingQuestions } = useQuery<any[]>({
     queryKey: ['/api/bond/questions', currentDimension],
     enabled: !!currentDimension,
   });
 
   // Get latest insights
-  const { data: insights, isLoading: isLoadingInsights } = useQuery({
+  const { data: insights, isLoading: isLoadingInsights } = useQuery<any[]>({
     queryKey: ['/api/bond/insights'],
     enabled: step === 'results',
   });
