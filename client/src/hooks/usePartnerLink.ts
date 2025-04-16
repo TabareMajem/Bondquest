@@ -67,7 +67,7 @@ export function usePartnerLink() {
   return {
     linkPartner,
     sendInvitation,
-    isLoading: isLoading || linkPartnerMutation.isPending,
+    isLoading: isLoading || linkPartnerMutation.isPending || sendInvitationMutation.isPending,
     error,
     inviteCode: user?.partnerCode,
   };

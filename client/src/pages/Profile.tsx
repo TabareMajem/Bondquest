@@ -986,12 +986,20 @@ export default function Profile() {
                     value={partnerEmail}
                     onChange={(e) => setPartnerEmail(e.target.value)}
                     className="flex-grow px-4 py-3 rounded-l-lg bg-purple-800/50 border border-purple-500/30 text-white placeholder:text-purple-300"
+                    disabled={isInviteLoading}
                   />
                   <Button
                     onClick={handleSendInvite}
                     className="px-4 py-3 rounded-r-lg bg-pink-500 text-white font-medium"
+                    disabled={isInviteLoading}
                   >
-                    Send
+                    {isInviteLoading ? (
+                      <>
+                        <span className="animate-pulse">Sending...</span>
+                      </>
+                    ) : (
+                      "Send"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -1007,6 +1015,7 @@ export default function Profile() {
                     value={partnerCode}
                     onChange={(e) => setPartnerCode(e.target.value)}
                     className="w-full px-4 py-3 rounded-lg bg-purple-800/50 border border-purple-500/30 text-white placeholder:text-purple-300"
+                    disabled={linkPartnerMutation.isPending}
                   />
                   <Button
                     onClick={handleLinkPartner}
