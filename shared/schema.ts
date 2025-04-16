@@ -56,11 +56,15 @@ export const quizSessions = pgTable("quiz_sessions", {
   quizId: integer("quiz_id").notNull().references(() => quizzes.id),
   user1Answers: json("user1_answers").$type<Record<string, string>>(),
   user2Answers: json("user2_answers").$type<Record<string, string>>(),
+  user1Completed: boolean("user1_completed").default(false),
+  user2Completed: boolean("user2_completed").default(false),
   matchPercentage: integer("match_percentage"),
   pointsEarned: integer("points_earned"),
   completed: boolean("completed").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
+  user1CompletedAt: timestamp("user1_completed_at"),
+  user2CompletedAt: timestamp("user2_completed_at"),
 });
 
 // Daily Check-In Model

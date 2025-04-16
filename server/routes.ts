@@ -440,6 +440,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Individual user completes their portion of the quiz
+  app.patch("/api/quiz-sessions/:id/user/:userId", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const userId = parseInt(req.params.userId);
+      const session = await storage.getQuizSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Quiz session not found" });
+      }
+      
+      // Get couple info to determine if user is user1 or user2
+      const couple = await storage.getCouple(session.coupleId);
+      if (!couple) {
+        return res.status(404).json({ message: "Couple not found" });
+      }
+      
+      const isUser1 = couple.userId1 === userId;
+      const isUser2 = couple.userId2 === userId;
+      
+      if (!isUser1 && !isUser2) {
+        return res.status(403).json({ message: "User not part of this couple" });
+      }
+      
+      const { answers } = req.body;
+      const updates: Partial<QuizSession> = {};
+      
+      // Store the user's answers
+      if (isUser1) {
+        updates.user1Answers = answers;
+        updates.user1Completed = true;
+        updates.user1CompletedAt = new Date();
+      } else {
+        updates.user2Answers = answers;
+        updates.user2Completed = true;
+        updates.user2CompletedAt = new Date();
+      }
+      
+      // Check if both users have completed
+      const bothComplete = 
+        (isUser1 && session.user2Completed) || 
+        (isUser2 && session.user1Completed);
+      
+      let user1Answers = isUser1 ? answers : (session.user1Answers || {});
+      let user2Answers = isUser2 ? answers : (session.user2Answers || {});
+      
+      // If both complete, do the match comparison and set session as fully complete
+      if (bothComplete) {
+        updates.completed = true;
+        
+        // Calculate match percentage based on both users' answers
+        // This assumes questions with matching IDs should have matching answers
+        let matchCount = 0;
+        let totalQuestions = 0;
+        
+        // Compare answers for questions that both users answered
+        const sharedQuestionIds = Object.keys(user1Answers).filter(id => 
+          user2Answers && Object.keys(user2Answers).includes(id)
+        );
+        
+        totalQuestions = sharedQuestionIds.length;
+        
+        if (totalQuestions > 0) {
+          for (const questionId of sharedQuestionIds) {
+            if (user1Answers[questionId] === user2Answers[questionId]) {
+              matchCount++;
+            }
+          }
+          
+          // Calculate match percentage (minimum 50% to keep it positive)
+          const calculatedMatchPercentage = Math.floor(50 + (matchCount / totalQuestions) * 50);
+          updates.matchPercentage = calculatedMatchPercentage;
+          
+          // Calculate points (more points for better matches)
+          const pointBase = 10 * totalQuestions; // Base points for completing
+          const matchBonus = Math.floor((matchCount / totalQuestions) * pointBase); // Bonus for matching
+          updates.pointsEarned = pointBase + matchBonus;
+        } else {
+          // If no shared questions, set default values
+          updates.matchPercentage = 75; // Default match percentage
+          updates.pointsEarned = 50; // Default points
+        }
+      }
+      
+      const updatedSession = await storage.updateQuizSession(sessionId, updates);
+      
+      // If session is now fully completed, update couple XP and create activity
+      if (updates.completed && updates.pointsEarned) {
+        if (couple) {
+          await storage.updateCoupleXP(couple.id, updates.pointsEarned);
+          
+          // Get the quiz details
+          const quiz = await storage.getQuiz(session.quizId);
+          
+          // Generate AI insights if answers are provided
+          let insights = "";
+          if (quiz) {
+            try {
+              // We'll use the most complete set of answers for insights
+              const insightAnswers = Object.keys(user1Answers || {}).length >= Object.keys(user2Answers || {}).length 
+                ? user1Answers 
+                : user2Answers;
+              
+              insights = await generateRelationshipInsights(insightAnswers, quiz.category);
+            } catch (error) {
+              console.error("Failed to generate relationship insights:", error);
+              insights = "Your relationship is showing great potential. Keep exploring together!";
+            }
+          }
+          
+          // Create activity record with insights
+          await storage.createActivity({
+            coupleId: couple.id,
+            type: "quiz",
+            referenceId: sessionId,
+            points: updates.pointsEarned,
+            description: insights
+          });
+          
+          // Update bond strength if match percentage is provided
+          if (updates.matchPercentage && couple.bondStrength !== null) {
+            // Calculate new bond strength (weighted average)
+            const currentBondStrength = couple.bondStrength || 50; // Default to 50 if null
+            const newBondStrength = Math.round(
+              (currentBondStrength * 0.7) + (updates.matchPercentage * 0.3)
+            );
+            await storage.updateCoupleBondStrength(couple.id, newBondStrength);
+          }
+        }
+      }
+      
+      res.json(updatedSession);
+    } catch (error) {
+      console.error("Error updating quiz session:", error);
+      res.status(500).json({ message: "Failed to update quiz session" });
+    }
+  });
+
   app.get("/api/couples/:coupleId/quiz-sessions", async (req, res) => {
     try {
       const coupleId = parseInt(req.params.coupleId);
