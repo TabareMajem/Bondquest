@@ -2047,6 +2047,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Mount bond-related routes
+  app.use('/api/bond', bondRoutes);
+
   const httpServer = createServer(app);
   
   return httpServer;
