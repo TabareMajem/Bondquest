@@ -1,14 +1,88 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import BottomNavigation from "../components/layout/BottomNavigation";
-import { Settings, User, Heart, Trophy, Award, CalendarDays, Bell, Shield, MessageSquare, CreditCard, HelpCircle, LogOut } from "lucide-react";
+import { Settings, User, Heart, Trophy, Award, CalendarDays, Bell, Shield, MessageSquare, CreditCard, HelpCircle, LogOut, UserPlus, Copy, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiRequest } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
 
 export default function Profile() {
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = React.useState<"profile" | "achievements" | "settings">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "achievements" | "settings">("profile");
+  const [partnerLinkModalOpen, setPartnerLinkModalOpen] = useState(false);
+  const [partnerEmail, setPartnerEmail] = useState("");
+  const [partnerCode, setPartnerCode] = useState("");
+  
+  const { toast } = useToast();
+  const { user, couple, updateCouple } = useAuth();
 
   const handleLogout = () => {
     navigate("/");
+  };
+  
+  // Partner linking mutation
+  const linkPartnerMutation = useMutation({
+    mutationFn: async (code: string) => {
+      if (!user) {
+        throw new Error("User not logged in");
+      }
+      const response = await apiRequest("POST", "/api/partner/link", {
+        userId: user.id,
+        partnerCode: code,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      updateCouple(data);
+      setPartnerLinkModalOpen(false);
+      toast({
+        title: "Partner linked successfully!",
+        description: "You are now connected with your partner. Your relationship journey begins!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Linking failed",
+        description: error.message || "Could not link with your partner. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleSendInvite = () => {
+    // In a real app, this would send an email to the partner
+    toast({
+      title: "Invitation sent!",
+      description: `An invitation email has been sent to ${partnerEmail}`,
+    });
+  };
+  
+  const handleLinkPartner = () => {
+    if (!partnerCode) {
+      toast({
+        title: "Missing code",
+        description: "Please enter your partner's invitation code.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    linkPartnerMutation.mutate(partnerCode);
+  };
+  
+  const copyPartnerCode = () => {
+    if (user?.partnerCode) {
+      navigator.clipboard.writeText(user.partnerCode);
+      toast({
+        title: "Code copied!",
+        description: "Your partner code has been copied to clipboard.",
+      });
+    }
   };
 
   return (
@@ -66,12 +140,26 @@ export default function Profile() {
                 
                 <div className="flex items-center mt-2 text-pink-300">
                   <Heart className="w-4 h-4 text-pink-400 mr-1" />
-                  <span className="text-sm">Single, ready to connect</span>
+                  <span className="text-sm">
+                    {couple ? "In a relationship" : "Single, ready to connect"}
+                  </span>
                 </div>
                 
-                <button className="mt-3 flex items-center gap-1 bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-1.5 rounded-full text-sm text-white shadow-md">
-                  <span>Edit Profile</span>
-                </button>
+                <div className="flex gap-2 mt-3">
+                  <button className="flex items-center gap-1 bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-1.5 rounded-full text-sm text-white shadow-md">
+                    <span>Edit Profile</span>
+                  </button>
+                  
+                  {!couple && (
+                    <button 
+                      onClick={() => setPartnerLinkModalOpen(true)}
+                      className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-pink-600 px-4 py-1.5 rounded-full text-sm text-white shadow-md"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Link Partner</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -237,6 +325,98 @@ export default function Profile() {
       )}
 
       <BottomNavigation activeTab="profile" />
+      
+      {/* Partner Linking Modal */}
+      <Dialog open={partnerLinkModalOpen} onOpenChange={setPartnerLinkModalOpen}>
+        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-white text-center">Link with Partner</DialogTitle>
+            <DialogDescription className="text-purple-200 text-center">
+              Connect with your partner to start your journey together
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Tabs defaultValue="share-code" className="mt-4">
+            <TabsList className="grid grid-cols-2 mb-4 bg-purple-800/50">
+              <TabsTrigger value="share-code" className="data-[state=active]:bg-purple-700 text-white">
+                Share Your Code
+              </TabsTrigger>
+              <TabsTrigger value="enter-code" className="data-[state=active]:bg-purple-700 text-white">
+                Enter Partner Code
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="share-code" className="space-y-5">
+              <div className="text-center">
+                <p className="text-purple-200 mb-3">Share your invitation code with your partner:</p>
+                <div className="bg-purple-800/70 p-4 rounded-lg flex items-center justify-between border border-purple-500/30">
+                  <span className="text-xl font-mono text-white tracking-wider">
+                    {user?.partnerCode || "BOND-12345"}
+                  </span>
+                  <button 
+                    className="text-white opacity-80 hover:opacity-100 p-2"
+                    onClick={copyPartnerCode}
+                  >
+                    <Copy className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <p className="text-purple-200">Or send an email invitation:</p>
+                <div className="flex">
+                  <Input
+                    type="email"
+                    placeholder="partner@example.com"
+                    value={partnerEmail}
+                    onChange={(e) => setPartnerEmail(e.target.value)}
+                    className="flex-grow px-4 py-3 rounded-l-lg bg-purple-800/50 border border-purple-500/30 text-white placeholder:text-purple-300"
+                  />
+                  <Button
+                    onClick={handleSendInvite}
+                    className="px-4 py-3 rounded-r-lg bg-pink-500 text-white font-medium"
+                  >
+                    Send
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="enter-code" className="space-y-5">
+              <div className="text-center">
+                <p className="text-purple-200 mb-3">Enter your partner's invitation code:</p>
+                <div className="space-y-3">
+                  <Input
+                    type="text"
+                    placeholder="e.g. BOND-12345"
+                    value={partnerCode}
+                    onChange={(e) => setPartnerCode(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg bg-purple-800/50 border border-purple-500/30 text-white placeholder:text-purple-300"
+                  />
+                  <Button
+                    onClick={handleLinkPartner}
+                    disabled={linkPartnerMutation.isPending}
+                    className="w-full py-3 rounded-lg bg-pink-500 text-white font-medium hover:bg-pink-600"
+                  >
+                    {linkPartnerMutation.isPending ? "Linking..." : "Link with Partner"}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="mt-4 flex justify-center">
+            <Button 
+              variant="outline" 
+              onClick={() => setPartnerLinkModalOpen(false)}
+              className="text-purple-200 border-purple-500/30 hover:bg-purple-700/50"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
     </div>
   );
 }
