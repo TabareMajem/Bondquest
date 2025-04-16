@@ -612,6 +612,231 @@ export class MemStorage implements IStorage {
     for (const question of questions) {
       this.questions.set(question.id, question);
     }
+
+    // Sample Bond Questions for each dimension
+    const bondQuestions: BondQuestion[] = [];
+
+    // Communication dimension questions
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'communication',
+      type: 'likert',
+      text: 'We can discuss difficult topics without arguing',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'communication',
+      type: 'likert',
+      text: 'My partner listens attentively when I speak',
+      weight: 1,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'communication',
+      type: 'likert',
+      text: 'We resolve conflicts through open conversation',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    // Trust dimension questions
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'trust',
+      type: 'likert',
+      text: 'I trust my partner completely',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'trust',
+      type: 'likert',
+      text: 'My partner is reliable and keeps their promises',
+      weight: 1,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'trust',
+      type: 'likert',
+      text: 'We are honest with each other even when it\'s difficult',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    // Intimacy dimension questions
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'intimacy',
+      type: 'likert',
+      text: 'I feel emotionally connected to my partner',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'intimacy',
+      type: 'likert',
+      text: 'We are physically affectionate with each other',
+      weight: 1,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'intimacy',
+      type: 'multiple_choice',
+      text: 'How often do you have meaningful intimate moments?',
+      weight: 1,
+      options: ['Daily', 'Several times a week', 'Weekly', 'Monthly', 'Rarely'],
+      createdAt: new Date()
+    });
+
+    // Support dimension questions
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'support',
+      type: 'likert',
+      text: 'My partner encourages me to pursue my goals',
+      weight: 1,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'support',
+      type: 'likert',
+      text: 'We support each other through difficult times',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'support',
+      type: 'text',
+      text: 'Share a recent example of how your partner supported you',
+      weight: 0,
+      options: null,
+      createdAt: new Date()
+    });
+
+    // Growth dimension questions
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'growth',
+      type: 'likert',
+      text: 'We help each other become better people',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'growth',
+      type: 'likert',
+      text: 'Our relationship has grown stronger over time',
+      weight: 1,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'growth',
+      type: 'multiple_choice',
+      text: 'How often do you try new activities together?',
+      weight: 1,
+      options: ['Weekly', 'Monthly', 'Every few months', 'Once a year', 'Rarely'],
+      createdAt: new Date()
+    });
+
+    // Fun dimension questions
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'fun',
+      type: 'likert',
+      text: 'We laugh and have fun together regularly',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'fun',
+      type: 'likert',
+      text: 'We make time for playful activities',
+      weight: 1,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'fun',
+      type: 'multiple_choice',
+      text: 'What\'s your favorite way to have fun together?',
+      weight: 0,
+      options: ['Travel', 'Games', 'Outdoor activities', 'Watching shows', 'Dining out'],
+      createdAt: new Date()
+    });
+
+    // Goals dimension questions
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'goals',
+      type: 'likert',
+      text: 'We have shared goals and visions for our future',
+      weight: 2,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'goals',
+      type: 'likert',
+      text: 'We regularly discuss our future plans together',
+      weight: 1,
+      options: null,
+      createdAt: new Date()
+    });
+
+    bondQuestions.push({
+      id: this.bondQuestionId++,
+      dimensionId: 'goals',
+      type: 'text',
+      text: 'What\'s one goal you hope to achieve together in the next year?',
+      weight: 0,
+      options: null,
+      createdAt: new Date()
+    });
+
+    // Add all bond questions to the map
+    for (const question of bondQuestions) {
+      this.bondQuestions.set(question.id, question);
+    }
   }
 }
 

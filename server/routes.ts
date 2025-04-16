@@ -31,6 +31,9 @@ import {
   getOnboardingPrompt
 } from "./gemini";
 
+// Import bond routes
+import bondRoutes from './routes/bondRoutes';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check route
   app.get("/api/health", (_req, res) => {
