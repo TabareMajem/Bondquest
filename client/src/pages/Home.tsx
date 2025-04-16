@@ -113,8 +113,104 @@ export default function Home() {
     );
   }
   
-  // If user exists but no couple is linked, show partner linking screen
+  // If user exists but no couple is linked, check if they've chosen to skip
   if (user && !couple) {
+    // Check if they've completed the profile setup and explicitly skipped partner linking
+    const hasSkippedPartnerLinking = localStorage.getItem("profile_setup_completed") === "true";
+    
+    // If they've skipped, show them a stripped-down version of the dashboard
+    if (hasSkippedPartnerLinking) {
+      return (
+        <div className="min-h-screen w-full bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900">
+          {/* Header with gradient background */}
+          <div 
+            className="w-full px-6 pt-12 pb-6 relative"
+          >
+            {/* Fixed back to start button */}
+            <button 
+              onClick={handleRestartApp}
+              className="absolute top-4 left-4 p-2 bg-white/10 rounded-md text-white text-sm backdrop-blur-sm border border-white/10"
+            >
+              Back to Start
+            </button>
+
+            <div className="flex justify-between items-center mb-6 mt-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/30 shadow-xl">
+                  <img 
+                    src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png" 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-white font-semibold text-lg">{user.displayName || "Solo User"}</h2>
+                  <div className="flex items-center">
+                    <span className="text-xs bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-2 py-0.5 rounded-full font-medium shadow-md">
+                      Solo Mode
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => navigate("/partner-linking")}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium"
+              >
+                Find Partner
+              </button>
+            </div>
+            
+            {/* Info box about solo mode */}
+            <div className="mb-6 bg-white/10 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-white/10">
+              <h3 className="text-white font-medium mb-2">Solo Mode</h3>
+              <p className="text-white/80 text-sm">
+                You're currently in solo mode. Connect with a partner to unlock all BondQuest features and start strengthening your relationship together.
+              </p>
+              <button 
+                onClick={() => navigate("/partner-linking")} 
+                className="mt-3 w-full bg-white/20 text-white px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition-all"
+              >
+                Link with Partner
+              </button>
+            </div>
+            
+            {/* Placeholder Activities */}
+            <div className="space-y-3">
+              <div className="bg-gradient-to-br from-indigo-500/90 to-blue-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-indigo-500/20 mb-6 p-4">
+                <h3 className="text-white font-medium">Activities Available in Solo Mode</h3>
+                <ul className="mt-3 text-white/80 space-y-2 text-sm">
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    <span>Relationship quizzes</span>
+                  </li>
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    <span>AI Relationship Assistant</span>
+                  </li>
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    <span>Daily check-ins</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {/* Quick Access Buttons */}
+          <QuickAccessButtons 
+            onAIAssistantClick={() => navigate("/ai-assistant")}
+            onStartQuizClick={() => navigate("/quizzes")}
+            onCheckInClick={handleCheckIn}
+          />
+          
+          {/* Bottom Navigation */}
+          <BottomNavigation activeTab="home" />
+        </div>
+      );
+    }
+    
+    // Otherwise show the partner linking screen
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900 p-6">
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-md w-full shadow-xl border border-white/20 text-center">
@@ -142,10 +238,106 @@ export default function Home() {
     );
   }
 
-  // If there's a dashboard error but we're logged in, it's because we don't have a couple
-  // So we'll show the partner linking screen instead
+  // If there's a dashboard error but we're logged in, check if they've chosen to skip
   if (error && user) {
     console.error("Dashboard data fetch error:", error);
+    
+    // Check if they've completed the profile setup and explicitly skipped partner linking
+    const hasSkippedPartnerLinking = localStorage.getItem("profile_setup_completed") === "true";
+    
+    // If they've explicitly chosen to skip, use the solo mode UI
+    if (hasSkippedPartnerLinking) {
+      return (
+        <div className="min-h-screen w-full bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900">
+          {/* Header with gradient background */}
+          <div 
+            className="w-full px-6 pt-12 pb-6 relative"
+          >
+            {/* Fixed back to start button */}
+            <button 
+              onClick={handleRestartApp}
+              className="absolute top-4 left-4 p-2 bg-white/10 rounded-md text-white text-sm backdrop-blur-sm border border-white/10"
+            >
+              Back to Start
+            </button>
+
+            <div className="flex justify-between items-center mb-6 mt-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/30 shadow-xl">
+                  <img 
+                    src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png" 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-white font-semibold text-lg">{user.displayName || "Solo User"}</h2>
+                  <div className="flex items-center">
+                    <span className="text-xs bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-2 py-0.5 rounded-full font-medium shadow-md">
+                      Solo Mode
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => navigate("/partner-linking")}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-medium"
+              >
+                Find Partner
+              </button>
+            </div>
+            
+            {/* Info box about solo mode */}
+            <div className="mb-6 bg-white/10 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-white/10">
+              <h3 className="text-white font-medium mb-2">Solo Mode</h3>
+              <p className="text-white/80 text-sm">
+                You're currently in solo mode. Connect with a partner to unlock all BondQuest features and start strengthening your relationship together.
+              </p>
+              <button 
+                onClick={() => navigate("/partner-linking")} 
+                className="mt-3 w-full bg-white/20 text-white px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition-all"
+              >
+                Link with Partner
+              </button>
+            </div>
+            
+            {/* Placeholder Activities */}
+            <div className="space-y-3">
+              <div className="bg-gradient-to-br from-indigo-500/90 to-blue-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-indigo-500/20 mb-6 p-4">
+                <h3 className="text-white font-medium">Activities Available in Solo Mode</h3>
+                <ul className="mt-3 text-white/80 space-y-2 text-sm">
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    <span>Relationship quizzes</span>
+                  </li>
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    <span>AI Relationship Assistant</span>
+                  </li>
+                  <li className="flex items-center">
+                    <span className="mr-2">•</span>
+                    <span>Daily check-ins</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {/* Quick Access Buttons */}
+          <QuickAccessButtons 
+            onAIAssistantClick={() => navigate("/ai-assistant")}
+            onStartQuizClick={() => navigate("/quizzes")}
+            onCheckInClick={handleCheckIn}
+          />
+          
+          {/* Bottom Navigation */}
+          <BottomNavigation activeTab="home" />
+        </div>
+      );
+    }
+    
+    // Otherwise show the partner linking error screen
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900 p-6">
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-md w-full shadow-xl border border-white/20 text-center">
@@ -168,6 +360,7 @@ export default function Home() {
                 // Clear local storage and reload to start fresh
                 localStorage.removeItem("bondquest_user");
                 localStorage.removeItem("bondquest_couple");
+                localStorage.removeItem("profile_setup_completed");
                 window.location.href = "/";
               }} 
               className="w-full bg-gray-600/50 text-white font-medium py-2 px-4 rounded-xl border border-white/20"
@@ -177,7 +370,10 @@ export default function Home() {
           </div>
           
           <p className="text-white/60 text-sm">
-            BondQuest is designed for couples. Connect with your partner to access all features.
+            BondQuest is designed for couples. You can also <button onClick={() => {
+              localStorage.setItem("profile_setup_completed", "true");
+              window.location.reload();
+            }} className="text-white underline">use solo mode</button> for now.
           </p>
         </div>
       </div>

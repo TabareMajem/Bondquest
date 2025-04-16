@@ -65,7 +65,24 @@ export default function PartnerLinking() {
   
   // Handle "Skip for now" button
   const handleSkip = () => {
-    navigate("/profile-setup");
+    // Store a flag indicating profile setup should be skipped
+    localStorage.setItem("profile_setup_completed", "true");
+    
+    // Create a temporary user object if none exists
+    if (!localStorage.getItem("bondquest_user")) {
+      // This is a fallback in case the user data is missing
+      const tempUser = {
+        id: 1,
+        username: "guest_user",
+        displayName: "Guest User",
+        email: "guest@example.com",
+        partnerCode: "SKIP-1234"
+      };
+      localStorage.setItem("bondquest_user", JSON.stringify(tempUser));
+    }
+    
+    // Go directly to home page
+    navigate("/home");
   };
 
   return (
