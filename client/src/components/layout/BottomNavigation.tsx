@@ -115,7 +115,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
           <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
         )}
         <Settings className={getIconClassName("profile")} />
-        <span className={getLabelClassName("profile")}>Settings</span>
+        <span className={getLabelClassName("profile")}>Profile</span>
       </div>
       
       {isAdmin && (
