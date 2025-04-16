@@ -46,8 +46,9 @@ export default function RewardsWall() {
     queryKey: ["/api/competitions"],
   });
 
-  const formatDate = (dateStr: string) => {
-    return format(new Date(dateStr), "MMM d, yyyy");
+  const formatDate = (dateStr: string | Date) => {
+    const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+    return format(date, "MMM d, yyyy");
   };
 
   const getRewardTypeLabel = (type: string) => {

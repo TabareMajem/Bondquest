@@ -118,6 +118,8 @@ export async function generateRelationshipInsights(quizResponses: Record<string,
 
 /**
  * Generate a complete quiz with questions and answers based on user inputs
+ * Enhanced to ensure consistency for competitions with standardized difficulty, 
+ * question distribution, and scoring.
  */
 export async function generateQuiz(
   topic: string,
@@ -130,9 +132,28 @@ export async function generateQuiz(
     user2Profile?: any,
     user1Responses?: any[],
     user2Responses?: any[]
-  }
+  },
+  isCompetitionQuiz: boolean = false
 ): Promise<any> {
   try {
+    // For competition quizzes, we enforce certain standards to ensure fairness
+    let enhancedInstructions = additionalInstructions || "";
+    
+    if (isCompetitionQuiz) {
+      // Add competition-specific instructions to ensure fairness and consistency
+      enhancedInstructions += `
+This quiz will be used in a competition where multiple couples will be scored on the same basis.
+Please ensure:
+1. Questions have objective, clearly correct answers
+2. Difficulty is consistent throughout and matches the ${difficulty} level exactly
+3. Point distribution is fair (all questions worth the same points)
+4. Balance easy/medium/hard questions according to the difficulty level
+5. No questions that rely on highly specific cultural knowledge or references
+6. Each question has the same number of answer options (preferably 4)
+7. Include appropriate metadata for scoring
+`;
+    }
+    
     // Try to use Anthropic first, fall back to OpenAI if no API key
     if (process.env.ANTHROPIC_API_KEY) {
       return await generateQuizWithAnthropic(
@@ -140,7 +161,7 @@ export async function generateQuiz(
         category, 
         difficulty, 
         questionCount, 
-        additionalInstructions, 
+        enhancedInstructions, 
         coupleProfileData
       );
     } else {
@@ -149,7 +170,7 @@ export async function generateQuiz(
         category, 
         difficulty, 
         questionCount, 
-        additionalInstructions, 
+        enhancedInstructions, 
         coupleProfileData
       );
     }
@@ -411,6 +432,8 @@ async function generateQuizWithOpenAI(
 
 /**
  * Generate a competition with details, rules, and challenges
+ * Enhanced to ensure consistency across competitions and standardized 
+ * scoring for fairness
  */
 export async function generateCompetition(
   name: string,
@@ -419,17 +442,33 @@ export async function generateCompetition(
   endDate: string,
   difficulty: string,
   type: string,
-  additionalInstructions?: string
+  additionalInstructions?: string,
+  includeAutomaticQuiz: boolean = true
 ): Promise<any> {
   try {
+    // Add standardized competition instructions to ensure fairness
+    let enhancedInstructions = additionalInstructions || "";
+    
+    // Add competition standardization instructions
+    enhancedInstructions += `
+This competition will be used to fairly evaluate multiple couples, so please ensure:
+1. Rules are clear, objective, and easy to understand
+2. Scoring methods are transparent and fair
+3. Challenges have consistent point values based on difficulty
+4. All required tasks are measurable with clear success criteria
+5. The competition is balanced and doesn't favor specific demographics
+6. The structure allows for objective comparison between participants
+${includeAutomaticQuiz ? "7. Include at least one quiz challenge that can be automatically scored" : ""}
+`;
+    
     // Try to use Anthropic first, fall back to OpenAI if no API key
     if (process.env.ANTHROPIC_API_KEY) {
       return await generateCompetitionWithAnthropic(
-        name, description, startDate, endDate, difficulty, type, additionalInstructions
+        name, description, startDate, endDate, difficulty, type, enhancedInstructions
       );
     } else {
       return await generateCompetitionWithOpenAI(
-        name, description, startDate, endDate, difficulty, type, additionalInstructions
+        name, description, startDate, endDate, difficulty, type, enhancedInstructions
       );
     }
   } catch (error) {
