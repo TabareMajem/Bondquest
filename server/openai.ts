@@ -124,14 +124,34 @@ export async function generateQuiz(
   category: string,
   difficulty: string,
   questionCount: number,
-  additionalInstructions?: string
+  additionalInstructions?: string,
+  coupleProfileData?: {
+    user1Profile?: any,
+    user2Profile?: any,
+    user1Responses?: any[],
+    user2Responses?: any[]
+  }
 ): Promise<any> {
   try {
     // Try to use Anthropic first, fall back to OpenAI if no API key
     if (process.env.ANTHROPIC_API_KEY) {
-      return await generateQuizWithAnthropic(topic, category, difficulty, questionCount, additionalInstructions);
+      return await generateQuizWithAnthropic(
+        topic, 
+        category, 
+        difficulty, 
+        questionCount, 
+        additionalInstructions, 
+        coupleProfileData
+      );
     } else {
-      return await generateQuizWithOpenAI(topic, category, difficulty, questionCount, additionalInstructions);
+      return await generateQuizWithOpenAI(
+        topic, 
+        category, 
+        difficulty, 
+        questionCount, 
+        additionalInstructions, 
+        coupleProfileData
+      );
     }
   } catch (error) {
     console.error("Error generating quiz:", error);
@@ -147,12 +167,66 @@ async function generateQuizWithAnthropic(
   category: string,
   difficulty: string,
   questionCount: number,
-  additionalInstructions?: string
+  additionalInstructions?: string,
+  coupleProfileData?: {
+    user1Profile?: any,
+    user2Profile?: any,
+    user1Responses?: any[],
+    user2Responses?: any[]
+  }
 ): Promise<any> {
+  // Format any profile data to include in the prompt
+  let coupleProfileInfo = '';
+  if (coupleProfileData) {
+    coupleProfileInfo = `
+    I'm providing you with some information about the couple to help you personalize this quiz:
+    `;
+    
+    if (coupleProfileData.user1Profile) {
+      coupleProfileInfo += `
+      Partner 1 Profile:
+      ${Object.entries(coupleProfileData.user1Profile)
+        .filter(([key]) => !['id', 'userId', 'createdAt', 'updatedAt'].includes(key))
+        .map(([key, value]) => `- ${key}: ${value}`)
+        .join('\n')}
+      `;
+    }
+    
+    if (coupleProfileData.user2Profile) {
+      coupleProfileInfo += `
+      Partner 2 Profile:
+      ${Object.entries(coupleProfileData.user2Profile)
+        .filter(([key]) => !['id', 'userId', 'createdAt', 'updatedAt'].includes(key))
+        .map(([key, value]) => `- ${key}: ${value}`)
+        .join('\n')}
+      `;
+    }
+    
+    if (coupleProfileData.user1Responses && coupleProfileData.user1Responses.length > 0) {
+      coupleProfileInfo += `
+      Partner 1 Question Responses:
+      ${coupleProfileData.user1Responses
+        .map(response => `- ${response.question || 'Question'}: ${response.answer}`)
+        .join('\n')}
+      `;
+    }
+    
+    if (coupleProfileData.user2Responses && coupleProfileData.user2Responses.length > 0) {
+      coupleProfileInfo += `
+      Partner 2 Question Responses:
+      ${coupleProfileData.user2Responses
+        .map(response => `- ${response.question || 'Question'}: ${response.answer}`)
+        .join('\n')}
+      `;
+    }
+  }
+  
   const prompt = `
   You are an expert in creating relationship quizzes for couples. I need you to generate a complete quiz about "${topic}" in the category "${category}" with ${questionCount} questions of ${difficulty} difficulty.
 
   ${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}
+  
+  ${coupleProfileInfo}
 
   Please create a detailed quiz with the following structure:
   1. A engaging title for the quiz (be creative and appealing)
@@ -178,6 +252,7 @@ async function generateQuizWithAnthropic(
   }
 
   Make sure all questions are relationship-focused, engaging, and appropriate for couples looking to strengthen their bond. The questions should be thought-provoking and lead to meaningful discussions.
+  ${coupleProfileData ? 'Personalize the questions based on the couple\'s profiles and responses when possible.' : ''}
   `;
 
   try {
@@ -207,7 +282,7 @@ async function generateQuizWithAnthropic(
   } catch (error) {
     console.error("Error with Anthropic:", error);
     // Fallback to OpenAI if Anthropic fails
-    return await generateQuizWithOpenAI(topic, category, difficulty, questionCount, additionalInstructions);
+    return await generateQuizWithOpenAI(topic, category, difficulty, questionCount, additionalInstructions, coupleProfileData);
   }
 }
 
@@ -219,12 +294,64 @@ async function generateQuizWithOpenAI(
   category: string,
   difficulty: string,
   questionCount: number,
-  additionalInstructions?: string
+  additionalInstructions?: string,
+  coupleProfileData?: {
+    user1Profile?: any,
+    user2Profile?: any,
+    user1Responses?: any[],
+    user2Responses?: any[]
+  }
 ): Promise<any> {
   const systemMessage = `
   You are an expert in creating relationship quizzes for couples. Your task is to generate a complete quiz in JSON format.
   The quiz should be engaging, thoughtful, and help couples learn more about each other or strengthen their relationship.
   `;
+
+  // Format any profile data to include in the prompt
+  let coupleProfileInfo = '';
+  if (coupleProfileData) {
+    coupleProfileInfo = `
+    I'm providing you with some information about the couple to help you personalize this quiz:
+    `;
+    
+    if (coupleProfileData.user1Profile) {
+      coupleProfileInfo += `
+      Partner 1 Profile:
+      ${Object.entries(coupleProfileData.user1Profile)
+        .filter(([key]) => !['id', 'userId', 'createdAt', 'updatedAt'].includes(key))
+        .map(([key, value]) => `- ${key}: ${value}`)
+        .join('\n')}
+      `;
+    }
+    
+    if (coupleProfileData.user2Profile) {
+      coupleProfileInfo += `
+      Partner 2 Profile:
+      ${Object.entries(coupleProfileData.user2Profile)
+        .filter(([key]) => !['id', 'userId', 'createdAt', 'updatedAt'].includes(key))
+        .map(([key, value]) => `- ${key}: ${value}`)
+        .join('\n')}
+      `;
+    }
+    
+    if (coupleProfileData.user1Responses && coupleProfileData.user1Responses.length > 0) {
+      coupleProfileInfo += `
+      Partner 1 Question Responses:
+      ${coupleProfileData.user1Responses
+        .map(response => `- ${response.question || 'Question'}: ${response.answer}`)
+        .join('\n')}
+      `;
+    }
+    
+    if (coupleProfileData.user2Responses && coupleProfileData.user2Responses.length > 0) {
+      coupleProfileInfo += `
+      Partner 2 Question Responses:
+      ${coupleProfileData.user2Responses
+        .map(response => `- ${response.question || 'Question'}: ${response.answer}`)
+        .join('\n')}
+      `;
+    }
+  }
 
   const userMessage = `
   Please create a relationship quiz with the following parameters:
@@ -233,6 +360,8 @@ async function generateQuizWithOpenAI(
   - Difficulty: ${difficulty}
   - Number of questions: ${questionCount}
   ${additionalInstructions ? `- Additional instructions: ${additionalInstructions}` : ''}
+  
+  ${coupleProfileInfo}
 
   The response must be a valid JSON object with this exact structure:
   {
@@ -253,6 +382,7 @@ async function generateQuizWithOpenAI(
   }
 
   Ensure all questions are relationship-focused, engaging, and appropriate for couples looking to strengthen their bond.
+  ${coupleProfileData ? 'Personalize the questions based on the couple\'s profiles and responses when possible.' : ''}
   `;
 
   const response = await openai.chat.completions.create({
