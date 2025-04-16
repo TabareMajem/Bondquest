@@ -31,14 +31,19 @@ import {
   getOnboardingPrompt
 } from "./gemini";
 
-// Import bond routes
+// Import routes
 import bondRoutes from './routes/bondRoutes';
+import conversationRoutes from './routes/conversationRoutes';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check route
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
   });
+  
+  // Register API routes
+  app.use('/api/bond', bondRoutes);
+  app.use('/api/conversation', conversationRoutes);
 
   // Auth Routes
   app.post("/api/auth/register", async (req, res) => {
