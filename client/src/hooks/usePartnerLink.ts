@@ -28,19 +28,34 @@ export function usePartnerLink() {
     },
   });
 
-  const sendInvitation = async (email: string) => {
-    // In a real app, this would send an API request to invite by email
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Success!
+  const sendInvitationMutation = useMutation({
+    mutationFn: async (partnerEmail: string) => {
+      if (!user) {
+        throw new Error("User not logged in");
+      }
+      const response = await apiRequest("POST", "/api/partner/invite", {
+        userId: user.id,
+        partnerEmail,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
       setError(null);
-      setIsLoading(false);
+      // Optional: You can log the invite details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Invitation details:', data.debug);
+      }
+    },
+    onError: (error: Error) => {
+      setError(error.message || "Failed to send invitation");
+    },
+  });
+
+  const sendInvitation = async (email: string) => {
+    try {
+      await sendInvitationMutation.mutateAsync(email);
       return true;
     } catch (e) {
-      setError("Failed to send invitation");
-      setIsLoading(false);
       return false;
     }
   };

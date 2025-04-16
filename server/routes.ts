@@ -222,6 +222,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to link partner" });
     }
   });
+  
+  // Send partner invitation email
+  app.post("/api/partner/invite", async (req, res) => {
+    try {
+      const { userId, partnerEmail } = z.object({
+        userId: z.number(),
+        partnerEmail: z.string().email()
+      }).parse(req.body);
+      
+      // Get current user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if user is already in a couple
+      const existingCouple = await storage.getCoupleByUserId(userId);
+      if (existingCouple) {
+        return res.status(400).json({ message: "User is already in a couple" });
+      }
+      
+      // Check if the partner email is already registered
+      const existingPartner = await storage.getUserByEmail(partnerEmail);
+      
+      // Generate invite link and data
+      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const inviteLink = `${appUrl}/partner-invite?code=${user.partnerCode}&sender=${encodeURIComponent(user.displayName || user.username)}`;
+      
+      // Log the invite - in a production app, we would send an actual email here
+      console.log("--------------------------------");
+      console.log("PARTNER INVITATION");
+      console.log(`From: ${user.displayName || user.username} (${user.email})`);
+      console.log(`To: ${partnerEmail}`);
+      console.log(`Invitation Link: ${inviteLink}`);
+      console.log(`Partner Code: ${user.partnerCode}`);
+      console.log("--------------------------------");
+      
+      // For development, we'll return the invitation details in the response
+      res.status(200).json({ 
+        success: true, 
+        message: "Invitation sent successfully",
+        debug: {
+          inviteLink,
+          partnerCode: user.partnerCode,
+          existingUser: existingPartner ? true : false
+        }
+      });
+    } catch (error) {
+      console.error("Error sending partner invitation:", error);
+      res.status(400).json({ 
+        success: false,
+        message: error instanceof Error ? error.message : "Invalid request" 
+      });
+    }
+  });
 
   // User Profile Routes
   app.get("/api/users/:id", async (req, res) => {
