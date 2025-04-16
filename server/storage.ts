@@ -17,7 +17,7 @@ import {
   type BondAssessment, type InsertBondAssessment, type BondInsight, type InsertBondInsight,
   type BondQuestion, type InsertBondQuestion, type UserPreferences, type InsertUserPreferences
 } from "@shared/schema";
-import { BOND_DIMENSIONS } from "@shared/bondDimensions";
+import { bondDimensions } from "@shared/bondDimensions";
 import { nanoid } from "nanoid";
 
 export interface IStorage {
@@ -510,7 +510,7 @@ export class MemStorage implements IStorage {
     // Update overall bond strength on the couple
     const assessments = await this.getBondAssessmentsByCouple(assessment.coupleId);
     if (assessments.length > 0) {
-      const dimensions = BOND_DIMENSIONS.length;
+      const dimensions = bondDimensions.length;
       const completedDimensions = new Set(assessments.map(a => a.dimensionId)).size;
       
       // Only update bond strength if we have assessments for at least half of the dimensions

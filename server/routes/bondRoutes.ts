@@ -2,7 +2,7 @@ import express from 'express';
 import { storage } from '../storage';
 import { z } from 'zod';
 import { insertBondQuestionSchema, insertBondAssessmentSchema, insertBondInsightSchema } from '@shared/schema';
-import { BOND_DIMENSIONS } from '@shared/bondDimensions';
+import { bondDimensions } from '@shared/bondDimensions';
 import { generateGeminiResponse } from '../gemini';
 
 const router = express.Router();
@@ -26,7 +26,7 @@ router.get('/questions/dimension/:dimensionId', async (req, res) => {
     const { dimensionId } = req.params;
     
     // Validate that dimensionId is valid
-    if (!BOND_DIMENSIONS.some(dim => dim.id === dimensionId)) {
+    if (!bondDimensions.some(dim => dim.id === dimensionId)) {
       return res.status(400).json({ message: 'Invalid dimension ID' });
     }
     
@@ -42,7 +42,7 @@ router.post('/questions', async (req, res) => {
     const validatedData = insertBondQuestionSchema.parse(req.body);
     
     // Validate dimension exists
-    if (!BOND_DIMENSIONS.some(dim => dim.id === validatedData.dimensionId)) {
+    if (!bondDimensions.some(dim => dim.id === validatedData.dimensionId)) {
       return res.status(400).json({ message: 'Invalid dimension ID' });
     }
     

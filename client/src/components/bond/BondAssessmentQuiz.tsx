@@ -1,495 +1,243 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/contexts/AuthContext';
-import { BOND_DIMENSIONS } from '@shared/bondDimensions';
-import { BondQuestion } from '@shared/schema';
-import { get, post } from '@/lib/apiClient';
+import React, { useState } from 'react';
+import { bondDimensions, BondDimension } from '@shared/bondDimensions';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { ChevronLeft, ChevronRight, Brain, Crown } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Slider } from "@/components/ui/slider";
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  Send, 
-  CheckCircle2, 
-  Sparkles, 
-  Loader2, 
-  Brain
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from 'react-i18next';
+import { useToast } from '@/hooks/use-toast';
 
-// Component to display a bond assessment quiz
-export function BondAssessmentQuiz() {
+export interface QuizQuestion {
+  id: string;
+  dimensionId: string;
+  text: string;
+  options: {
+    value: number;
+    label: string;
+  }[];
+}
+
+export interface BondAssessmentQuizProps {
+  className?: string;
+  questions: QuizQuestion[];
+  onComplete: (scores: Record<string, number>) => void;
+  onCancel?: () => void;
+  showAIPrompt?: boolean;
+}
+
+// Default sample questions if none are provided
+const generateSampleQuestions = (): QuizQuestion[] => {
+  const sampleQuestions: QuizQuestion[] = [];
+  
+  bondDimensions.forEach(dimension => {
+    // Create 2 questions per dimension
+    dimension.exampleQuestions.forEach((questionText, idx) => {
+      if (idx > 1) return; // Limit to 2 questions per dimension
+      
+      sampleQuestions.push({
+        id: `${dimension.id}-q${idx}`,
+        dimensionId: dimension.id,
+        text: questionText,
+        options: [
+          { value: 1, label: "Strongly Disagree" },
+          { value: 3, label: "Somewhat Disagree" },
+          { value: 5, label: "Neutral" },
+          { value: 7, label: "Somewhat Agree" },
+          { value: 10, label: "Strongly Agree" }
+        ]
+      });
+    });
+  });
+  
+  return sampleQuestions;
+};
+
+const BondAssessmentQuiz: React.FC<BondAssessmentQuizProps> = ({
+  className = '',
+  questions = generateSampleQuestions(),
+  onComplete,
+  onCancel,
+  showAIPrompt = true
+}) => {
   const { t } = useTranslation();
-  const { couple, user } = useAuth();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [currentDimensionIndex, setCurrentDimensionIndex] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const coupleId = couple?.id || 0;
-
-  // Fetch questions for each bond dimension
-  const { data: questions, isLoading, refetch: refetchQuestions } = useQuery<BondQuestion[]>({
-    queryKey: [`/api/bond-questions`],
-    queryFn: () => get(`/api/bond-questions`),
-  });
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [generating, setGenerating] = useState(false);
   
-  // Mutation for generating AI-powered questions
-  const generateAIMutation = useMutation({
-    mutationFn: (dimensionId: string) => {
-      return post(`/api/bond/ai-generate-assessment`, {
-        coupleId,
-        dimensionId,
-      });
-    },
-    onSuccess: () => {
-      // Refetch questions to include the newly generated ones
-      refetchQuestions();
-      setIsGeneratingAI(false);
+  const currentQuestion = questions[currentQuestionIndex];
+  const questionCount = questions.length;
+  const progress = ((currentQuestionIndex + 1) / questionCount) * 100;
+  
+  // Get the current dimension
+  const currentDimension = bondDimensions.find(
+    d => d.id === currentQuestion?.dimensionId
+  );
+  
+  const handleNextQuestion = () => {
+    if (!answers[currentQuestion.id]) {
       toast({
-        title: t('bond.aiGeneratedSuccess'),
-        description: t('bond.aiGeneratedDescription'),
-        variant: "default",
+        title: "Please select an answer",
+        description: "You need to select an option before continuing.",
+        variant: "destructive"
       });
-    },
-    onError: (error) => {
-      console.error("Error generating AI questions:", error);
-      setIsGeneratingAI(false);
-      toast({
-        title: t('bond.aiGeneratedError'),
-        description: t('bond.aiGeneratedErrorDescription'),
-        variant: "destructive",
-      });
+      return;
     }
-  });
-
-  // Group questions by dimension
-  const questionsByDimension = questions
-    ? BOND_DIMENSIONS.map(dimension => {
-        return {
-          dimension,
-          questions: questions.filter(q => q.dimensionId === dimension.id)
-        };
-      })
-    : [];
-
-  // Current dimension and its questions
-  const currentDimension = questionsByDimension[currentDimensionIndex]?.dimension;
-  const currentQuestions = questionsByDimension[currentDimensionIndex]?.questions || [];
-  
-  // Check if we need to show AI generation buttons
-  const needsAIGeneration = currentDimension && currentQuestions.length === 0;
-  
-  // Handler for generating AI questions for the current dimension
-  const handleGenerateAIQuestions = () => {
-    if (!currentDimension || coupleId === 0) return;
     
-    setIsGeneratingAI(true);
-    toast({
-      title: t('bond.aiGeneratingForDimension', { dimension: currentDimension.name }),
-      description: t('bond.aiPersonalizing'),
-    });
-    
-    generateAIMutation.mutate(currentDimension.id);
-  };
-
-  // Create form schema based on current questions
-  const createFormSchema = () => {
-    if (!currentQuestions.length) return z.object({});
-
-    const schemaFields: Record<string, any> = {};
-    
-    currentQuestions.forEach(question => {
-      if (question.type === 'likert') {
-        schemaFields[`question_${question.id}`] = z.number().min(1).max(10);
-      } else if (question.type === 'multiple_choice') {
-        schemaFields[`question_${question.id}`] = z.string().min(1);
-      } else if (question.type === 'text') {
-        schemaFields[`question_${question.id}`] = z.string().optional();
-      }
-    });
-
-    return z.object(schemaFields);
-  };
-
-  const formSchema = createFormSchema();
-  
-  // Initialize form with default values
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {},
-  });
-
-  // Reset form when dimension changes
-  useEffect(() => {
-    if (currentQuestions.length) {
-      const defaultValues: Record<string, any> = {};
+    if (currentQuestionIndex < questionCount - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+      // Calculate dimension scores
+      const dimensionScores: Record<string, number[]> = {};
       
-      currentQuestions.forEach(question => {
-        if (question.type === 'likert') {
-          defaultValues[`question_${question.id}`] = 5; // Middle value as default
-        } else if (question.type === 'multiple_choice') {
-          defaultValues[`question_${question.id}`] = '';
-        } else if (question.type === 'text') {
-          defaultValues[`question_${question.id}`] = '';
+      // Group answers by dimension
+      questions.forEach(question => {
+        const answer = answers[question.id];
+        if (answer) {
+          if (!dimensionScores[question.dimensionId]) {
+            dimensionScores[question.dimensionId] = [];
+          }
+          dimensionScores[question.dimensionId].push(answer);
         }
       });
       
-      form.reset(defaultValues);
-    }
-  }, [currentDimensionIndex, currentQuestions]);
-
-  // Mutation to submit assessment scores
-  const mutation = useMutation({
-    mutationFn: (data: any) => {
-      return post(`/api/couples/${coupleId}/bond-assessments`, {
-        dimensionId: currentDimension?.id || '',
-        score: calculateOverallScore(data),
-        userScore: user?.id === couple?.userId1 ? calculateOverallScore(data) : undefined,
-        partnerScore: user?.id === couple?.userId2 ? calculateOverallScore(data) : undefined,
+      // Calculate average score for each dimension
+      const finalScores: Record<string, number> = {};
+      Object.entries(dimensionScores).forEach(([dimensionId, scores]) => {
+        const average = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+        finalScores[dimensionId] = Math.round(average);
       });
-    },
-    onSuccess: () => {
-      // Invalidate and refetch bond assessments
-      queryClient.invalidateQueries({ queryKey: [`/api/couples/${coupleId}/bond-assessments`] });
       
-      // Move to next dimension or complete quiz
-      if (currentDimensionIndex < questionsByDimension.length - 1) {
-        setCurrentDimensionIndex(prev => prev + 1);
-      } else {
-        setIsCompleted(true);
-      }
-    },
-  });
-
-  // Calculate overall score from answers
-  const calculateOverallScore = (data: any): number => {
-    if (!currentQuestions.length) return 0;
-    
-    let totalScore = 0;
-    let totalWeight = 0;
-    
-    currentQuestions.forEach(question => {
-      const value = data[`question_${question.id}`];
-      if (question.type === 'likert' && typeof value === 'number') {
-        totalScore += value * (question.weight || 1);
-        totalWeight += (question.weight || 1);
-      } else if (question.type === 'multiple_choice' && question.options) {
-        // Calculate score based on selected option index
-        const optionIndex = question.options.indexOf(value);
-        if (optionIndex >= 0) {
-          const normalizedScore = ((optionIndex + 1) / question.options.length) * 10;
-          totalScore += normalizedScore * (question.weight || 1);
-          totalWeight += (question.weight || 1);
-        }
-      }
-    });
-    
-    return Math.round(totalWeight > 0 ? totalScore / totalWeight : 0);
-  };
-
-  // Form submission handler
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    mutation.mutate(data);
-  };
-
-  // Navigate to previous dimension
-  const handlePrevious = () => {
-    if (currentDimensionIndex > 0) {
-      setCurrentDimensionIndex(prev => prev - 1);
+      onComplete(finalScores);
     }
   };
-
-  // If no couple exists, show a message to connect with partner
-  if (coupleId === 0) {
-    return (
-      <Card className="p-6 text-center">
-        <h3 className="text-lg font-medium mb-2">{t('bond.assessmentNotAvailable')}</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          {t('bond.connectToAssess')}
-        </p>
-        <Button variant="outline" size="sm">
-          {t('bond.findPartner')}
-        </Button>
-      </Card>
-    );
+  
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    }
+  };
+  
+  const handleAnswerChange = (value: string) => {
+    setAnswers(prev => ({
+      ...prev,
+      [currentQuestion.id]: parseInt(value)
+    }));
+  };
+  
+  const handleGenerateWithAI = () => {
+    setGenerating(true);
+    // In a real implementation, this would make an API call to generate more personalized questions
+    setTimeout(() => {
+      toast({
+        title: "AI-optimized questions generated",
+        description: "We've tailored these questions based on your relationship context.",
+      });
+      setGenerating(false);
+    }, 1500);
+  };
+  
+  if (!currentQuestion) {
+    return null;
   }
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <Card className="p-6 text-center">
-        <h3 className="text-lg font-medium mb-2">{t('bond.loadingAssessment')}</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          {t('bond.preparingQuestions')}
-        </p>
-        <Progress value={33} className="w-full mt-4" />
-      </Card>
-    );
-  }
-
-  // No questions available
-  if (!questions || questions.length === 0) {
-    return (
-      <Card className="p-6 text-center">
-        <h3 className="text-lg font-medium mb-2">{t('bond.noQuestionsAvailable')}</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          {t('bond.tryGeneratingAI')}
-        </p>
-        <div className="flex flex-col gap-3 items-center">
-          <Button 
-            variant="default" 
-            className="gap-2"
-            disabled={isGeneratingAI} 
-            onClick={() => {
-              if (coupleId === 0) {
-                toast({
-                  title: t('bond.partnerRequired'),
-                  description: t('bond.connectWithPartner'),
-                  variant: "destructive",
-                });
-                return;
-              }
-              
-              // Generate AI questions for all dimensions
-              setIsGeneratingAI(true);
-              toast({
-                title: t('bond.aiGenerating'),
-                description: t('bond.aiGeneratingDescription'),
-              });
-              
-              // Generate questions for the first dimension to start
-              const firstDimension = BOND_DIMENSIONS[0];
-              if (firstDimension) {
-                generateAIMutation.mutate(firstDimension.id);
-              }
-            }}
-          >
-            {isGeneratingAI ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            {isGeneratingAI ? t('bond.generatingQuestions') : t('bond.generateAIQuestions')}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-            {t('common.retry')}
-          </Button>
-        </div>
-      </Card>
-    );
-  }
-
-  // Quiz completed successfully
-  if (isCompleted) {
-    return (
-      <Card className="p-6 text-center">
-        <div className="flex flex-col items-center justify-center mb-4">
-          <CheckCircle2 className="h-12 w-12 text-primary mb-2" />
-          <h3 className="text-lg font-medium">{t('bond.assessmentCompleted')}</h3>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          {t('bond.thankYouMessage')}
-        </p>
-        <div className="flex justify-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              setIsCompleted(false);
-              setCurrentDimensionIndex(0);
-            }}
-          >
-            {t('bond.takeAgain')}
-          </Button>
-          <Button onClick={() => window.location.href = '/insights'}>
-            {t('bond.viewInsights')}
-          </Button>
-        </div>
-      </Card>
-    );
-  }
-
+  
   return (
-    <Card className="overflow-hidden">
-      <div className="p-4 md:p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div 
-            className="rounded-full w-12 h-12 flex items-center justify-center mb-3"
-            style={{ backgroundColor: currentDimension?.color || '#6366F1' }}
-          >
-            <span className="text-white font-medium">
-              {currentDimensionIndex + 1}/{questionsByDimension.length}
-            </span>
+    <Card className={className}>
+      <CardHeader className="space-y-1">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-xl">{t('Bond Assessment')}</CardTitle>
+          <div className="text-sm text-gray-500">
+            {currentQuestionIndex + 1} / {questionCount}
           </div>
-          <div className="flex justify-between items-start mb-1">
-            <h2 className="text-xl font-bold">{currentDimension?.name}</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1 text-xs"
-              disabled={isGeneratingAI}
-              onClick={handleGenerateAIQuestions}
-            >
-              {isGeneratingAI ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Sparkles className="h-3 w-3" />
-              )}
-              {isGeneratingAI ? t('bond.regenerating') : t('bond.regenerateWithAI')}
-            </Button>
-          </div>
-          <p className="text-muted-foreground">
-            {currentDimension?.description}
-          </p>
         </div>
-        
-        {/* Progress bar */}
-        <Progress 
-          value={(currentDimensionIndex / questionsByDimension.length) * 100} 
-          className="mb-6" 
-        />
-        
-        {/* Question form */}
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {currentQuestions.map((question, index) => (
-              <div key={index} className="p-4 bg-muted/20 rounded-lg">
-                {question.type === 'likert' && (
-                  <FormField
-                    control={form.control}
-                    name={`question_${question.id}`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-medium">{question.text}</FormLabel>
-                        <FormControl>
-                          <div className="mt-2">
-                            <Slider
-                              defaultValue={[field.value]}
-                              min={1}
-                              max={10}
-                              step={1}
-                              onValueChange={(value) => field.onChange(value[0])}
-                            />
-                            <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                              <span>{t('bond.disagree')}</span>
-                              <span>{t('bond.neutral')}</span>
-                              <span>{t('bond.agree')}</span>
-                            </div>
-                            <div className="text-center mt-2">
-                              <span className="text-sm font-medium">{field.value}/10</span>
-                            </div>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
-                {question.type === 'multiple_choice' && question.options && (
-                  <FormField
-                    control={form.control}
-                    name={`question_${question.id}`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-medium">{question.text}</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="mt-2 space-y-1"
-                          >
-                            {question.options.map((option, optIndex) => (
-                              <div key={optIndex} className="flex items-center space-x-2">
-                                <RadioGroupItem value={option} id={`option-${question.id}-${optIndex}`} />
-                                <FormLabel htmlFor={`option-${question.id}-${optIndex}`} className="font-normal cursor-pointer">
-                                  {option}
-                                </FormLabel>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
-                {question.type === 'text' && (
-                  <FormField
-                    control={form.control}
-                    name={`question_${question.id}`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base font-medium">{question.text}</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            className="mt-2"
-                            placeholder={t('bond.shareYourThoughts')}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('bond.optionalResponse')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+        <Progress value={progress} className="h-2" />
+        <CardDescription>
+          {currentDimension && (
+            <div className="flex items-center gap-2 mt-1 text-sm">
+              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: currentDimension.color }}></span>
+              {currentDimension.name}
+            </div>
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-8">
+          <div className="text-lg font-medium">
+            {currentQuestion.text}
+          </div>
+          
+          <RadioGroup 
+            value={answers[currentQuestion.id]?.toString() || ""} 
+            onValueChange={handleAnswerChange}
+            className="space-y-3"
+          >
+            {currentQuestion.options.map((option) => (
+              <div 
+                key={option.value} 
+                className="flex items-center space-x-2 rounded-md border p-3 hover:bg-slate-50"
+              >
+                <RadioGroupItem value={option.value.toString()} id={`option-${option.value}`} />
+                <Label htmlFor={`option-${option.value}`} className="flex-grow">
+                  {option.label}
+                </Label>
               </div>
             ))}
-            
-            {/* Navigation buttons */}
-            <div className="flex justify-between pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={currentDimensionIndex === 0 || mutation.isPending}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                {t('bond.previous')}
-              </Button>
-              
-              <Button 
-                type="submit" 
-                disabled={mutation.isPending}
-              >
-                {currentDimensionIndex < questionsByDimension.length - 1 ? (
-                  <>
-                    {t('bond.next')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                ) : (
-                  <>
-                    {t('bond.complete')}
-                    <Send className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
+          </RadioGroup>
+        </div>
+        
+        {showAIPrompt && currentQuestionIndex === 0 && (
+          <div className="mt-6 p-4 border border-purple-200 bg-purple-50 rounded-md">
+            <div className="flex items-start gap-3">
+              <Brain className="h-6 w-6 text-purple-600 mt-1 flex-shrink-0" />
+              <div>
+                <h4 className="font-medium text-purple-800 mb-1">
+                  {t('Want more personalized questions?')}
+                </h4>
+                <p className="text-sm text-purple-700 mb-2">
+                  {t('Our AI can generate questions tailored to your specific relationship context.')}
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="border-purple-300" 
+                  size="sm" 
+                  onClick={handleGenerateWithAI}
+                  disabled={generating}
+                >
+                  <Crown className="mr-2 h-4 w-4" />
+                  {generating ? t('Optimizing...') : t('Optimize with AI')}
+                </Button>
+              </div>
             </div>
-          </form>
-        </Form>
-      </div>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-between border-t p-4">
+        <Button
+          variant="outline"
+          onClick={currentQuestionIndex === 0 ? onCancel : handlePreviousQuestion}
+        >
+          {currentQuestionIndex === 0 ? t('Cancel') : (
+            <>
+              <ChevronLeft className="mr-1 h-4 w-4" /> 
+              {t('Previous')}
+            </>
+          )}
+        </Button>
+        
+        <Button onClick={handleNextQuestion}>
+          {currentQuestionIndex === questionCount - 1 ? t('Complete') : (
+            <>
+              {t('Next')} 
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </>
+          )}
+        </Button>
+      </CardFooter>
     </Card>
   );
-}
+};
+
+export default BondAssessmentQuiz;

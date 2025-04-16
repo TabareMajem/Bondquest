@@ -1,7 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, json, uniqueIndex, date, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { BOND_DIMENSIONS } from "./bondDimensions";
+import { bondDimensions } from "./bondDimensions";
 
 // User Model
 export const users = pgTable("users", {
