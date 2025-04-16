@@ -7,6 +7,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import { 
   users, couples, userSubscriptions, competitions, coupleRewards,
+  conversationSessions, conversationMessages, profileInsights,
   insertUserSchema, insertCoupleSchema, insertQuizSchema, insertQuizSessionSchema, 
   insertQuestionSchema, insertDailyCheckInSchema, insertChatSchema,
   insertSubscriptionTierSchema, insertUserSubscriptionSchema, insertRewardSchema,
@@ -1725,17 +1726,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sessionId = parseInt(req.params.sessionId);
       
       // Get the conversation session
-      const [session] = await db
+      const sessions = await db
         .select()
         .from(conversationSessions)
         .where(eq(conversationSessions.id, sessionId));
+        
+      const session = sessions.length > 0 ? sessions[0] : null;
       
       if (!session) {
         return res.status(404).json({ message: "Conversation session not found" });
       }
       
       // Update session status to completed
-      const [updatedSession] = await db
+      const updatedSessions = await db
         .update(conversationSessions)
         .set({ 
           status: "completed",
@@ -1743,6 +1746,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(conversationSessions.id, sessionId))
         .returning();
+        
+      const updatedSession = updatedSessions.length > 0 ? updatedSessions[0] : null;
       
       // Extract insights automatically when completing
       if (req.body.extractInsights) {
@@ -1766,19 +1771,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error completing conversation session:", error);
       res.status(500).json({ 
         message: "Failed to complete conversation session",
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : 'Unknown error' : undefined
       });
     }
   });
   
   // Middleware to initialize Gemini API if key is provided via headers
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     const apiKey = req.headers['x-gemini-api-key'];
     if (typeof apiKey === 'string' && apiKey.length > 0) {
       try {
         initializeGeminiAPI(apiKey);
-        // Store in request for downstream use
-        req.geminiApiInitialized = true;
+        // No need to store in request
       } catch (error) {
         console.error('Failed to initialize Gemini API with provided key:', error);
       }

@@ -37,8 +37,11 @@ export async function createConversationSession(sessionData: InsertConversationS
   const [session] = await db
     .insert(conversationSessions)
     .values({
-      ...sessionData,
-      createdAt: new Date(),
+      userId: sessionData.userId,
+      sessionType: sessionData.sessionType,
+      status: sessionData.status,
+      metadata: sessionData.metadata || {},
+      startedAt: new Date(),
     })
     .returning();
   
@@ -49,18 +52,17 @@ export async function createConversationSession(sessionData: InsertConversationS
  * Add a message to a conversation session
  */
 export async function addConversationMessage(messageData: InsertConversationMessage) {
-  // Convert array of content tags to proper array format if needed
-  let formattedContentTags = messageData.contentTags;
-  if (messageData.contentTags && !Array.isArray(messageData.contentTags)) {
-    formattedContentTags = Array.from(messageData.contentTags);
-  }
-  
   const [message] = await db
     .insert(conversationMessages)
     .values({
-      ...messageData,
-      contentTags: formattedContentTags,
-      createdAt: new Date(),
+      sessionId: messageData.sessionId,
+      message: messageData.message,
+      sender: messageData.sender,
+      messageType: messageData.messageType || 'text',
+      timestamp: new Date(),
+      contentTags: messageData.contentTags || null,
+      sentiment: messageData.sentiment || null,
+      extractedInsights: messageData.extractedInsights || null
     })
     .returning();
   
@@ -75,7 +77,7 @@ export async function getConversationMessages(sessionId: number) {
     .select()
     .from(conversationMessages)
     .where(eq(conversationMessages.sessionId, sessionId))
-    .orderBy(conversationMessages.createdAt);
+    .orderBy(conversationMessages.timestamp);
   
   return messages;
 }
@@ -84,18 +86,16 @@ export async function getConversationMessages(sessionId: number) {
  * Save a profile insight extracted from conversation
  */
 export async function saveProfileInsight(insightData: InsertProfileInsight): Promise<ProfileInsight> {
-  // Convert array of session ids to proper array format if needed
-  let formattedSourceIds = insightData.sourceSessionIds;
-  if (insightData.sourceSessionIds && !Array.isArray(insightData.sourceSessionIds)) {
-    formattedSourceIds = Array.from(insightData.sourceSessionIds);
-  }
-  
   const [insight] = await db
     .insert(profileInsights)
     .values({
-      ...insightData,
-      sourceSessionIds: formattedSourceIds,
+      userId: insightData.userId,
+      insightType: insightData.insightType,
+      insight: insightData.insight,
+      confidenceScore: insightData.confidenceScore || 'medium',
       createdAt: new Date(),
+      source: 'conversation',
+      metadata: insightData.metadata || {}
     })
     .returning();
   
@@ -142,8 +142,9 @@ export async function generateGeminiResponse(
         sender: 'system',
         message: systemContext,
         messageType: 'context',
-        contentTags: [],
-        createdAt: new Date(),
+        timestamp: new Date(),
+        contentTags: null,
+        sentiment: null,
         extractedInsights: null
       });
     }
@@ -242,7 +243,7 @@ export async function extractProfileInsightsFromConversation(
             insightType: insight.insightType,
             insight: insight.insight,
             confidenceScore: insight.confidenceScore || 'medium',
-            sourceSessionIds: [sessionId]
+            metadata: { sessionId }
           });
           
           savedInsights.push(savedInsight);
