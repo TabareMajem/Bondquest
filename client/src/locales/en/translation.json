@@ -1,4 +1,14 @@
 {
+  "languages": {
+    "en": "English",
+    "es": "Español",
+    "de": "Deutsch",
+    "fr": "Français",
+    "ru": "Русский",
+    "ja": "日本語",
+    "ko": "한국어",
+    "th": "ไทย"
+  },
   "common": {
     "appName": "BondQuest",
     "username": "Username",
@@ -24,7 +34,15 @@
     "less": "Less",
     "viewAll": "View All",
     "seeMore": "See More",
-    "seeLess": "See Less"
+    "seeLess": "See Less",
+    "home": "Home",
+    "play": "Play",
+    "compete": "Compete",
+    "insights": "Insights",
+    "ai": "AI Assistant",
+    "profile": "Profile",
+    "rewards": "Rewards",
+    "admin": "Admin"
   },
   "auth": {
     "loginSuccess": "Successfully logged in",
@@ -63,6 +81,7 @@
     "minutes": "min",
     "startChallenge": "Start Challenge",
     "recentActivities": "Recent Activities",
+    "recentAchievements": "Recent Achievements",
     "noActivities": "No recent activities",
     "weeklyCompetition": "Weekly Competition",
     "competitionDesc": "Compete with other couples to win exciting prizes and boost your bond strength",
@@ -161,6 +180,9 @@
     "achievements": "Achievements",
     "activity": "Activity",
     "settings": "Settings",
+    "accountSettings": "Account Settings",
+    "help": "Help & Support",
+    "about": "About",
     "deleteAccount": "Delete Account",
     "deleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone."
   },
