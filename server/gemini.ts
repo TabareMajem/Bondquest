@@ -26,14 +26,15 @@ export function initializeGeminiAPI(apiKey: string) {
   
   googleAI = new GoogleGenerativeAI(apiKey);
   
-  // Try various model names to find one that works with the current API
+  // Try various model names that are confirmed available from our API response
   const modelOptions = [
-    'gemini-pro',          // Standard naming
-    'gemini-1.0-pro',      // Alternative with version
-    'models/gemini-pro',   // Full path
-    'gemini-pro-vision',   // Vision capability
-    'models/gemini-1.5-pro', // Newer version
-    'gemini-1.5-pro'       // Newer version without path
+    'models/gemini-1.5-pro',       // New confirmed models from API response
+    'models/gemini-1.5-flash',
+    'models/gemini-1.5-pro-latest',
+    'models/gemini-1.5-pro-001',
+    'models/gemini-1.5-flash-latest',
+    'models/gemini-pro-vision',    // Vision capability
+    'gemini-pro'                   // Legacy/original naming (likely not available)
   ];
   
   let modelInitialized = false;

@@ -1742,27 +1742,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const apiKey = process.env.GEMINI_API_KEY;
       
       try {
-        // Try to list available models
-        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models", {
-          headers: {
-            "Authorization": `Bearer ${process.env.GEMINI_API_KEY}`
-          }
-        });
+        // Test using direct fetch with API key as query parameter (alternative authentication method)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
         
         const data = await response.json();
         
-        return res.json({
-          status: "success",
-          apiKey: "present (masked)",
-          response: data
-        });
+        // Test a simple content generation
+        try {
+          const googleAI = new GoogleGenerativeAI(apiKey);
+          const model = googleAI.getGenerativeModel({ model: "gemini-pro" });
+          
+          const result = await model.generateContent("Hello, what are your capabilities?");
+          const responseText = result.response.text();
+          
+          return res.json({
+            status: "success", 
+            apiKey: "present (masked)",
+            apiKeyLength: apiKey.length,
+            apiKeyFirstChars: apiKey.substring(0, 4) + "...",
+            modelListResponse: data,
+            testGeneration: {
+              success: true,
+              response: responseText
+            }
+          });
+        } catch (generateError) {
+          return res.json({
+            status: "partial",
+            apiKey: "present (masked)",
+            modelListResponse: data,
+            testGeneration: {
+              success: false,
+              error: generateError instanceof Error ? generateError.message : "Unknown error"
+            }
+          });
+        }
       } catch (error) {
         return res.json({
           status: "error",
           message: "Failed to list models",
+          apiKeyLength: apiKey.length,
+          apiKeyFirstChars: apiKey.substring(0, 4) + "...",
           error: error instanceof Error ? error.message : "Unknown error"
         });
       }
