@@ -1174,6 +1174,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Wizard Routes - Admin Only
+  app.post("/api/admin/ai/generate-quiz", async (req, res) => {
+    try {
+      const { topic, category, difficulty, questionCount, additionalInstructions } = z.object({
+        topic: z.string().min(3),
+        category: z.string().min(1),
+        difficulty: z.string().min(1),
+        questionCount: z.number().min(3).max(15),
+        additionalInstructions: z.string().optional()
+      }).parse(req.body);
+      
+      // Call the OpenAI API to generate the quiz
+      const generatedQuiz = await generateQuiz(
+        topic,
+        category,
+        difficulty,
+        questionCount,
+        additionalInstructions
+      );
+      
+      res.json(generatedQuiz);
+    } catch (error) {
+      console.error("Error generating quiz:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to generate quiz" });
+    }
+  });
+  
+  app.post("/api/admin/ai/generate-competition", async (req, res) => {
+    try {
+      const { name, description, startDate, endDate, difficulty, type, additionalInstructions } = z.object({
+        name: z.string().min(3),
+        description: z.string().min(10),
+        startDate: z.string().min(1),
+        endDate: z.string().min(1),
+        difficulty: z.string().min(1),
+        type: z.string().min(1),
+        additionalInstructions: z.string().optional()
+      }).parse(req.body);
+      
+      // Call the OpenAI API to generate the competition
+      const generatedCompetition = await generateCompetition(
+        name,
+        description,
+        startDate,
+        endDate,
+        difficulty,
+        type,
+        additionalInstructions
+      );
+      
+      res.json(generatedCompetition);
+    } catch (error) {
+      console.error("Error generating competition:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to generate competition" });
+    }
+  });
+  
   // Admin Dashboard Data
   app.get("/api/admin/dashboard", async (_req, res) => {
     try {

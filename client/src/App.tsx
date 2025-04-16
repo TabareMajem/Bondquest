@@ -26,6 +26,7 @@ import AdminCompetitions from "./pages/AdminCompetitions";
 import AdminCompetitionForm from "./pages/AdminCompetitionForm";
 import AdminSubscriptions from "./pages/AdminSubscriptions";
 import AdminSubscriptionTierForm from "./pages/AdminSubscriptionTierForm";
+import AdminAIWizard from "./pages/AdminAIWizard";
 
 function Router() {
   const [location] = useLocation();
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/admin/subscriptions" component={AdminSubscriptions} />
       <Route path="/admin/subscriptions/tiers/new" component={AdminSubscriptionTierForm} />
       <Route path="/admin/subscriptions/tiers/:id/edit" component={AdminSubscriptionTierForm} />
+      <Route path="/admin/ai-wizard" component={AdminAIWizard} />
       
       <Route component={NotFound} />
     </Switch>
