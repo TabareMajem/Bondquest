@@ -25,6 +25,9 @@ export default function AdminAIWizard() {
   const [quizDifficulty, setQuizDifficulty] = useState("medium");
   const [quizQuestionCount, setQuizQuestionCount] = useState(5);
   const [quizAdditionalInstructions, setQuizAdditionalInstructions] = useState("");
+  const [selectedCoupleId, setSelectedCoupleId] = useState<number | null>(null);
+  const [couples, setCouples] = useState<any[]>([]);
+  const [loadingCouples, setLoadingCouples] = useState(false);
   const [generatedQuiz, setGeneratedQuiz] = useState<any>(null);
   
   // Competition Generator State

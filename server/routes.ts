@@ -1354,13 +1354,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Wizard Routes - Admin Only
   app.post("/api/admin/ai/generate-quiz", async (req, res) => {
     try {
-      const { topic, category, difficulty, questionCount, additionalInstructions } = z.object({
+      const { topic, category, difficulty, questionCount, additionalInstructions, coupleId } = z.object({
         topic: z.string().min(3),
         category: z.string().min(1),
         difficulty: z.string().min(1),
         questionCount: z.number().min(3).max(15),
-        additionalInstructions: z.string().optional()
+        additionalInstructions: z.string().optional(),
+        coupleId: z.number().optional() // Optional couple ID to personalize the quiz
       }).parse(req.body);
+      
+      // If a coupleId is provided, fetch relevant profile data
+      let coupleProfileData;
+      if (coupleId) {
+        try {
+          // Get the couple record
+          const couple = await storage.getCouple(coupleId);
+          if (couple) {
+            // Get both users
+            const user1 = await storage.getUser(couple.userId1);
+            const user2 = await storage.getUser(couple.userId2);
+            
+            // Get user profiles if they exist
+            let user1Profile, user2Profile;
+            let user1Responses = [], user2Responses = [];
+            
+            // Check if we have implemented profile methods
+            if (typeof storage.getUserProfile === 'function') {
+              if (user1) user1Profile = await storage.getUserProfile(user1.id);
+              if (user2) user2Profile = await storage.getUserProfile(user2.id);
+            }
+            
+            // Check if we have implemented response methods
+            if (typeof storage.getUserResponses === 'function') {
+              if (user1) user1Responses = await storage.getUserResponses(user1.id);
+              if (user2) user2Responses = await storage.getUserResponses(user2.id);
+            }
+            
+            // Build the profile data object
+            coupleProfileData = {
+              user1Profile: user1Profile || user1,
+              user2Profile: user2Profile || user2,
+              user1Responses,
+              user2Responses
+            };
+            
+            console.log("Using profile data for personalized quiz generation");
+          }
+        } catch (profileError) {
+          console.error("Error fetching couple profile data:", profileError);
+          // Continue without profile data if there's an error
+        }
+      }
       
       // Call the OpenAI API to generate the quiz
       const generatedQuiz = await generateQuiz(
@@ -1368,7 +1412,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         difficulty,
         questionCount,
-        additionalInstructions
+        additionalInstructions,
+        coupleProfileData
       );
       
       res.json(generatedQuiz);
@@ -1414,7 +1459,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Admin Dashboard Data
+  // Admin endpoints for all couples
+  app.get("/api/admin/couples", async (_req, res) => {
+    try {
+      // Get all couples from database
+      const allCouples = await db.select().from(couples).orderBy(couples.id);
+      
+      // Enhance couple data with user information
+      const enhancedCouples = await Promise.all(
+        allCouples.map(async (couple) => {
+          // Get both users
+          const user1 = await storage.getUser(couple.userId1);
+          const user2 = await storage.getUser(couple.userId2);
+          
+          // Remove sensitive data
+          let user1Data = null;
+          let user2Data = null;
+          
+          if (user1) {
+            const { password, ...safeUser1 } = user1;
+            user1Data = safeUser1;
+          }
+          
+          if (user2) {
+            const { password, ...safeUser2 } = user2;
+            user2Data = safeUser2;
+          }
+          
+          // Return enhanced couple data
+          return {
+            id: couple.id,
+            bondStrength: couple.bondStrength,
+            level: couple.level,
+            xp: couple.xp,
+            createdAt: couple.createdAt,
+            user1: user1Data,
+            user2: user2Data,
+            displayName: user1Data && user2Data ? 
+              `${user1Data.displayName} & ${user2Data.displayName}` : 
+              `Couple #${couple.id}`
+          };
+        })
+      );
+      
+      res.json(enhancedCouples);
+    } catch (error) {
+      console.error("Error fetching all couples:", error);
+      res.status(500).json({ message: "Failed to get couples data" });
+    }
+  });
+
+// Admin Dashboard Data
   app.get("/api/admin/dashboard", async (_req, res) => {
     try {
       // Get all users count
