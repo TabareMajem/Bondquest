@@ -587,6 +587,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get quiz sessions" });
     }
   });
+  
+  app.get("/api/quiz-sessions/:id", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const session = await storage.getQuizSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Quiz session not found" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get quiz session" });
+    }
+  });
 
   // Daily Check-In Routes
   app.post("/api/daily-check-ins", async (req, res) => {

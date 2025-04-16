@@ -66,21 +66,13 @@ export default function QuizGame() {
     pointsEarned: number;
   }>({ matchPercentage: 0, pointsEarned: 0 });
   
-  // Complete quiz session
+  // Complete user's portion of quiz session
   const completeSessionMutation = useMutation({
     mutationFn: async () => {
-      if (!quizSessionId) throw new Error("No quiz session found");
+      if (!quizSessionId || !user) throw new Error("No quiz session or user found");
       
-      // Calculate points based on number of answers
-      const pointsEarned = Object.keys(answers).length * 5;
-      // Mock match percentage (in a real app, this would compare with partner's answers)
-      const matchPercentage = Math.floor(Math.random() * 41) + 60; // 60-100%
-      
-      const response = await apiRequest("PATCH", `/api/quiz-sessions/${quizSessionId}`, {
-        user1Answers: answers,
-        pointsEarned,
-        matchPercentage,
-        completed: true
+      const response = await apiRequest("PATCH", `/api/quiz-sessions/${quizSessionId}/user/${user.id}`, {
+        answers: answers
       });
       return response.json();
     },
@@ -91,17 +83,36 @@ export default function QuizGame() {
         queryClient.invalidateQueries({ queryKey: [`/api/couples/${couple.id}/activities`] });
       }
       
-      // Set quiz as completed and store results
-      setQuizResults({
-        matchPercentage: data.matchPercentage,
-        pointsEarned: data.pointsEarned
-      });
-      setQuizCompleted(true);
+      // Check if the quiz is fully completed (both users have completed)
+      const isFullyCompleted = data.completed;
       
-      toast({
-        title: "Quiz completed!",
-        description: `You earned ${data.pointsEarned} points.`,
-      });
+      if (isFullyCompleted && data.matchPercentage && data.pointsEarned) {
+        // Set quiz as completed and store results
+        setQuizResults({
+          matchPercentage: data.matchPercentage,
+          pointsEarned: data.pointsEarned
+        });
+        setQuizCompleted(true);
+        
+        toast({
+          title: "Quiz completed!",
+          description: `You both finished! You earned ${data.pointsEarned} points.`,
+        });
+      } else {
+        // Show message that user completed their part but waiting for partner
+        setQuizCompleted(true);
+        
+        toast({
+          title: "Your part completed!",
+          description: "Now waiting for your partner to complete their part.",
+        });
+        
+        // Store placeholder results for the waiting screen
+        setQuizResults({
+          matchPercentage: 0,
+          pointsEarned: 0
+        });
+      }
     },
     onError: (error) => {
       toast({
