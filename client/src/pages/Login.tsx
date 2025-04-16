@@ -25,7 +25,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const [, navigate] = useLocation();
-  const { login } = useAuth();
+  const { login, isAdmin } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -41,11 +41,21 @@ export default function Login() {
     setIsLoading(true);
     try {
       await login(data);
-      navigate("/home"); // Redirect to home after successful login
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
-      });
+      
+      // Check if user is admin and redirect to admin dashboard if they are
+      if (isAdmin) {
+        navigate("/admin");
+        toast({
+          title: "Welcome Administrator!",
+          description: "You have successfully logged in to the admin panel.",
+        });
+      } else {
+        navigate("/home"); // Redirect normal users to home
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully logged in.",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Login failed",
