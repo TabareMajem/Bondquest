@@ -82,7 +82,14 @@ export const achievements = pgTable("achievements", {
   coupleId: integer("couple_id").notNull().references(() => couples.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  unlockedAt: timestamp("unlocked_at").defaultNow().notNull(),
+  type: text("type").notNull(), // "quiz", "check_in", "bond_strength", "level", "competition", "streak"
+  badgeImageUrl: text("badge_image_url"), // URL to the achievement badge image
+  points: integer("points").default(50), // Points rewarded for unlocking this achievement
+  level: integer("level").default(1), // Achievement level (bronze, silver, gold, etc.)
+  progress: integer("progress").default(0), // Current progress towards achievement
+  progressTarget: integer("progress_target").notNull(), // Required progress to unlock achievement
+  unlockedAt: timestamp("unlocked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Activity Model (for tracking recent activities)
@@ -114,6 +121,8 @@ export const subscriptionTiers = pgTable("subscription_tiers", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   billingPeriod: text("billing_period").notNull(), // "monthly", "yearly"
   features: json("features").$type<string[]>(),
+  stripeProductId: text("stripe_product_id"),
+  stripePriceId: text("stripe_price_id"),
   active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -221,7 +230,7 @@ export const insertQuizSchema = createInsertSchema(quizzes).omit({ id: true });
 export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });
 export const insertQuizSessionSchema = createInsertSchema(quizSessions).omit({ id: true, createdAt: true, completedAt: true });
 export const insertDailyCheckInSchema = createInsertSchema(dailyCheckIns).omit({ id: true, date: true });
-export const insertAchievementSchema = createInsertSchema(achievements).omit({ id: true, unlockedAt: true });
+export const insertAchievementSchema = createInsertSchema(achievements).omit({ id: true, unlockedAt: true, createdAt: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
 export const insertChatSchema = createInsertSchema(chats).omit({ id: true, createdAt: true });
 
