@@ -1854,6 +1854,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Test endpoint for profile insights extraction
+  app.post("/api/test/profile-insights", async (req, res) => {
+    try {
+      const { userId, messages } = req.body;
+      
+      if (!userId || !messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: "Missing userId or messages in request body. Messages must be an array." });
+      }
+      
+      // Create a temporary conversation session for testing
+      const [session] = await db
+        .insert(conversationSessions)
+        .values({
+          userId,
+          sessionType: 'test-insights',
+          status: 'active',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      // Add the messages to the conversation
+      for (const message of messages) {
+        await db
+          .insert(conversationMessages)
+          .values({
+            sessionId: session.id,
+            sender: message.sender || 'user',
+            message: message.content,
+            messageType: 'text',
+            timestamp: new Date()
+          });
+      }
+      
+      // Extract insights
+      const insights = await extractProfileInsightsFromConversation(session.id, userId);
+      
+      return res.status(200).json({
+        status: "success",
+        sessionId: session.id,
+        insights
+      });
+    } catch (error) {
+      console.error("Error in profile insights test endpoint:", error);
+      
+      return res.status(500).json({
+        status: "error",
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Diagnostic endpoint to check Gemini API status
   app.get("/api/gemini/status", async (req, res) => {
     try {
