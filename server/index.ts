@@ -1,6 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initializeGeminiAPI } from "./gemini";
+
+// Initialize Gemini API with environment variable if available
+if (process.env.GEMINI_API_KEY) {
+  try {
+    initializeGeminiAPI(process.env.GEMINI_API_KEY);
+  } catch (error) {
+    console.error("Failed to initialize Gemini API:", error);
+  }
+}
 
 const app = express();
 app.use(express.json());
