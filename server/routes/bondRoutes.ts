@@ -1,407 +1,265 @@
-import express from 'express';
+import { Router } from 'express';
 import { storage } from '../storage';
+import { bondDimensions, calculateBondStrength, generateInsightForDimension } from '@shared/bondDimensions';
+import { insertBondAssessmentSchema, insertBondInsightSchema, insertBondQuestionSchema } from '@shared/schema';
 import { z } from 'zod';
-import { insertBondQuestionSchema, insertBondAssessmentSchema, insertBondInsightSchema } from '@shared/schema';
-import { bondDimensions } from '@shared/bondDimensions';
-import { generateGeminiResponse } from '../gemini';
 
-const router = express.Router();
+const router = Router();
 
-// Bond Questions Routes
-router.get('/questions', async (req, res) => {
+// Get all bond dimensions
+router.get('/dimensions', async (req, res) => {
   try {
+    res.json(bondDimensions);
+  } catch (error) {
+    console.error('Error fetching bond dimensions:', error);
+    res.status(500).json({ error: 'Failed to fetch bond dimensions' });
+  }
+});
+
+// Get bond questions for a specific dimension
+router.get('/questions/:dimensionId?', async (req, res) => {
+  try {
+    const { dimensionId } = req.params;
     const questions = await storage.getBondQuestions();
+    
+    if (dimensionId) {
+      // Filter questions for the specified dimension
+      const filteredQuestions = questions.filter(q => q.dimensionId === dimensionId);
+      return res.json(filteredQuestions);
+    }
+    
     res.json(questions);
   } catch (error) {
     console.error('Error fetching bond questions:', error);
-    res.status(500).json({ 
-      message: 'Failed to fetch bond questions',
-      error: process.env.NODE_ENV === 'development' ? error.toString() : undefined
-    });
+    res.status(500).json({ error: 'Failed to fetch bond questions' });
   }
 });
 
-router.get('/questions/dimension/:dimensionId', async (req, res) => {
-  try {
-    const { dimensionId } = req.params;
-    
-    // Validate that dimensionId is valid
-    if (!bondDimensions.some(dim => dim.id === dimensionId)) {
-      return res.status(400).json({ message: 'Invalid dimension ID' });
-    }
-    
-    const questions = await storage.getBondQuestionsByDimension(dimensionId);
-    res.json(questions);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch bond questions by dimension' });
-  }
-});
-
+// Create a new bond question
 router.post('/questions', async (req, res) => {
   try {
-    const validatedData = insertBondQuestionSchema.parse(req.body);
-    
-    // Validate dimension exists
-    if (!bondDimensions.some(dim => dim.id === validatedData.dimensionId)) {
-      return res.status(400).json({ message: 'Invalid dimension ID' });
-    }
-    
-    const question = await storage.createBondQuestion(validatedData);
-    res.status(201).json(question);
+    const questionData = insertBondQuestionSchema.parse(req.body);
+    const newQuestion = await storage.createBondQuestion(questionData);
+    res.status(201).json(newQuestion);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: error.errors });
+      return res.status(400).json({ error: error.errors });
     }
-    res.status(500).json({ message: 'Failed to create bond question' });
+    console.error('Error creating bond question:', error);
+    res.status(500).json({ error: 'Failed to create bond question' });
   }
 });
 
-// Bond Assessment Routes
-router.get('/assessments/couple/:coupleId', async (req, res) => {
+// Get assessments for the current couple
+router.get('/assessments', async (req, res) => {
   try {
-    const coupleId = parseInt(req.params.coupleId);
-    const assessments = await storage.getBondAssessmentsByCouple(coupleId);
-    
-    if (!assessments.length) {
-      return res.json([]);
+    if (!req.session.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
     
-    // Calculate dimensions statistics
-    const dimensionStats = bondDimensions.map(dimension => {
-      const dimensionAssessments = assessments.filter(
-        assessment => assessment.dimensionId === dimension.id
-      );
-      
-      if (dimensionAssessments.length === 0) {
-        return {
-          dimensionId: dimension.id,
-          name: dimension.name,
-          description: dimension.description,
-          assessed: false,
-          score: null
-        };
-      }
-      
-      // Get most recent assessment for this dimension
-      const mostRecent = dimensionAssessments.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )[0];
-      
-      return {
-        dimensionId: dimension.id,
-        name: dimension.name,
-        description: dimension.description,
-        assessed: true,
-        score: mostRecent.score,
-        lastAssessedAt: mostRecent.createdAt
-      };
-    });
+    const userId = req.session.user.id;
+    const couple = await storage.getCoupleByUserId(userId);
     
-    res.json({
-      assessments,
-      dimensionStats
-    });
+    if (!couple) {
+      return res.status(404).json({ error: 'Couple not found' });
+    }
+    
+    const assessments = await storage.getBondAssessmentsByCouple(couple.id);
+    res.json(assessments);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch bond assessments' });
+    console.error('Error fetching bond assessments:', error);
+    res.status(500).json({ error: 'Failed to fetch bond assessments' });
   }
 });
 
+// Create a new assessment
 router.post('/assessments', async (req, res) => {
   try {
-    const validatedData = insertBondAssessmentSchema.parse(req.body);
-    
-    // Validate dimension exists
-    if (!bondDimensions.some(dim => dim.id === validatedData.dimensionId)) {
-      return res.status(400).json({ message: 'Invalid dimension ID' });
+    if (!req.session.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
     
-    // Create assessment
-    const assessment = await storage.createBondAssessment(validatedData);
+    const assessmentData = insertBondAssessmentSchema.parse(req.body);
+    const newAssessment = await storage.createBondAssessment(assessmentData);
     
-    // Get couple
-    const couple = await storage.getCouple(validatedData.coupleId);
-    if (!couple) {
-      return res.status(404).json({ message: 'Couple not found' });
-    }
-    
-    // Create activity for assessment completion
-    await storage.createActivity({
-      coupleId: validatedData.coupleId,
-      type: 'bond_assessment',
-      referenceId: assessment.id,
-      points: 10,
-      description: `Completed ${bondDimensions.find(dim => dim.id === validatedData.dimensionId)?.name} assessment`
-    });
-    
-    // Update couple XP
-    await storage.updateCoupleXP(couple.id, 10);
-    
-    res.status(201).json(assessment);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: error.errors });
-    }
-    res.status(500).json({ message: 'Failed to create bond assessment' });
-  }
-});
-
-// Bond Insights Routes
-router.get('/insights/couple/:coupleId', async (req, res) => {
-  try {
-    const coupleId = parseInt(req.params.coupleId);
-    const insights = await storage.getBondInsightsByCouple(coupleId);
-    res.json(insights);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch bond insights' });
-  }
-});
-
-router.post('/insights', async (req, res) => {
-  try {
-    const validatedData = insertBondInsightSchema.parse(req.body);
-    
-    // Validate dimension exists
-    if (!bondDimensions.some(dim => dim.id === validatedData.dimensionId)) {
-      return res.status(400).json({ message: 'Invalid dimension ID' });
-    }
-    
-    // Create expiration date (30 days from now)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
-    
-    const insight = await storage.createBondInsight({
-      ...validatedData,
-      expiresAt,
-      viewed: false,
-      completed: false
-    });
-    
-    res.status(201).json(insight);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: error.errors });
-    }
-    res.status(500).json({ message: 'Failed to create bond insight' });
-  }
-});
-
-router.patch('/insights/:id/viewed', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { viewed } = z.object({ viewed: z.boolean() }).parse(req.body);
-    
-    const insight = await storage.updateBondInsightViewed(id, viewed);
-    
-    if (!insight) {
-      return res.status(404).json({ message: 'Bond insight not found' });
-    }
-    
-    res.json(insight);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: error.errors });
-    }
-    res.status(500).json({ message: 'Failed to update bond insight viewed status' });
-  }
-});
-
-router.patch('/insights/:id/completed', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { completed } = z.object({ completed: z.boolean() }).parse(req.body);
-    
-    const insight = await storage.updateBondInsightCompleted(id, completed);
-    
-    if (!insight) {
-      return res.status(404).json({ message: 'Bond insight not found' });
-    }
-    
-    // If insight is being marked as completed, add XP and activity
-    if (completed && !insight.completed) {
-      // Get the insight details
-      const fullInsight = await storage.getBondInsight(id);
-      if (fullInsight) {
-        // Get couple
-        const couple = await storage.getCouple(fullInsight.coupleId);
-        if (couple) {
-          // Create activity
-          await storage.createActivity({
-            coupleId: couple.id,
-            type: 'bond_insight',
-            referenceId: id,
-            points: 15,
-            description: `Completed a relationship insight: ${fullInsight.title}`
-          });
-          
-          // Update couple XP
-          await storage.updateCoupleXP(couple.id, 15);
+    // Calculate new bond strength
+    const couple = await storage.getCouple(assessmentData.coupleId);
+    if (couple) {
+      const assessments = await storage.getBondAssessmentsByCouple(couple.id);
+      
+      // Get latest score for each dimension
+      const dimensionScores: Record<string, number> = {};
+      assessments.forEach(assessment => {
+        // Only override if this assessment is newer
+        if (!dimensionScores[assessment.dimensionId] || 
+            new Date(assessment.answeredAt) > new Date(dimensionScores[assessment.dimensionId + '_date'])) {
+          dimensionScores[assessment.dimensionId] = assessment.score;
+          dimensionScores[assessment.dimensionId + '_date'] = assessment.answeredAt.toString();
         }
-      }
-    }
-    
-    res.json(insight);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: error.errors });
-    }
-    res.status(500).json({ message: 'Failed to update bond insight completed status' });
-  }
-});
-
-// AI-powered Bond Assessment Generation
-router.post('/ai-generate-assessment', async (req, res) => {
-  try {
-    const { coupleId, dimensionId, sessionId } = z.object({
-      coupleId: z.number(),
-      dimensionId: z.string(),
-      sessionId: z.number().optional()
-    }).parse(req.body);
-    
-    // Validate dimension exists
-    const dimension = bondDimensions.find(dim => dim.id === dimensionId);
-    if (!dimension) {
-      return res.status(400).json({ message: 'Invalid dimension ID' });
-    }
-    
-    // Get couple information for context
-    const couple = await storage.getCouple(coupleId);
-    if (!couple) {
-      return res.status(404).json({ message: 'Couple not found' });
-    }
-    
-    // Get user information
-    const user1 = await storage.getUser(couple.userId1);
-    const user2 = await storage.getUser(couple.userId2);
-    
-    if (!user1 || !user2) {
-      return res.status(404).json({ message: 'User information not found' });
-    }
-    
-    // Get existing bond assessments for context
-    const existingAssessments = await storage.getBondAssessmentsByCouple(coupleId);
-    
-    // Get existing chat history if sessionId is provided
-    let chatContext = '';
-    if (sessionId) {
-      const chats = await storage.getChatsByCouple(coupleId);
-      if (chats.length > 0) {
-        chatContext = 'Recent conversation history:\n' + 
-          chats.slice(-5).map(chat => `${chat.sender}: ${chat.message}`).join('\n');
-      }
-    }
-    
-    // Create system prompt for AI
-    const systemPrompt = `You are Aurora, a data-driven relationship scientist and AI assistant specialized in relationship assessments.
-    
-You are creating personalized bond assessment questions for the dimension: "${dimension.name}" (${dimension.description}).
-
-The couple consists of ${user1.displayName} and ${user2.displayName}.
-${chatContext ? chatContext : ''}
-${existingAssessments.length > 0 ? 'They have completed some bond assessments before.' : 'This is their first bond assessment.'}
-
-Create 5 personalized questions to assess their relationship in this dimension. Include:
-- 3 Likert scale questions (1-10 rating)
-- 1 multiple choice question with 5 options
-- 1 open-ended text question
-
-Format your response as a JSON array with this structure:
-[
-  {
-    "text": "Question text here?",
-    "type": "likert",
-    "weight": 2  // importance weight 1-2, with 2 being more important
-  },
-  {
-    "text": "Multiple choice question here?",
-    "type": "multiple_choice",
-    "weight": 1,
-    "options": ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5"]
-  },
-  {
-    "text": "Open ended question here?",
-    "type": "text",
-    "weight": 0  // text questions don't contribute to score
-  }
-]
-
-Make questions engaging, insightful, and tailored to their specific relationship dynamic. Avoid generic questions.`;
-
-    try {
-      // Generate assessment questions with AI
-      let responseText = '';
-      if (sessionId) {
-        responseText = await generateGeminiResponse(sessionId, 'Generate personalized bond assessment questions', systemPrompt);
-      } else {
-        // Use direct generation (no conversation history/session)
-        responseText = await generateGeminiResponse(0, 'Generate personalized bond assessment questions', systemPrompt);
-      }
+      });
       
-      // Parse JSON response
-      // Clean the response to ensure valid JSON
-      const jsonRegex = /\[[\s\S]*\]/;
-      const match = responseText.match(jsonRegex);
+      // Clean up date tracking properties
+      Object.keys(dimensionScores).forEach(key => {
+        if (key.endsWith('_date')) {
+          delete dimensionScores[key];
+        }
+      });
       
-      if (!match) {
-        return res.status(500).json({ 
-          message: 'Failed to parse AI response',
-          error: 'Invalid JSON format'
-        });
-      }
+      // Calculate new bond strength
+      const bondStrength = calculateBondStrength(dimensionScores);
       
-      const cleanedJSON = match[0].replace(/```json|```/g, '').trim();
-      const questions = JSON.parse(cleanedJSON);
+      // Update couple's bond strength
+      await storage.updateCoupleBondStrength(couple.id, bondStrength);
       
-      // Validate questions array
-      if (!Array.isArray(questions) || questions.length === 0) {
-        return res.status(500).json({ 
-          message: 'Invalid AI response format', 
-          error: 'Response did not contain a valid questions array'
-        });
-      }
-      
-      // Process each question with the Bond Question schema
-      const processedQuestions = [];
-      
-      for (const q of questions) {
-        // Validate question has required fields
-        if (!q.text || !q.type) continue;
-        
-        // Create bond question
-        const questionData = {
-          dimensionId,
-          text: q.text,
-          type: q.type,
-          weight: q.weight || 1,
-          options: q.options || null
+      // Generate insight if this dimension's score is low
+      const dimension = bondDimensions.find(d => d.id === assessmentData.dimensionId);
+      if (dimension && assessmentData.score <= 6) {
+        // Create insight
+        const insight = {
+          coupleId: assessmentData.coupleId,
+          dimensionId: assessmentData.dimensionId,
+          title: `Enhance Your ${dimension.name}`,
+          content: generateInsightForDimension(assessmentData.dimensionId, assessmentData.score),
+          actionItems: [
+            `Schedule 15 minutes each day to practice active listening`,
+            `Try the "${dimension.name} Exercise" in the Activities section`,
+            `Discuss one specific way to improve in this area`
+          ],
+          targetScoreRange: [assessmentData.score, 10] as [number, number],
+          difficulty: assessmentData.score <= 3 ? 'challenging' : 
+                      assessmentData.score <= 5 ? 'medium' : 'easy',
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
         };
         
-        const newQuestion = await storage.createBondQuestion(questionData);
-        processedQuestions.push(newQuestion);
+        await storage.createBondInsight(insight);
       }
-      
-      res.status(201).json({
-        message: 'Successfully created AI-generated bond assessment questions',
-        dimension,
-        questions: processedQuestions
-      });
-      
-    } catch (aiError) {
-      console.error('Error generating AI bond assessment:', aiError);
-      res.status(500).json({ 
-        message: 'Failed to generate AI bond assessment', 
-        error: aiError instanceof Error ? aiError.message : 'Unknown error'
-      });
     }
     
+    res.status(201).json(newAssessment);
   } catch (error) {
-    console.error('Error in AI bond assessment generation:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: error.errors });
+      return res.status(400).json({ error: error.errors });
     }
-    res.status(500).json({ 
-      message: 'Failed to process AI bond assessment generation',
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    console.error('Error creating bond assessment:', error);
+    res.status(500).json({ error: 'Failed to create bond assessment' });
+  }
+});
+
+// Get insights for the current couple
+router.get('/insights', async (req, res) => {
+  try {
+    if (!req.session.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const userId = req.session.user.id;
+    const couple = await storage.getCoupleByUserId(userId);
+    
+    if (!couple) {
+      return res.status(404).json({ error: 'Couple not found' });
+    }
+    
+    const insights = await storage.getBondInsightsByCouple(couple.id);
+    
+    // Sort by created date, newest first
+    insights.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    res.json(insights);
+  } catch (error) {
+    console.error('Error fetching bond insights:', error);
+    res.status(500).json({ error: 'Failed to fetch bond insights' });
+  }
+});
+
+// Create a new insight
+router.post('/insights', async (req, res) => {
+  try {
+    if (!req.session.user?.isAdmin) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const insightData = insertBondInsightSchema.parse(req.body);
+    const newInsight = await storage.createBondInsight(insightData);
+    res.status(201).json(newInsight);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Error creating bond insight:', error);
+    res.status(500).json({ error: 'Failed to create bond insight' });
+  }
+});
+
+// Mark an insight as viewed
+router.patch('/insights/:id/viewed', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const insight = await storage.getBondInsight(parseInt(id));
+    
+    if (!insight) {
+      return res.status(404).json({ error: 'Insight not found' });
+    }
+    
+    // Check if user belongs to the couple
+    if (!req.session.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const userId = req.session.user.id;
+    const couple = await storage.getCoupleByUserId(userId);
+    
+    if (!couple || couple.id !== insight.coupleId) {
+      return res.status(403).json({ error: 'Not authorized to access this insight' });
+    }
+    
+    const updatedInsight = await storage.updateBondInsightViewed(insight.id, true);
+    res.json(updatedInsight);
+  } catch (error) {
+    console.error('Error updating bond insight:', error);
+    res.status(500).json({ error: 'Failed to update bond insight' });
+  }
+});
+
+// Mark an insight as completed
+router.patch('/insights/:id/completed', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const insight = await storage.getBondInsight(parseInt(id));
+    
+    if (!insight) {
+      return res.status(404).json({ error: 'Insight not found' });
+    }
+    
+    // Check if user belongs to the couple
+    if (!req.session.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    const userId = req.session.user.id;
+    const couple = await storage.getCoupleByUserId(userId);
+    
+    if (!couple || couple.id !== insight.coupleId) {
+      return res.status(403).json({ error: 'Not authorized to access this insight' });
+    }
+    
+    const updatedInsight = await storage.updateBondInsightCompleted(insight.id, true);
+    
+    // Award XP for completing an insight
+    await storage.updateCoupleXP(couple.id, couple.xp + 50);
+    
+    // Create activity for completing the insight
+    await storage.createActivity({
+      type: 'bond_insight',
+      coupleId: couple.id,
+      referenceId: insight.id,
+      points: 50,
+      description: `Completed a bond insight for improving ${insight.dimensionId}`
     });
+    
+    res.json(updatedInsight);
+  } catch (error) {
+    console.error('Error completing bond insight:', error);
+    res.status(500).json({ error: 'Failed to complete bond insight' });
   }
 });
 

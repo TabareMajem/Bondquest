@@ -1,3 +1,5 @@
+// Bond dimensions model for relationship assessment
+
 export interface BondDimension {
   id: string;
   name: string;
@@ -5,177 +7,166 @@ export interface BondDimension {
   color: string;
   icon?: string;
   exampleQuestions: string[];
-  measurementApproach: string;
-  weight: number; // Weight factor for overall bond strength calculation
 }
 
 export const bondDimensions: BondDimension[] = [
   {
-    id: "communication",
-    name: "Communication",
-    description: "The degree of openness, clarity, and effectiveness in how couples share thoughts, feelings, and information.",
-    color: "#8a2be2", // Purple
-    icon: "message-circle",
+    id: 'communication',
+    name: 'Communication',
+    description: 'The degree of openness, clarity, and effectiveness in how couples share thoughts, feelings, and needs.',
+    color: '#8A2BE2', // Purple
+    icon: 'MessageSquare',
     exampleQuestions: [
-      "How often do you feel heard and understood by your partner?",
-      "Rate how comfortable you are discussing difficult topics."
-    ],
-    measurementApproach: "Likert scale (1 = very poor, 10 = excellent)",
-    weight: 1.2 // Higher weight as it's considered more predictive of relationship success
+      'How comfortable do you feel expressing your true feelings to your partner?',
+      'Does your partner listen attentively to your concerns?',
+      'How effectively do you resolve conflicts through conversation?'
+    ]
   },
   {
-    id: "trust",
-    name: "Trust",
-    description: "The level of confidence each partner has in the other's honesty, reliability, and loyalty.",
-    color: "#4169e1", // Royal Blue
-    icon: "shield",
+    id: 'trust',
+    name: 'Trust',
+    description: 'The level of confidence, reliability, and dependability between partners.',
+    color: '#4169E1', // Royal Blue
+    icon: 'Shield',
     exampleQuestions: [
-      "How secure do you feel in your partner's commitment?",
-      "How often do you feel you can confide in your partner without judgment?"
-    ],
-    measurementApproach: "Likert scale; frequency measures (Never–Always)",
-    weight: 1.2 // Higher weight as it's considered more predictive of relationship success
+      'Do you believe your partner is honest with you?',
+      'Can you rely on your partner to keep commitments?',
+      'Do you feel secure in your relationship?'
+    ]
   },
   {
-    id: "emotional_intimacy",
-    name: "Emotional Intimacy",
-    description: "The closeness and warmth in sharing emotions, vulnerabilities, and supportive behaviors.",
-    color: "#ff69b4", // Hot Pink
-    icon: "heart",
+    id: 'intimacy',
+    name: 'Emotional Intimacy',
+    description: 'The depth of emotional connection, vulnerability, and closeness between partners.',
+    color: '#FF1493', // Deep Pink
+    icon: 'Heart',
     exampleQuestions: [
-      "How emotionally close do you feel to your partner?",
-      "How often do you share your deepest feelings with your partner?"
-    ],
-    measurementApproach: "Likert scale; qualitative rating",
-    weight: 1.1
+      'How comfortable are you being vulnerable with your partner?',
+      'Do you feel emotionally connected to your partner?',
+      'Do you share your inner thoughts and feelings freely?'
+    ]
   },
   {
-    id: "conflict_resolution",
-    name: "Conflict Resolution",
-    description: "The effectiveness with which couples address disagreements and resolve conflicts respectfully.",
-    color: "#ff8c00", // Dark Orange
-    icon: "shield-check",
+    id: 'support',
+    name: 'Support',
+    description: 'How partners encourage, assist, and stand by each other in various life situations.',
+    color: '#32CD32', // Lime Green
+    icon: 'HandsHelping',
     exampleQuestions: [
-      "When conflicts arise, how satisfied are you with the resolution process?",
-      "How well do you and your partner manage disagreements without lingering resentment?"
-    ],
-    measurementApproach: "Likert scale; scenario-based responses",
-    weight: 1.0
+      'Does your partner encourage your personal growth?',
+      'How supportive is your partner during difficult times?',
+      'Do you feel your partner celebrates your successes?'
+    ]
   },
   {
-    id: "physical_intimacy",
-    name: "Physical Intimacy",
-    description: "Satisfaction with physical affection, closeness, and sexual connection.",
-    color: "#ff4500", // Orange Red
-    icon: "heart-handshake",
+    id: 'growth',
+    name: 'Growth',
+    description: 'How the relationship evolves, adapts, and develops over time.',
+    color: '#FFD700', // Gold
+    icon: 'Sprout',
     exampleQuestions: [
-      "How satisfied are you with the level of physical intimacy in your relationship?",
-      "Rate your comfort with initiating physical affection."
-    ],
-    measurementApproach: "Likert scale; frequency (times per week/month)",
-    weight: 1.0
+      'Has your relationship grown stronger over time?',
+      'Do you feel you have learned and evolved together?',
+      'How open are you to change and adaptation in your relationship?'
+    ]
   },
   {
-    id: "shared_values",
-    name: "Shared Values/Goals",
-    description: "How aligned the partners are in their core life values, goals, and future plans.",
-    color: "#2e8b57", // Sea Green
-    icon: "compass",
+    id: 'fun',
+    name: 'Playfulness',
+    description: 'The level of joy, humor, and light-heartedness shared between partners.',
+    color: '#FF7F50', // Coral
+    icon: 'Sparkles',
     exampleQuestions: [
-      "How well do your long-term goals align with your partner's?",
-      "How often do you discuss your life plans together?"
-    ],
-    measurementApproach: "Likert scale; checklist comparisons",
-    weight: 0.9
+      'How often do you laugh together?',
+      'Do you make time for fun and play in your relationship?',
+      'Do you enjoy trying new activities together?'
+    ]
   },
   {
-    id: "fun_playfulness",
-    name: "Fun & Playfulness",
-    description: "The ability to enjoy light-hearted moments, shared humor, and playfulness together.",
-    color: "#ffbf00", // Amber
-    icon: "sparkles",
+    id: 'goals',
+    name: 'Shared Vision',
+    description: 'The alignment of future aspirations, values, and life direction between partners.',
+    color: '#20B2AA', // Light Sea Green
+    icon: 'Map',
     exampleQuestions: [
-      "How frequently do you engage in fun activities or playful banter with each other?",
-      "Rate how much you enjoy your shared leisure time."
-    ],
-    measurementApproach: "Likert scale; frequency-based scoring",
-    weight: 0.8
+      'Do you share similar goals for the future?',
+      'How often do you discuss your dreams and aspirations together?',
+      'Do you have a shared vision for your relationship?'
+    ]
   },
   {
-    id: "mutual_support",
-    name: "Mutual Support & Respect",
-    description: "The extent to which partners provide support, affirmation, and respect for each other's individuality and efforts.",
-    color: "#3cb371", // Medium Sea Green
-    icon: "helping-hand",
+    id: 'autonomy',
+    name: 'Independence',
+    description: 'The balance between togetherness and individual freedom within the relationship.',
+    color: '#FF4500', // Orange Red
+    icon: 'Unlink',
     exampleQuestions: [
-      "How valued do you feel by your partner on a daily basis?",
-      "Rate your partner's support during challenging times."
-    ],
-    measurementApproach: "Likert scale; qualitative check-in ratings",
-    weight: 1.0
+      'Does your relationship allow space for individual interests?',
+      'Do you feel you maintain your identity within the relationship?',
+      'How comfortable are you spending time apart?'
+    ]
   },
   {
-    id: "independence_balance",
-    name: "Independence & Togetherness",
-    description: "The balance between healthy individual autonomy and shared couple time, ensuring personal growth alongside relationship nurturing.",
-    color: "#20b2aa", // Light Sea Green
-    icon: "git-branch",
+    id: 'appreciation',
+    name: 'Appreciation',
+    description: 'How partners acknowledge, value, and express gratitude for each other.',
+    color: '#9932CC', // Dark Orchid
+    icon: 'ThumbsUp',
     exampleQuestions: [
-      "How well do you balance personal space and together time in your relationship?",
-      "How satisfied are you with your independence within the couple context?"
-    ],
-    measurementApproach: "Likert scale; situational items; ratio measures",
-    weight: 0.8
+      'How often do you express appreciation for your partner?',
+      'Do you feel valued and appreciated in your relationship?',
+      'Do you acknowledge the little things your partner does?'
+    ]
   },
   {
-    id: "overall_satisfaction",
-    name: "Overall Satisfaction",
-    description: "A global measure reflecting the couple's overall contentment, combining all aspects of their interaction into one score.",
-    color: "#9932cc", // Dark Orchid
-    icon: "check-circle",
+    id: 'respect',
+    name: 'Respect',
+    description: 'The regard, consideration, and admiration partners have for each others boundaries, opinions, and differences.',
+    color: '#008080', // Teal
+    icon: 'UserCheck',
     exampleQuestions: [
-      "Overall, how satisfied are you with your relationship?",
-      "Rate your general happiness as a couple."
-    ],
-    measurementApproach: "Global rating; composite of other scales",
-    weight: 1.0
+      'Do you respect each others boundaries?',
+      'How well do you accept differences in opinions?',
+      'Do you feel your partner values your perspective?'
+    ]
   }
 ];
 
-// Utility function to calculate overall bond strength based on dimension scores
-export function calculateBondStrength(scores: Record<string, number>): number {
-  let totalScore = 0;
-  let totalWeight = 0;
+/**
+ * Calculate overall bond strength based on dimension scores
+ * @param scores Record of dimension scores (1-10 for each dimension)
+ * @returns Overall bond strength (1-100)
+ */
+export const calculateBondStrength = (scores: Record<string, number>): number => {
+  // Get all dimensions we have scores for
+  const scoredDimensions = Object.keys(scores).filter(id => 
+    bondDimensions.some(d => d.id === id) && typeof scores[id] === 'number'
+  );
   
-  bondDimensions.forEach(dimension => {
-    const score = scores[dimension.id];
-    if (typeof score === 'number') {
-      totalScore += score * dimension.weight;
-      totalWeight += dimension.weight;
-    }
-  });
+  // If no dimensions scored, return 0
+  if (scoredDimensions.length === 0) return 0;
   
-  // Return a score from 0-100
-  return totalWeight > 0 ? Math.round((totalScore / totalWeight) * 10) : 0;
-}
+  // Calculate average (scaled to 0-100)
+  const sum = scoredDimensions.reduce((total, id) => total + scores[id], 0);
+  return Math.round((sum / scoredDimensions.length) * 10);
+};
 
-// Generate insights based on bond dimension scores
-export function generateInsightForDimension(
-  dimensionId: string, 
-  score: number
-): string {
+/**
+ * Generate insight content based on dimension and score
+ * @param dimensionId Dimension ID
+ * @param score Score (1-10)
+ * @returns Insight content
+ */
+export const generateInsightForDimension = (dimensionId: string, score: number): string => {
   const dimension = bondDimensions.find(d => d.id === dimensionId);
+  if (!dimension) return '';
   
-  if (!dimension) {
-    return "No specific insights available for this dimension.";
-  }
-  
-  // These would be more sophisticated in a real implementation
+  // Get insight based on score range
   if (score <= 3) {
-    return `Your ${dimension.name.toLowerCase()} score indicates an opportunity for significant growth. Consider prioritizing activities that strengthen this area.`;
+    return `Your ${dimension.name.toLowerCase()} score indicates an area that needs focused attention. Building stronger ${dimension.name.toLowerCase()} takes time and consistent effort, but even small improvements can significantly enhance your relationship. Start with open conversations about how you both feel about this aspect of your relationship and what small steps you can take together.`;
   } else if (score <= 6) {
-    return `Your ${dimension.name.toLowerCase()} score is moderate. With some focused attention, you can enhance this aspect of your relationship.`;
+    return `Your ${dimension.name.toLowerCase()} score shows moderate strength with room for growth. You have a foundation to build upon, and with some intentional focus, this area can become a relationship strength. Consider setting aside regular time to discuss and practice skills related to ${dimension.name.toLowerCase()}.`;
   } else {
-    return `Your ${dimension.name.toLowerCase()} score is strong! Continue nurturing this aspect of your relationship.`;
+    return `Your ${dimension.name.toLowerCase()} score shows this is a strength in your relationship. Continue nurturing this aspect and consider how you might help other couples who struggle in this area. Remember that even strengths require maintenance - discuss what is working well and how you can ensure it remains strong as your relationship evolves.`;
   }
-}
+};

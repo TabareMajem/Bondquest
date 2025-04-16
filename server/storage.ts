@@ -622,14 +622,22 @@ export class MemStorage implements IStorage {
     const id = this.bondInsightId++;
     const now = new Date();
     const expiresAt = insight.expiresAt || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // Default 30 days expiration
+    
+    // Convert actionItems to a proper string array if needed
+    let actionItems = insight.actionItems;
+    if (actionItems && !Array.isArray(actionItems)) {
+      // Handle case when actionItems is passed as an object with numeric keys
+      actionItems = Object.values(actionItems).map(item => String(item));
+    }
+    
     const newInsight: BondInsight = { 
       ...insight, 
       id, 
       createdAt: now,
       expiresAt: expiresAt,
-      completed: insight.completed || null,
-      viewed: insight.viewed || null,
-      actionItems: insight.actionItems || null
+      completed: insight.completed !== undefined ? insight.completed : false,
+      viewed: insight.viewed !== undefined ? insight.viewed : false,
+      actionItems: actionItems as string[] || []
     };
     this.bondInsights.set(id, newInsight);
     return newInsight;
