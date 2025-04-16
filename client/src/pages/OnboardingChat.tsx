@@ -1,16 +1,60 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, Send } from "lucide-react";
+import { ArrowRight, Send, Heart, CheckCircle2 } from "lucide-react";
 
 // Import the assistant message component
 import Message from "@/components/ai/Message";
+
+// Define the bond dimension stages for guided conversation
+type BondDimensionStage = 
+  | 'welcome' 
+  | 'communication' 
+  | 'trust' 
+  | 'emotional_intimacy' 
+  | 'conflict_resolution'
+  | 'physical_intimacy'
+  | 'shared_values'
+  | 'fun_playfulness'
+  | 'mutual_support'
+  | 'independence_balance'
+  | 'wrap_up';
+
+// Array of stages in the correct order
+const conversationStages: BondDimensionStage[] = [
+  'welcome',
+  'communication',
+  'trust',
+  'emotional_intimacy',
+  'conflict_resolution',
+  'physical_intimacy',
+  'shared_values',
+  'fun_playfulness',
+  'mutual_support',
+  'independence_balance',
+  'wrap_up'
+];
+
+// User-friendly names for the bond dimensions
+const dimensionNames: Record<BondDimensionStage, string> = {
+  welcome: 'Welcome',
+  communication: 'Communication',
+  trust: 'Trust & Security',
+  emotional_intimacy: 'Emotional Connection',
+  conflict_resolution: 'Handling Disagreements',
+  physical_intimacy: 'Physical Connection',
+  shared_values: 'Values & Goals',
+  fun_playfulness: 'Fun & Enjoyment',
+  mutual_support: 'Support & Respect',
+  independence_balance: 'Balance & Autonomy',
+  wrap_up: 'Summary'
+};
 
 interface OnboardingMessage {
   id: number;
@@ -18,6 +62,7 @@ interface OnboardingMessage {
   sender: 'user' | 'ai';
   assistantType: string;
   timestamp: string;
+  stage?: BondDimensionStage;
 }
 
 export default function OnboardingChat() {

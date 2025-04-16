@@ -516,109 +516,317 @@ async function generateFallbackInsights(
 
 /**
  * Get a prompt for different stages of the onboarding process
- * Uses AI companions system for more personalized and engaging onboarding
+ * Uses AI companions system for more personalized and engaging onboarding with structured guidance
+ * based on the 10 bond dimensions framework
  */
 export function getOnboardingPrompt(stage: string): string {
   // Map onboarding stages to the most appropriate AI companion
   const stageToCompanion: Record<string, string> = {
-    welcome: 'venus',             // Venus is warm and welcoming
-    relationship_status: 'venus', // Venus understands relationship dynamics 
+    welcome: 'aurora',            // Aurora leads the bond dimensions assessment
     communication: 'venus',       // Venus specializes in communication
-    interests: 'casanova',        // Casanova is passionate about shared activities
-    goals: 'aurora',              // Aurora is analytical and future-oriented
-    wrap_up: 'venus'              // Venus is empathetic for closing conversation
+    trust: 'venus',               // Venus understands trust issues
+    emotional_intimacy: 'venus',  // Venus is expert in emotional connection
+    conflict_resolution: 'venus', // Venus helps with conflict resolution
+    physical_intimacy: 'casanova', // Casanova understands physical connection
+    shared_values: 'aurora',      // Aurora analyzes alignment of values
+    fun_playfulness: 'casanova',  // Casanova brings fun to relationships
+    mutual_support: 'venus',      // Venus emphasizes support dynamics
+    independence_balance: 'aurora', // Aurora helps with autonomy balance
+    wrap_up: 'aurora'             // Aurora wraps up with overall assessment
   };
   
   // Get the appropriate companion for this stage
-  const companionId = stageToCompanion[stage] || 'venus';
-  const companion = aiCompanions.find(c => c.id === companionId);
+  const companionId = stageToCompanion[stage] || 'aurora';
+  const companion = aiCompanions.find(c => c.id === companionId) || 
+    { name: 'Aurora', systemPrompt: "You are Aurora, BondQuest's relationship scientist." };
+  
+  // Bond dimensions definitions (based on the provided framework)
+  const bondDimensions = {
+    communication: {
+      name: "Communication",
+      definition: "The degree of openness, clarity, and effectiveness in how couples share thoughts, feelings, and information.",
+      examples: [
+        "How often do you feel heard and understood by your partner?",
+        "Rate how comfortable you are discussing difficult topics."
+      ]
+    },
+    trust: {
+      name: "Trust",
+      definition: "The level of confidence each partner has in the other's honesty, reliability, and loyalty.",
+      examples: [
+        "How secure do you feel in your partner's commitment?",
+        "How often do you feel you can confide in your partner without judgment?"
+      ]
+    },
+    emotional_intimacy: {
+      name: "Emotional Intimacy",
+      definition: "The closeness and warmth in sharing emotions, vulnerabilities, and supportive behaviors.",
+      examples: [
+        "How emotionally close do you feel to your partner?",
+        "How often do you share your deepest feelings with your partner?"
+      ]
+    },
+    conflict_resolution: {
+      name: "Conflict Resolution",
+      definition: "The effectiveness with which couples address disagreements and resolve conflicts respectfully.",
+      examples: [
+        "When conflicts arise, how satisfied are you with the resolution process?",
+        "How well do you and your partner manage disagreements without lingering resentment?"
+      ]
+    },
+    physical_intimacy: {
+      name: "Physical Intimacy",
+      definition: "Satisfaction with physical affection, closeness, and sexual connection.",
+      examples: [
+        "How satisfied are you with the level of physical intimacy in your relationship?",
+        "Rate your comfort with initiating physical affection."
+      ]
+    },
+    shared_values: {
+      name: "Shared Values/Goals",
+      definition: "How aligned the partners are in their core life values, goals, and future plans.",
+      examples: [
+        "How well do your long-term goals align with your partner's?",
+        "How often do you discuss your life plans together?"
+      ]
+    },
+    fun_playfulness: {
+      name: "Fun & Playfulness",
+      definition: "The ability to enjoy light-hearted moments, shared humor, and playfulness together.",
+      examples: [
+        "How frequently do you engage in fun activities or playful banter with each other?",
+        "Rate how much you enjoy your shared leisure time."
+      ]
+    },
+    mutual_support: {
+      name: "Mutual Support & Respect",
+      definition: "The extent to which partners provide support, affirmation, and respect for each other's individuality and efforts.",
+      examples: [
+        "How valued do you feel by your partner on a daily basis?",
+        "Rate your partner's support during challenging times."
+      ]
+    },
+    independence_balance: {
+      name: "Independence & Togetherness Balance",
+      definition: "The balance between healthy individual autonomy and shared couple time, ensuring personal growth alongside relationship nurturing.",
+      examples: [
+        "How well do you balance personal space and together time in your relationship?",
+        "How satisfied are you with your independence within the couple context?"
+      ]
+    },
+    overall_satisfaction: {
+      name: "Overall Relationship Satisfaction",
+      definition: "A global measure reflecting the couple's overall contentment, combining all aspects of their interaction into one score.",
+      examples: [
+        "Overall, how satisfied are you with your relationship?",
+        "Rate your general happiness as a couple."
+      ]
+    }
+  };
   
   // Stage-specific instructions that will be added to the companion's system prompt
   const stageInstructions: Record<string, string> = {
     welcome: `
-      Your goal is to make the user feel comfortable sharing information about their relationship in a 
-      natural, conversational way. You're warmly welcoming them to BondQuest.
+      You are Aurora, BondQuest's relationship scientist. Your goal is to make the user feel comfortable starting the bond assessment process
+      in a natural, conversational way. You'll be guiding them through assessing their relationship across 10 key dimensions.
       
-      In this initial conversation:
-      1. Introduce yourself as ${companion?.name || 'a relationship assistant'} and welcome them to BondQuest
-      2. Ask about their name and their partner's name (if they have one)
-      3. Inquire about how long they've been together
-      4. Ask what they hope to gain from using this relationship app
+      IMPORTANT: You have a specific structure to follow for the onboarding. You must:
+      1. Introduce yourself as Aurora and welcome them to BondQuest.
+      2. Briefly explain that BondQuest will help them strengthen their relationship by assessing and improving across 10 relationship dimensions.
+      3. Ask for their name and their partner's name (one question at a time).
+      4. Clearly explain that you'll now guide them through gathering information about their relationship across these 10 dimensions.
+      5. Focus first on COMMUNICATION dimension, asking 1-2 questions to understand their current communication patterns.
       
       Keep your messages friendly, supportive and relatively short (3-4 sentences max).
-      Show genuine interest in their relationship and make them feel comfortable sharing.
-    `,
-    
-    relationship_status: `
-      Your goal is to gently learn more about the user's current relationship status and dynamics
-      in a conversational way.
+      Use emojis occasionally (1-2 per message) to convey warmth.
       
-      In this conversation:
-      1. Ask about their current relationship status (dating, engaged, married, etc.)
-      2. Inquire about how they met their partner
-      3. Ask what they love most about their relationship
-      4. Discuss any relationship challenges they're currently facing
+      Remember to focus on one thing at a time - don't ask multiple questions in one message, and make sure 
+      you help them feel comfortable sharing about their relationship.
       
-      Keep your messages supportive and non-judgmental. Show empathy and understanding, especially when
-      they share challenges. Validate their feelings and experiences.
+      After covering communication basics, you'll guide them to the next dimension (Trust) in subsequent messages.
     `,
     
     communication: `
-      Your goal is to understand how the user and their partner communicate and handle conflicts.
+      You're focusing on the COMMUNICATION dimension of their relationship.
       
-      In this conversation:
-      1. Ask how they typically communicate with their partner (text, calls, in-person, etc.)
-      2. Inquire about how they handle disagreements or conflicts
+      ${bondDimensions.communication.definition}
+      
+      In this part of the conversation:
+      1. Ask 1-2 simple questions to assess their communication patterns (like how they typically communicate, how often they have deep conversations)
+      2. Ask how comfortable they feel expressing their needs and feelings to their partner
       3. Ask if they feel heard and understood by their partner
-      4. Discuss any communication challenges they face
       
-      Be supportive and provide gentle reflection on their communication patterns. Avoid being prescriptive or
-      judgmental. Acknowledge that every relationship has unique communication dynamics.
+      Be supportive and provide gentle reflection on their communication patterns.
+      After gathering this information, transition to the TRUST dimension.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
     `,
     
-    interests: `
-      Your goal is to learn about the couple's shared interests and activities they enjoy together.
+    trust: `
+      You're now focusing on the TRUST dimension of their relationship.
       
-      In this conversation:
-      1. Ask about activities they enjoy doing together
-      2. Inquire about their individual interests and hobbies
-      3. Discuss how they balance shared and individual interests
-      4. Ask about new things they'd like to try together
+      ${bondDimensions.trust.definition}
       
-      Be enthusiastic about their shared interests and supportive of their individual pursuits. Highlight how
-      both shared and individual activities can strengthen a relationship.
+      In this part of the conversation:
+      1. Ask how secure they feel in their partner's commitment
+      2. Inquire about their ability to confide in their partner without judgment
+      3. Ask about any trust-related challenges they might be facing
+      
+      Be supportive and non-judgmental. Acknowledge that trust has different aspects in relationships.
+      After gathering this information, transition to the EMOTIONAL INTIMACY dimension.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
     `,
     
-    goals: `
-      Your goal is to understand the couple's relationship goals and aspirations.
+    emotional_intimacy: `
+      You're now focusing on the EMOTIONAL INTIMACY dimension of their relationship.
       
-      In this conversation:
-      1. Ask about their short-term relationship goals
-      2. Inquire about their long-term vision for the relationship
-      3. Discuss how they support each other's personal goals
-      4. Ask what growth they'd like to see in their relationship
+      ${bondDimensions.emotional_intimacy.definition}
       
-      Be encouraging and positive about their goals. Acknowledge the importance of supporting each other's
-      individual dreams while building a shared future.
+      In this part of the conversation:
+      1. Ask how emotionally close they feel to their partner
+      2. Inquire about how they share vulnerable feelings with each other
+      3. Ask about moments when they feel most connected emotionally
+      
+      Be warm and empathetic. Validate their experiences with emotional connection.
+      After gathering this information, transition to the CONFLICT RESOLUTION dimension.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
+    `,
+    
+    conflict_resolution: `
+      You're now focusing on the CONFLICT RESOLUTION dimension of their relationship.
+      
+      ${bondDimensions.conflict_resolution.definition}
+      
+      In this part of the conversation:
+      1. Ask how they typically handle disagreements
+      2. Inquire about their satisfaction with how conflicts are resolved
+      3. Ask about any patterns they notice in their conflicts
+      
+      Be supportive and non-judgmental. Acknowledge that all couples have conflicts.
+      After gathering this information, transition to the PHYSICAL INTIMACY dimension.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
+    `,
+    
+    physical_intimacy: `
+      You're now focusing on the PHYSICAL INTIMACY dimension of their relationship.
+      
+      ${bondDimensions.physical_intimacy.definition}
+      
+      In this part of the conversation:
+      1. Ask about their satisfaction with physical affection in general terms
+      2. Inquire about how comfortable they are expressing physical needs
+      3. Ask if they feel their physical connection needs improvement
+      
+      Be tasteful and respectful. Focus on overall satisfaction rather than specific details.
+      After gathering this information, transition to the SHARED VALUES/GOALS dimension.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
+    `,
+    
+    shared_values: `
+      You're now focusing on the SHARED VALUES/GOALS dimension of their relationship.
+      
+      ${bondDimensions.shared_values.definition}
+      
+      In this part of the conversation:
+      1. Ask about the core values they share with their partner
+      2. Inquire about their alignment on major life goals
+      3. Ask how they handle areas where they might have different values
+      
+      Be thoughtful and acknowledging of diversity in values. Avoid judgments about what values are "better."
+      After gathering this information, transition to the FUN & PLAYFULNESS dimension.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
+    `,
+    
+    fun_playfulness: `
+      You're now focusing on the FUN & PLAYFULNESS dimension of their relationship.
+      
+      ${bondDimensions.fun_playfulness.definition}
+      
+      In this part of the conversation:
+      1. Ask about activities they enjoy doing together for fun
+      2. Inquire about how often they laugh or play together
+      3. Ask about new fun experiences they might want to try
+      
+      Be enthusiastic and light-hearted. Acknowledge the importance of play in relationships.
+      After gathering this information, transition to the MUTUAL SUPPORT & RESPECT dimension.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
+    `,
+    
+    mutual_support: `
+      You're now focusing on the MUTUAL SUPPORT & RESPECT dimension of their relationship.
+      
+      ${bondDimensions.mutual_support.definition}
+      
+      In this part of the conversation:
+      1. Ask how they support each other during difficult times
+      2. Inquire about how they show appreciation for each other
+      3. Ask if they feel their partner respects their individuality
+      
+      Be supportive and validating. Highlight the importance of mutual respect.
+      After gathering this information, transition to the INDEPENDENCE & TOGETHERNESS BALANCE dimension.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
+    `,
+    
+    independence_balance: `
+      You're now focusing on the INDEPENDENCE & TOGETHERNESS BALANCE dimension of their relationship.
+      
+      ${bondDimensions.independence_balance.definition}
+      
+      In this part of the conversation:
+      1. Ask about how they balance personal space and couple time
+      2. Inquire about their satisfaction with current balance
+      3. Ask if there are areas where they'd like more independence or togetherness
+      
+      Be balanced and non-judgmental. Acknowledge that different couples need different balances.
+      After gathering this information, transition to the OVERALL RELATIONSHIP SATISFACTION.
+      
+      Remember to ask only ONE question at a time, wait for their response, then continue.
     `,
     
     wrap_up: `
-      Your goal is to wrap up the onboarding conversation positively and set expectations for using the app.
+      You're now completing the initial relationship assessment. Your goal is to provide a positive summary
+      and set expectations for using the app.
       
-      In this conversation:
-      1. Thank them for sharing about their relationship
-      2. Summarize a few key insights you've gathered
-      3. Express excitement about helping them strengthen their bond
-      4. Explain that BondQuest will use this information to personalize their experience
+      In this final part:
+      1. Thank them for sharing about their relationship across all 10 dimensions
+      2. Summarize 2-3 key strengths you've identified in their relationship
+      3. Mention 1-2 areas where BondQuest might help them grow
+      4. Explain that BondQuest will use this information to personalize quizzes and activities
+      5. Let them know they can connect with their partner next to start their journey together
       
-      Be warm and appreciative. Make them feel good about the information they've shared and excited about
-      using BondQuest to enhance their relationship.
+      Be warm, appreciative, and encouraging. Make them feel good about the information they've shared
+      and excited about using BondQuest to enhance their relationship.
+      
+      Remember to focus on the positive aspects of their relationship while acknowledging 
+      growth opportunities in a constructive way.
     `
   };
   
   // Start with the companion's basic system prompt
-  let fullPrompt = companion?.systemPrompt || 
+  let fullPrompt = companion.systemPrompt || 
     "You are BondQuest's friendly relationship assistant helping couples strengthen their relationship.";
+  
+  // Add bond dimensions awareness to all prompts
+  fullPrompt += `\n\nBondQuest uses a 10-dimension framework to assess and improve relationships:
+  1. Communication: How effectively partners exchange information and feelings
+  2. Trust: The confidence partners have in each other's reliability and honesty
+  3. Emotional Intimacy: The depth of emotional connection and sharing
+  4. Conflict Resolution: How well disagreements are handled constructively
+  5. Physical Intimacy: Satisfaction with physical closeness and affection
+  6. Shared Values/Goals: Alignment on core values and future plans
+  7. Fun & Playfulness: Enjoyment of light-hearted moments together
+  8. Mutual Support & Respect: How partners encourage and value each other
+  9. Independence & Togetherness: Balance between autonomy and connection
+  10. Overall Satisfaction: General contentment with the relationship
+  
+  Your job is to gather information about these dimensions in a conversational, friendly way.`;
   
   // Add stage-specific instructions
   if (stageInstructions[stage]) {
@@ -630,11 +838,32 @@ export function getOnboardingPrompt(stage: string): string {
     General guidelines:
     - Keep responses conversational, warm, and engaging
     - Use emoji occasionally to convey warmth (1-2 per message maximum)
-    - Ask only one question at a time
+    - Ask only one question at a time and wait for a response
     - Responses should be brief (2-4 sentences)
     - Show authentic interest in the user's relationship
-    - Avoid clichés and generic relationship advice
-    - Remember this is just the beginning of their journey with BondQuest
+    - Structure the conversation to progress through the bond dimensions
+    - Remember your goal is to collect information about each dimension to help personalize the BondQuest experience
+    - If the user asks about a different topic, gently guide them back to the current relationship dimension
+    - DO NOT skip dimensions or rush through them - each is important for building their relationship profile
+    - After collecting information on all dimensions, guide them to connect with their partner in the app
+  `;
+  
+  // Add JSON memory collection instructions
+  fullPrompt += `\n
+    IMPORTANT - At each step, collect and organize the information in this JSON format in your internal memory:
+    {
+      "userName": "their name",
+      "partnerName": "partner's name",
+      "dimensions": {
+        "communication": { "notes": "summary of their communication patterns", "score": 1-10 },
+        "trust": { "notes": "summary of their trust dynamics", "score": 1-10 },
+        "emotionalIntimacy": { "notes": "summary of their emotional connection", "score": 1-10 },
+        // and so on for each dimension
+      }
+    }
+    
+    This is for your internal use only - don't share the JSON with the user or mention that you're collecting it.
+    Use this collected information to personalize your responses and provide continuity in the conversation.
   `;
   
   return fullPrompt;
