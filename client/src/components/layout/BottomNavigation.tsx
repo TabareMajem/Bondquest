@@ -1,9 +1,9 @@
 import { useLocation } from "wouter";
-import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, Settings, ShieldCheck, Gift } from "lucide-react";
+import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, Settings, ShieldCheck, Gift, Heart, HeartHandshake } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface BottomNavigationProps {
-  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "admin" | "rewards" | "none";
+  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "admin" | "rewards" | "bond" | "none";
 }
 
 export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
@@ -83,6 +83,17 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
         )}
         <BarChart3 className={getIconClassName("insights")} />
         <span className={getLabelClassName("insights")}>Insights</span>
+      </div>
+      
+      <div 
+        onClick={(e) => handleNavigate("/bond-assessment", e)}
+        className={getButtonClassName("bond")}
+      >
+        {activeTab === "bond" && (
+          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+        )}
+        <HeartHandshake className={getIconClassName("bond")} />
+        <span className={getLabelClassName("bond")}>Bond</span>
       </div>
       
       <div 

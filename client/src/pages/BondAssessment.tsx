@@ -16,6 +16,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
 import { InsertBondAssessment } from '@shared/schema';
+import BottomNavigation from '@/components/layout/BottomNavigation';
 
 const BondAssessment: React.FC = () => {
   const { t } = useTranslation();
@@ -150,7 +151,7 @@ const BondAssessment: React.FC = () => {
   // Intro view
   if (step === 'intro') {
     return (
-      <div className="container mx-auto py-8 max-w-5xl">
+      <div className="container mx-auto py-8 max-w-5xl pb-20">
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="text-2xl">{t('Relationship Bond Assessment')}</CardTitle>
