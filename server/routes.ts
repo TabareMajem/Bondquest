@@ -72,15 +72,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           partnerActivity: true,
           competitionUpdates: true,
           appUpdates: true,
-          emailNotifications: true,
-          pushNotifications: true,
-          locationSharing: false,
+          publicProfile: false,
+          activityVisibility: true,
           dataCollection: true,
-          aiAssistantEnabled: true,
+          marketingEmails: false,
+          preferredAssistant: "aurora",
+          proactiveAiSuggestions: true,
+          personalizedInsights: true,
+          contentCustomization: true,
           darkMode: false,
-          preferredAIPersona: "aurora",
-          language: "en",
-          accentColor: "purple"
+          accentColor: "purple",
+          language: "en-GB"
         });
         console.log(`Created default preferences for user ${user.id}`);
       } catch (prefsError) {
@@ -132,15 +134,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             partnerActivity: true,
             competitionUpdates: true,
             appUpdates: true,
-            emailNotifications: true,
-            pushNotifications: true,
-            locationSharing: false,
+            publicProfile: false,
+            activityVisibility: true,
             dataCollection: true,
-            aiAssistantEnabled: true,
+            marketingEmails: false,
+            preferredAssistant: "aurora",
+            proactiveAiSuggestions: true,
+            personalizedInsights: true,
+            contentCustomization: true,
             darkMode: false,
-            preferredAIPersona: "aurora",
-            language: "en",
-            accentColor: "purple"
+            accentColor: "purple",
+            language: "en-GB"
           });
           console.log(`Created default preferences for user ${user.id} during login`);
         } catch (prefsError) {
@@ -233,6 +237,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(userWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  // User Preferences Routes
+  app.get("/api/users/:userId/preferences", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const preferences = await storage.getUserPreferences(userId);
+      
+      if (!preferences) {
+        return res.status(404).json({ message: "User preferences not found" });
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user preferences" });
+    }
+  });
+  
+  app.post("/api/users/:userId/preferences", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Check if preferences already exist
+      const existingPrefs = await storage.getUserPreferences(userId);
+      if (existingPrefs) {
+        return res.status(400).json({ message: "User preferences already exist. Use PATCH to update." });
+      }
+      
+      const validatedData = insertUserPreferencesSchema.parse({
+        userId,
+        ...req.body
+      });
+      
+      const preferences = await storage.createUserPreferences(validatedData);
+      res.status(201).json(preferences);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create user preferences" });
+    }
+  });
+  
+  app.patch("/api/users/:userId/preferences", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Check if preferences exist
+      const existingPrefs = await storage.getUserPreferences(userId);
+      if (!existingPrefs) {
+        return res.status(404).json({ message: "User preferences not found" });
+      }
+      
+      const updates = req.body;
+      const updatedPreferences = await storage.updateUserPreferences(userId, updates);
+      
+      res.json(updatedPreferences);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update user preferences" });
     }
   });
 
