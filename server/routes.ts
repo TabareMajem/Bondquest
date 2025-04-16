@@ -1174,6 +1174,183 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Profile Routes
+  app.get("/api/profiles/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const profile = await storage.getUserProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
+  
+  app.post("/api/profiles", async (req, res) => {
+    try {
+      const validatedData = insertUserProfileSchema.parse(req.body);
+      
+      // Check if profile already exists for this user
+      const existingProfile = await storage.getUserProfile(validatedData.userId);
+      if (existingProfile) {
+        return res.status(400).json({ message: "Profile already exists for this user" });
+      }
+      
+      const profile = await storage.createUserProfile(validatedData);
+      res.status(201).json(profile);
+    } catch (error) {
+      console.error("Error creating user profile:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create user profile" });
+    }
+  });
+  
+  app.patch("/api/profiles/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const updates = req.body;
+      const updatedProfile = await storage.updateUserProfile(userId, updates);
+      
+      if (!updatedProfile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      res.json(updatedProfile);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+  
+  // Profile Questions Routes
+  app.get("/api/profile-questions", async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const questions = await storage.getProfileQuestions(category);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching profile questions:", error);
+      res.status(500).json({ message: "Failed to fetch profile questions" });
+    }
+  });
+  
+  app.post("/api/profile-questions", async (req, res) => {
+    try {
+      const validatedData = insertProfileQuestionSchema.parse(req.body);
+      const question = await storage.createProfileQuestion(validatedData);
+      res.status(201).json(question);
+    } catch (error) {
+      console.error("Error creating profile question:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create profile question" });
+    }
+  });
+  
+  // User Responses Routes
+  app.get("/api/user-responses/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const responses = await storage.getUserResponses(userId);
+      res.json(responses);
+    } catch (error) {
+      console.error("Error fetching user responses:", error);
+      res.status(500).json({ message: "Failed to fetch user responses" });
+    }
+  });
+  
+  app.post("/api/user-responses", async (req, res) => {
+    try {
+      const validatedData = insertUserResponseSchema.parse(req.body);
+      const response = await storage.createUserResponse(validatedData);
+      res.status(201).json(response);
+    } catch (error) {
+      console.error("Error creating user response:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create user response" });
+    }
+  });
+  
+  // Partner Quiz Routes
+  app.post("/api/partner-quiz/questions", async (req, res) => {
+    try {
+      const validatedData = insertPartnerQuizQuestionSchema.parse(req.body);
+      const question = await storage.createPartnerQuizQuestion(validatedData);
+      res.status(201).json(question);
+    } catch (error) {
+      console.error("Error creating partner quiz question:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create partner quiz question" });
+    }
+  });
+  
+  app.get("/api/partner-quiz/questions/:quizSessionId", async (req, res) => {
+    try {
+      const quizSessionId = parseInt(req.params.quizSessionId);
+      if (isNaN(quizSessionId)) {
+        return res.status(400).json({ message: "Invalid quiz session ID" });
+      }
+      
+      const questions = await storage.getPartnerQuizQuestions(quizSessionId);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching partner quiz questions:", error);
+      res.status(500).json({ message: "Failed to fetch partner quiz questions" });
+    }
+  });
+  
+  app.post("/api/partner-quiz/responses", async (req, res) => {
+    try {
+      const validatedData = insertPartnerQuizResponseSchema.parse(req.body);
+      const response = await storage.createPartnerQuizResponse(validatedData);
+      res.status(201).json(response);
+    } catch (error) {
+      console.error("Error creating partner quiz response:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create partner quiz response" });
+    }
+  });
+  
+  app.get("/api/partner-quiz/responses/:questionId", async (req, res) => {
+    try {
+      const questionId = parseInt(req.params.questionId);
+      if (isNaN(questionId)) {
+        return res.status(400).json({ message: "Invalid question ID" });
+      }
+      
+      const responses = await storage.getPartnerQuizResponses(questionId);
+      res.json(responses);
+    } catch (error) {
+      console.error("Error fetching partner quiz responses:", error);
+      res.status(500).json({ message: "Failed to fetch partner quiz responses" });
+    }
+  });
+
   // AI Wizard Routes - Admin Only
   app.post("/api/admin/ai/generate-quiz", async (req, res) => {
     try {
