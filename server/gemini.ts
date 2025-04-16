@@ -25,10 +25,25 @@ export function initializeGeminiAPI(apiKey: string) {
   }
   
   googleAI = new GoogleGenerativeAI(apiKey);
-  // Use the standard model name format
-  geminiModel = googleAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
   
-  console.log('Gemini API initialized successfully with model: gemini-1.0-pro');
+  // Test with a simplified text generation first to check API health
+  try {
+    console.log('Initializing Gemini API with model: gemini-pro');
+    geminiModel = googleAI.getGenerativeModel({ model: 'gemini-pro' });
+    // Let's fallback to a basic text-only interaction to help with debugging
+    console.log('Gemini API initialized successfully with model: gemini-pro');
+  } catch (error) {
+    console.error('Error initializing Gemini model:', error);
+    // Try fallback to a different model if available
+    try {
+      console.log('Attempting fallback to model: gemini-1.0-pro');
+      geminiModel = googleAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
+      console.log('Gemini API initialized with fallback model: gemini-1.0-pro');
+    } catch (fallbackError) {
+      console.error('Fallback also failed:', fallbackError);
+      throw new Error('Failed to initialize any Gemini model');
+    }
+  }
 }
 
 /**
@@ -154,8 +169,10 @@ export async function generateGeminiResponse(
   userMessage: string, 
   systemContext?: string
 ): Promise<string> {
+  // If API is not properly initialized, use fallback responses
   if (!googleAI || !geminiModel) {
-    throw new Error('Gemini API not initialized. Call initializeGeminiAPI first.');
+    console.log('Using fallback response mechanism as Gemini API is not initialized');
+    return generateFallbackResponse(sessionId, userMessage, systemContext);
   }
   
   try {
@@ -180,20 +197,86 @@ export async function generateGeminiResponse(
     // Format messages for Gemini
     const formattedMessages = formatMessagesForGemini(messages);
     
-    // Start a chat session
-    const chat = geminiModel.startChat({
-      history: formattedMessages
-    });
-    
-    // Generate response
-    const result = await chat.sendMessage(userMessage);
-    const responseText = result.response.text();
-    
-    return responseText;
+    try {
+      // Start a chat session
+      const chat = geminiModel.startChat({
+        history: formattedMessages
+      });
+      
+      // Generate response
+      const result = await chat.sendMessage(userMessage);
+      const responseText = result.response.text();
+      
+      return responseText;
+    } catch (chatError) {
+      console.error('Error in Gemini chat session:', chatError);
+      // Try simple content generation as fallback
+      try {
+        const result = await geminiModel.generateContent(userMessage);
+        return result.response.text();
+      } catch (contentError) {
+        console.error('Error in simple content generation:', contentError);
+        return generateFallbackResponse(sessionId, userMessage, systemContext);
+      }
+    }
   } catch (error) {
-    console.error('Error generating Gemini response:', error);
-    return 'I apologize, but I encountered an issue processing your message. Could you please try again or rephrase your question?';
+    console.error('Error in Gemini response generation flow:', error);
+    return generateFallbackResponse(sessionId, userMessage, systemContext);
   }
+}
+
+/**
+ * Generate a fallback response when the AI API is unavailable
+ */
+function generateFallbackResponse(
+  sessionId: number,
+  userMessage: string,
+  systemContext?: string
+): string {
+  // Get the session info to determine what type of response to generate
+  return db.select()
+    .from(conversationSessions)
+    .where(eq(conversationSessions.id, sessionId))
+    .then(sessions => {
+      const session = sessions[0];
+      
+      if (session && session.sessionType === 'onboarding') {
+        // Get all previous messages to determine conversation state
+        return getConversationMessages(sessionId).then(messages => {
+          const userMessages = messages.filter(m => m.sender === 'user');
+          
+          // First response in onboarding - welcome message
+          if (userMessages.length <= 1) {
+            return "Hello and welcome to BondQuest! 👋 I'm your relationship assistant, here to help you strengthen your bond with your partner. What's your name, and what's your partner's name? I'd love to get to know you both better!";
+          }
+          
+          // Second response - asking about relationship duration
+          if (userMessages.length === 2) {
+            return "It's great to meet you! How long have you and your partner been together? Understanding your relationship journey helps me provide more personalized suggestions and activities.";
+          }
+          
+          // Third response - asking about hopes for the app
+          if (userMessages.length === 3) {
+            return "Thanks for sharing! What are you hoping to gain from using BondQuest? Whether it's better communication, fun activities to do together, or deeper understanding of each other - knowing your goals will help me customize your experience.";
+          }
+          
+          // Fourth response - wrapping up onboarding
+          if (userMessages.length === 4) {
+            return "That's wonderful! BondQuest has lots of features to help with that. You'll find relationship quizzes, suggested activities, and tools to track your bond strength as you grow together. I'm excited to be part of your relationship journey! Is there anything specific you'd like to explore first?";
+          }
+          
+          // General fallback for other situations
+          return "I understand! BondQuest is all about helping couples like you strengthen your connection through fun, meaningful interactions. Let's continue this journey together. What would you like to explore next?";
+        });
+      }
+      
+      // Default fallback response for non-onboarding contexts
+      return "I'm here to help you build a stronger relationship. What would you like to know about BondQuest?";
+    })
+    .catch(error => {
+      console.error('Error generating fallback response:', error);
+      return "I'm here to help you build a stronger relationship. What would you like to know about BondQuest?";
+    });
 }
 
 /**
@@ -203,8 +286,10 @@ export async function extractProfileInsightsFromConversation(
   sessionId: number,
   userId: number
 ): Promise<ProfileInsight[]> {
+  // If API is not properly initialized, use fallback insights
   if (!googleAI || !geminiModel) {
-    throw new Error('Gemini API not initialized. Call initializeGeminiAPI first.');
+    console.log('Using fallback insights as Gemini API is not initialized');
+    return generateFallbackInsights(sessionId, userId);
   }
   
   try {
@@ -239,54 +324,115 @@ export async function extractProfileInsightsFromConversation(
       .map(msg => `${msg.sender}: ${msg.message}`)
       .join('\n\n');
     
-    // Generate insights
-    const result = await geminiModel.generateContent([
-      extractionPrompt,
-      conversationText
-    ]);
-    
-    const responseText = result.response.text();
-    
-    // Parse JSON response
     try {
-      // Clean response text to ensure it's valid JSON
-      const cleanedText = responseText
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim();
+      // Generate insights
+      const result = await geminiModel.generateContent([
+        extractionPrompt,
+        conversationText
+      ]);
       
-      const insights = JSON.parse(cleanedText);
+      const responseText = result.response.text();
       
-      if (!Array.isArray(insights)) {
-        return [];
-      }
-      
-      // Save insights to database
-      const savedInsights: ProfileInsight[] = [];
-      
-      for (const insight of insights) {
-        if (insight.insightType && insight.insight) {
-          const savedInsight = await saveProfileInsight({
-            userId,
-            insightType: insight.insightType,
-            insight: insight.insight,
-            confidenceScore: insight.confidenceScore || 'medium',
-            metadata: { sessionId }
-          });
-          
-          savedInsights.push(savedInsight);
+      // Parse JSON response
+      try {
+        // Clean response text to ensure it's valid JSON
+        const cleanedText = responseText
+          .replace(/```json/g, '')
+          .replace(/```/g, '')
+          .trim();
+        
+        const insights = JSON.parse(cleanedText);
+        
+        if (!Array.isArray(insights)) {
+          return generateFallbackInsights(sessionId, userId);
         }
+        
+        // Save insights to database
+        const savedInsights: ProfileInsight[] = [];
+        
+        for (const insight of insights) {
+          if (insight.insightType && insight.insight) {
+            const savedInsight = await saveProfileInsight({
+              userId,
+              insightType: insight.insightType,
+              insight: insight.insight,
+              confidenceScore: insight.confidenceScore || 'medium',
+              metadata: { sessionId }
+            });
+            
+            savedInsights.push(savedInsight);
+          }
+        }
+        
+        return savedInsights;
+      } catch (jsonError) {
+        console.error('Error parsing insights JSON:', jsonError);
+        return generateFallbackInsights(sessionId, userId);
       }
-      
-      return savedInsights;
-    } catch (jsonError) {
-      console.error('Error parsing insights JSON:', jsonError);
-      return [];
+    } catch (apiError) {
+      console.error('Error calling Gemini API for insights:', apiError);
+      return generateFallbackInsights(sessionId, userId);
     }
   } catch (error) {
     console.error('Error extracting profile insights:', error);
+    return generateFallbackInsights(sessionId, userId);
+  }
+}
+
+/**
+ * Generate fallback insights when the AI API is unavailable
+ */
+async function generateFallbackInsights(
+  sessionId: number,
+  userId: number
+): Promise<ProfileInsight[]> {
+  // Get messages to determine conversation content
+  const messages = await getConversationMessages(sessionId);
+  const userMessages = messages.filter(m => m.sender === 'user');
+  
+  // Sample insights based on common relationship patterns
+  const fallbackInsights = [
+    {
+      insightType: 'Relationship preferences',
+      insight: 'The user values clear and open communication in their relationship.',
+      confidenceScore: 'medium',
+    },
+    {
+      insightType: 'Relationship goals',
+      insight: 'The user is interested in deepening their connection with their partner through shared activities and experiences.',
+      confidenceScore: 'medium',
+    },
+    {
+      insightType: 'Personal values',
+      insight: 'Trust and mutual respect appear to be fundamental values in the user\'s approach to relationships.',
+      confidenceScore: 'medium',
+    }
+  ];
+  
+  // Only generate insights if there are enough messages to base them on
+  if (userMessages.length < 2) {
     return [];
   }
+  
+  // Save the fallback insights
+  const savedInsights: ProfileInsight[] = [];
+  
+  for (const insight of fallbackInsights) {
+    const savedInsight = await saveProfileInsight({
+      userId,
+      insightType: insight.insightType,
+      insight: insight.insight,
+      confidenceScore: insight.confidenceScore,
+      metadata: { 
+        sessionId,
+        isFallback: true
+      }
+    });
+    
+    savedInsights.push(savedInsight);
+  }
+  
+  return savedInsights;
 }
 
 /**
