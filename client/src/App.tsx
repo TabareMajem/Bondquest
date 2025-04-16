@@ -35,6 +35,7 @@ function Router() {
       {/* User Routes */}
       <Route path="/" component={Onboarding} />
       <Route path="/signup" component={SignUp} />
+      <Route path="/login" component={Login} />
       <Route path="/partner-linking" component={PartnerLinking} />
       <Route path="/profile-setup" component={ProfileSetup} />
       <Route path="/home" component={Home} />

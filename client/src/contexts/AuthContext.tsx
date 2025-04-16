@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   couple: Couple | null;
   isLoading: boolean;
+  isAdmin: boolean;
   login: (credentials: { username: string; password: string }) => Promise<void>;
   logout: () => void;
   updateCouple: (coupleData: Couple) => void;
@@ -17,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [couple, setCouple] = useState<Couple | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Check for stored auth data on mount
   useEffect(() => {
@@ -24,7 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedCouple = localStorage.getItem("bondquest_couple");
     
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      
+      // Check if the user is an admin (has admin@bondquest.com email)
+      if (parsedUser.email === "admin@bondquest.com") {
+        setIsAdmin(true);
+      }
     }
     
     if (storedCouple) {
@@ -40,6 +48,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       setUser(data.user);
       setCouple(data.couple || null);
+      
+      // Check if the user is an admin
+      if (data.user.email === "admin@bondquest.com") {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
       
       // Store auth data in localStorage
       localStorage.setItem("bondquest_user", JSON.stringify(data.user));
@@ -65,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear local state regardless of API call success
       setUser(null);
       setCouple(null);
+      setIsAdmin(false);
       localStorage.removeItem("bondquest_user");
       localStorage.removeItem("bondquest_couple");
       setIsLoading(false);
@@ -77,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, couple, isLoading, login, logout, updateCouple }}>
+    <AuthContext.Provider value={{ user, couple, isLoading, isAdmin, login, logout, updateCouple }}>
       {children}
     </AuthContext.Provider>
   );

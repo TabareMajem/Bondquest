@@ -8,10 +8,7 @@ interface BottomNavigationProps {
 
 export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
-  
-  // Check if user has admin access - in a real app, you would check user.role or similar
-  const isAdmin = user?.email === "admin@bondquest.com";
+  const { user, isAdmin } = useAuth();
   
   const handleNavigate = (path: string, e: React.MouseEvent) => {
     e.preventDefault();
