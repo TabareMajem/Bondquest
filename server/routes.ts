@@ -8,12 +8,12 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import { 
   users, couples, userSubscriptions, competitions, coupleRewards,
-  conversationSessions, conversationMessages, profileInsights,
+  conversationSessions, conversationMessages, profileInsights, userPreferences,
   insertUserSchema, insertCoupleSchema, insertQuizSchema, insertQuizSessionSchema, 
   insertQuestionSchema, insertDailyCheckInSchema, insertChatSchema,
   insertSubscriptionTierSchema, insertUserSubscriptionSchema, insertRewardSchema,
   insertCompetitionSchema, insertCompetitionRewardSchema, insertCompetitionEntrySchema,
-  insertCoupleRewardSchema
+  insertCoupleRewardSchema, insertUserPreferencesSchema
 } from "@shared/schema";
 import { 
   generateAIResponse, 
@@ -64,6 +64,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const user = await storage.createUser(validatedData);
       
+      // Create default user preferences
+      try {
+        await storage.createUserPreferences({
+          userId: user.id,
+          dailyReminders: true,
+          partnerActivity: true,
+          competitionUpdates: true,
+          appUpdates: true,
+          emailNotifications: true,
+          pushNotifications: true,
+          locationSharing: false,
+          dataCollection: true,
+          aiAssistantEnabled: true,
+          darkMode: false,
+          preferredAIPersona: "aurora",
+          language: "en",
+          accentColor: "purple"
+        });
+        console.log(`Created default preferences for user ${user.id}`);
+      } catch (prefsError) {
+        console.error(`Failed to create default preferences for user ${user.id}:`, prefsError);
+        // Don't fail the registration if preferences creation fails
+      }
+      
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
       
@@ -96,7 +120,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user is part of a couple
       const couple = await storage.getCoupleByUserId(user.id);
       
-      res.json({ user: userWithoutPassword, couple });
+      // Get user preferences
+      let preferences = await storage.getUserPreferences(user.id);
+      
+      // Create default preferences if none exist
+      if (!preferences) {
+        try {
+          preferences = await storage.createUserPreferences({
+            userId: user.id,
+            dailyReminders: true,
+            partnerActivity: true,
+            competitionUpdates: true,
+            appUpdates: true,
+            emailNotifications: true,
+            pushNotifications: true,
+            locationSharing: false,
+            dataCollection: true,
+            aiAssistantEnabled: true,
+            darkMode: false,
+            preferredAIPersona: "aurora",
+            language: "en",
+            accentColor: "purple"
+          });
+          console.log(`Created default preferences for user ${user.id} during login`);
+        } catch (prefsError) {
+          console.error(`Failed to create default preferences for user ${user.id}:`, prefsError);
+          // Continue without preferences if creation fails
+        }
+      }
+      
+      res.json({ 
+        user: userWithoutPassword, 
+        couple,
+        preferences
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors });
@@ -1190,6 +1247,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.errors });
       }
       res.status(500).json({ message: "Failed to update reward status" });
+    }
+  });
+
+  // User Preferences Routes
+  app.get("/api/user-preferences/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const preferences = await storage.getUserPreferences(userId);
+      if (!preferences) {
+        return res.status(404).json({ message: "User preferences not found" });
+      }
+      
+      res.json(preferences);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user preferences" });
+    }
+  });
+  
+  app.post("/api/user-preferences", async (req, res) => {
+    try {
+      const validatedData = insertUserPreferencesSchema.parse(req.body);
+      
+      // Check if preferences already exist for this user
+      const existingPreferences = await storage.getUserPreferences(validatedData.userId);
+      if (existingPreferences) {
+        return res.status(400).json({ message: "Preferences already exist for this user. Use PATCH to update." });
+      }
+      
+      const preferences = await storage.createUserPreferences(validatedData);
+      res.status(201).json(preferences);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create user preferences" });
+    }
+  });
+  
+  app.patch("/api/user-preferences/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Check if preferences exist for this user
+      const existingPreferences = await storage.getUserPreferences(userId);
+      if (!existingPreferences) {
+        return res.status(404).json({ message: "User preferences not found" });
+      }
+      
+      const updates = req.body;
+      const updatedPreferences = await storage.updateUserPreferences(userId, updates);
+      
+      res.json(updatedPreferences);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user preferences" });
     }
   });
 
