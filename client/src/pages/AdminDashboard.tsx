@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { BarChart3, Award, Trophy, Users, CreditCard, Gift, Calendar, ArrowRight } from "lucide-react";
+import { BarChart3, Award, Trophy, Users, CreditCard, Gift, Calendar, ArrowRight, Sparkles } from "lucide-react";
 import BottomNavigation from "@/components/layout/BottomNavigation";
 
 const AdminDashboard = () => {
@@ -108,7 +108,7 @@ const AdminDashboard = () => {
           </div>
           
           {/* Action cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle>Manage Rewards</CardTitle>
@@ -158,6 +158,27 @@ const AdminDashboard = () => {
                   onClick={() => navigate("/admin/subscriptions")}
                 >
                   Go to Subscriptions
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-white">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-500" />
+                  AI Content Wizard
+                </CardTitle>
+                <CardDescription>
+                  Generate quizzes and competitions using AI
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700" 
+                  onClick={() => navigate("/admin/ai-wizard")}
+                >
+                  Launch AI Wizard
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </CardContent>

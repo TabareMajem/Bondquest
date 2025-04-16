@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Award, Calendar, BookText } from "lucide-react";
+import { Loader2, Sparkles, Award, Calendar, BookText, Trophy, ArrowRight } from "lucide-react";
 
 export default function AdminAIWizard() {
   const [, navigate] = useLocation();
