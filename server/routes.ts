@@ -1731,6 +1731,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Simple testing endpoint for direct Gemini interactions
+  app.post("/api/test/gemini-response", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: "Missing prompt in request body" });
+      }
+      
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ 
+          error: "GEMINI_API_KEY not configured",
+          fallback: "This is a fallback response as the Gemini API is not properly configured."
+        });
+      }
+      
+      try {
+        const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = googleAI.getGenerativeModel({ model: "models/gemini-1.5-pro" });
+        
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        
+        return res.json({
+          status: "success",
+          response: responseText
+        });
+      } catch (apiError) {
+        console.error("Error calling Gemini API:", apiError);
+        return res.status(500).json({
+          error: "Error generating content with Gemini API",
+          message: apiError instanceof Error ? apiError.message : "Unknown error",
+          fallback: "This is a fallback response when the API fails."
+        });
+      }
+    } catch (error) {
+      console.error("Error in test endpoint:", error);
+      return res.status(500).json({
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+  
   // Diagnostic endpoint to check Gemini API status
   app.get("/api/gemini/status", async (req, res) => {
     try {
