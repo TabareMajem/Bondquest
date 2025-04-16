@@ -34,6 +34,7 @@ import {
 // Import routes
 import bondRoutes from './routes/bondRoutes';
 import conversationRoutes from './routes/conversationRoutes';
+import stripeRoutes from './routes/stripeRoutes';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check route
@@ -44,6 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register API routes
   app.use('/api/bond', bondRoutes);
   app.use('/api/conversation', conversationRoutes);
+  app.use('/api/stripe', stripeRoutes);
 
   // Auth Routes
   app.post("/api/auth/register", async (req, res) => {
