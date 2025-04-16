@@ -312,6 +312,34 @@ export const profileInsights = pgTable("profile_insights", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// User Preferences - Stores user interface and notification preferences
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  // Notification preferences
+  dailyReminders: boolean("daily_reminders").default(true),
+  partnerActivity: boolean("partner_activity").default(true),
+  competitionUpdates: boolean("competition_updates").default(true),
+  appUpdates: boolean("app_updates").default(true),
+  // Privacy preferences
+  publicProfile: boolean("public_profile").default(false),
+  activityVisibility: boolean("activity_visibility").default(true),
+  dataCollection: boolean("data_collection").default(true),
+  marketingEmails: boolean("marketing_emails").default(false),
+  // AI preferences
+  preferredAssistant: text("preferred_assistant").default("casanova"), // casanova, venus, aurora
+  proactiveAiSuggestions: boolean("proactive_ai_suggestions").default(true),
+  personalizedInsights: boolean("personalized_insights").default(true),
+  contentCustomization: boolean("content_customization").default(true),
+  // Theme preferences
+  darkMode: boolean("dark_mode").default(false),
+  accentColor: text("accent_color").default("purple"),
+  // Other preferences
+  language: text("language").default("en-GB"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relationship Context - Specific for couple context
 export const relationshipContexts = pgTable("relationship_contexts", {
   id: serial("id").primaryKey(),
@@ -454,6 +482,7 @@ export const partnerQuizResponses = pgTable("partner_quiz_responses", {
 });
 
 // Schema definitions for the new tables
+export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertUserProfileSchema = createInsertSchema(userProfiles).omit({ id: true });
 export const insertProfileQuestionSchema = createInsertSchema(profileQuestions).omit({ id: true });
 export const insertUserResponseSchema = createInsertSchema(userResponses).omit({ id: true, createdAt: true, updatedAt: true });
@@ -505,6 +534,9 @@ export const insertBondQuestionSchema = createInsertSchema(bondQuestions).omit({
 });
 
 // Types for the new tables
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
+
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 

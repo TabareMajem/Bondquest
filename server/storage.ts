@@ -2,7 +2,7 @@ import {
   users, couples, quizzes, questions, quizSessions, dailyCheckIns, achievements, activities, chats,
   subscriptionTiers, userSubscriptions, rewards, competitions, competitionRewards, competitionEntries, coupleRewards,
   userProfiles, profileQuestions, userResponses, partnerQuizQuestions, partnerQuizResponses,
-  bondAssessments, bondInsights, bondQuestions,
+  bondAssessments, bondInsights, bondQuestions, userPreferences,
   type User, type InsertUser, type Couple, type InsertCouple, type Quiz, type InsertQuiz, 
   type Question, type InsertQuestion, type QuizSession, type InsertQuizSession, 
   type DailyCheckIn, type InsertDailyCheckIn, type Achievement, type InsertAchievement,
@@ -15,7 +15,7 @@ import {
   type UserResponse, type InsertUserResponse, type PartnerQuizQuestion, type InsertPartnerQuizQuestion,
   type PartnerQuizResponse, type InsertPartnerQuizResponse,
   type BondAssessment, type InsertBondAssessment, type BondInsight, type InsertBondInsight,
-  type BondQuestion, type InsertBondQuestion
+  type BondQuestion, type InsertBondQuestion, type UserPreferences, type InsertUserPreferences
 } from "@shared/schema";
 import { BOND_DIMENSIONS } from "@shared/bondDimensions";
 import { nanoid } from "nanoid";
@@ -130,6 +130,11 @@ export interface IStorage {
   getPartnerQuizResponses(questionId: number): Promise<PartnerQuizResponse[]>;
   createPartnerQuizResponse(response: InsertPartnerQuizResponse): Promise<PartnerQuizResponse>;
   
+  // User Preferences Methods
+  getUserPreferences(userId: number): Promise<UserPreferences | undefined>;
+  createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
+  updateUserPreferences(userId: number, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
+  
   // Bond Dimension Assessment Methods
   getBondQuestions(): Promise<BondQuestion[]>;
   getBondQuestionsByDimension(dimensionId: string): Promise<BondQuestion[]>;
@@ -172,6 +177,7 @@ export class MemStorage implements IStorage {
   private bondQuestions: Map<number, BondQuestion>;
   private bondAssessments: Map<number, BondAssessment>;
   private bondInsights: Map<number, BondInsight>;
+  private userPreferences: Map<number, UserPreferences>;
   
   private userId: number = 1;
   private coupleId: number = 1;
@@ -197,6 +203,7 @@ export class MemStorage implements IStorage {
   private bondQuestionId: number = 1;
   private bondAssessmentId: number = 1;
   private bondInsightId: number = 1;
+  private userPreferencesId: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -223,6 +230,7 @@ export class MemStorage implements IStorage {
     this.bondQuestions = new Map();
     this.bondAssessments = new Map();
     this.bondInsights = new Map();
+    this.userPreferences = new Map();
     
     // Initialize with sample quizzes and questions
     this.initializeSampleData();
@@ -421,6 +429,42 @@ export class MemStorage implements IStorage {
     const newChat: Chat = { ...chat, id, createdAt: new Date() };
     this.chats.set(id, newChat);
     return newChat;
+  }
+
+  // User Preferences Methods
+  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
+    return Array.from(this.userPreferences.values())
+      .find(prefs => prefs.userId === userId);
+  }
+
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const id = this.userPreferencesId++;
+    const now = new Date();
+    const newPreferences: UserPreferences = { 
+      ...preferences, 
+      id, 
+      createdAt: now, 
+      updatedAt: now 
+    };
+    this.userPreferences.set(id, newPreferences);
+    return newPreferences;
+  }
+
+  async updateUserPreferences(userId: number, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined> {
+    const preferences = Array.from(this.userPreferences.values())
+      .find(prefs => prefs.userId === userId);
+    
+    if (preferences) {
+      const updatedPreferences = { 
+        ...preferences, 
+        ...updates, 
+        updatedAt: new Date() 
+      };
+      this.userPreferences.set(preferences.id, updatedPreferences);
+      return updatedPreferences;
+    }
+    
+    return undefined;
   }
 
   // Bond Question Methods
