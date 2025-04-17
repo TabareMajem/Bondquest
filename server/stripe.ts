@@ -3,12 +3,12 @@ import { db } from './db';
 import { subscriptionTiers, users, userSubscriptions } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing STRIPE_SECRET_KEY environment variable");
-}
+// Initialize Stripe if secret key is available
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
-// Initialize Stripe with your secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+if (!stripe) {
+  console.warn('Warning: Stripe integration is disabled because STRIPE_SECRET_KEY is not set');
+}
 
 export class StripeService {
   /**
