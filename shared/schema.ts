@@ -14,7 +14,7 @@ export const sessions = pgTable("sessions", {
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),  // Can be null for social logins
   email: text("email").notNull().unique(),
   displayName: text("display_name").notNull(),
   avatar: text("avatar"),
@@ -23,6 +23,11 @@ export const users = pgTable("users", {
   anniversary: text("anniversary"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   partnerCode: text("partner_code").notNull().unique(),
+  // Social login fields
+  googleId: text("google_id").unique(),
+  instagramId: text("instagram_id").unique(),
+  lastLogin: timestamp("last_login"),
+  profilePictureUrl: text("profile_picture_url"),
 });
 
 // Couple Model

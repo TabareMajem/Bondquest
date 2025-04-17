@@ -6,6 +6,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import passport from "passport";
 import { 
   users, couples, userSubscriptions, competitions, coupleRewards,
   conversationSessions, conversationMessages, profileInsights, userPreferences,
@@ -36,7 +37,15 @@ import bondRoutes from './routes/bondRoutes';
 import conversationRoutes from './routes/conversationRoutes';
 import stripeRoutes from './routes/stripeRoutes';
 
+// Import auth configuration
+import { configureAuth, createAuthRouter } from './auth';
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure passport
+  const passportInstance = configureAuth(storage);
+  app.use(passport.initialize());
+  app.use(passport.session());
+
   // Health check route
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
@@ -46,6 +55,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/bond', bondRoutes);
   app.use('/api/conversation', conversationRoutes);
   app.use('/api/stripe', stripeRoutes);
+  
+  // Register auth routes
+  app.use('/auth', createAuthRouter());
 
   // Auth Routes
   app.post("/api/auth/register", async (req, res) => {

@@ -38,7 +38,7 @@ export const configureInstagramStrategy = (passport: PassportStatic, storage: IS
           .update(users)
           .set({
             lastLogin: new Date(),
-            profilePictureUrl: profile.photos?.[0]?.value || existingUser.profilePictureUrl
+            avatar: profile._json?.data?.profile_picture || existingUser.avatar
           })
           .where(eq(users.id, existingUser.id));
         
@@ -47,18 +47,16 @@ export const configureInstagramStrategy = (passport: PassportStatic, storage: IS
 
       // Create new user from Instagram profile
       const generatedUsername = `user_${nanoid(8)}`;
+      const partnerCode = nanoid(10);
       
       const newUser = await storage.createUser({
         username: generatedUsername,
         email: `${generatedUsername}@bondquest.temp`, // Instagram doesn't provide email
-        passwordHash: null, // No password for OAuth users
+        password: null, // No password for OAuth users
         instagramId: profile.id,
-        fullName: profile.displayName || '',
-        profilePictureUrl: profile._json.data.profile_picture || null,
-        partnerCode: nanoid(10),
-        preferences: { theme: 'dark', language: 'en' },
-        createdAt: new Date(),
-        lastLogin: new Date()
+        displayName: profile.displayName || generatedUsername,
+        avatar: profile._json?.data?.profile_picture || null,
+        partnerCode: partnerCode
       });
 
       return done(null, newUser);

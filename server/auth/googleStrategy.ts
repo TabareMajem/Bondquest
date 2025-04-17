@@ -39,7 +39,7 @@ export const configureGoogleStrategy = (passport: PassportStatic, storage: IStor
           .update(users)
           .set({
             lastLogin: new Date(),
-            profilePictureUrl: profile.photos?.[0]?.value || existingUser.profilePictureUrl
+            avatar: profile.photos?.[0]?.value || existingUser.avatar
           })
           .where(eq(users.id, existingUser.id));
         
@@ -57,7 +57,7 @@ export const configureGoogleStrategy = (passport: PassportStatic, storage: IStor
             .set({
               googleId: profile.id,
               lastLogin: new Date(),
-              profilePictureUrl: profile.photos?.[0]?.value || emailUser.profilePictureUrl
+              avatar: profile.photos?.[0]?.value || emailUser.avatar
             })
             .where(eq(users.id, emailUser.id));
           
@@ -67,18 +67,16 @@ export const configureGoogleStrategy = (passport: PassportStatic, storage: IStor
 
       // Create new user
       const generatedUsername = `user_${nanoid(8)}`;
+      const partnerCode = nanoid(10);
       
       const newUser = await storage.createUser({
         username: generatedUsername,
         email: profile.emails?.[0]?.value || `${generatedUsername}@bondquest.temp`,
-        passwordHash: null, // No password for OAuth users
+        password: null, // No password for OAuth users
         googleId: profile.id,
-        fullName: profile.displayName || '',
-        profilePictureUrl: profile.photos?.[0]?.value || null,
-        partnerCode: nanoid(10),
-        preferences: { theme: 'dark', language: 'en' },
-        createdAt: new Date(),
-        lastLogin: new Date()
+        displayName: profile.displayName || generatedUsername,
+        avatar: profile.photos?.[0]?.value || null,
+        partnerCode: partnerCode
       });
 
       return done(null, newUser);
