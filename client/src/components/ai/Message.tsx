@@ -65,7 +65,7 @@ export default function Message({ text, isUser, assistantType = "casanova" }: Me
       <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center mr-2 flex-shrink-0">
         <span className="text-white text-xs">{getAssistantEmoji()}</span>
       </div>
-      <div className="bg-primary-100 rounded-2xl rounded-tl-none p-3 max-w-[85%]">
+      <div className="bg-primary-100 rounded-2xl rounded-tl-none p-3 max-w-[85%] text-white">
         {renderText(text)}
       </div>
     </div>

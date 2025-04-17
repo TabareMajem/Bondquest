@@ -166,7 +166,7 @@ export default function Login() {
 
               <Button
                 type="submit"
-                className="w-full bg-white text-primary-700 font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg mt-4 md:mt-6 shadow-lg hover:shadow-xl transition-all"
+                className="w-full bg-white text-primary-700 font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg mt-4 md:mt-6 shadow-lg hover:shadow-xl transition-all hover:text-primary-900"
                 disabled={isLoading}
               >
                 {isLoading ? t('common.loading') : t('common.login')}
