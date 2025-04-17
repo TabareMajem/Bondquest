@@ -47,7 +47,7 @@ export const createAuthRouter = () => {
   router.get('/instagram/callback', 
     passport.authenticate('instagram', { 
       failureRedirect: '/login',
-      successRedirect: '/onboarding'
+      successRedirect: '/onboarding-chat'
     })
   );
 
