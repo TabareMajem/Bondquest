@@ -3,6 +3,11 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeGeminiAPI } from "./gemini";
 import { initializeEmailTransporter } from "./services/emailService";
+import session from "express-session";
+import { nanoid } from "nanoid";
+import MemoryStore from "memorystore";
+import ConnectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 
 // Initialize Gemini API with environment variable if available
 if (process.env.GEMINI_API_KEY) {
@@ -16,6 +21,36 @@ if (process.env.GEMINI_API_KEY) {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session configuration
+const MemoryStoreSession = MemoryStore(session);
+const PgStore = ConnectPgSimple(session);
+
+// Create a secure session secret if not provided
+const SESSION_SECRET = process.env.SESSION_SECRET || nanoid(32);
+console.log("Session initialized with secret");
+
+// Configure session
+app.use(session({
+  store: process.env.NODE_ENV === 'production' 
+    ? new PgStore({ 
+        pool, 
+        tableName: 'sessions',
+        createTableIfMissing: true 
+      }) 
+    : new MemoryStoreSession({
+        checkPeriod: 86400000 // Clear expired sessions every 24h
+      }),
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+    httpOnly: true,
+    sameSite: 'lax'
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
