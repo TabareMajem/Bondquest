@@ -44,30 +44,65 @@ export function BondDimensionsChart({
 }: BondDimensionsChartProps) {
   const { t } = useTranslation();
   
-  // Get dimension data formatted for the radar chart
+  // Get dimension data formatted for the radar chart with enhanced styling
   const chartData = useMemo(() => {
-    return getDimensionsForRadarChart(scores);
+    const data = getDimensionsForRadarChart(scores);
+    
+    // Enhanced styling with gradient
+    if (data.datasets && data.datasets.length > 0) {
+      // Update only the properties that exist in the RadialDataPoint type
+      data.datasets[0] = {
+        ...data.datasets[0],
+        backgroundColor: 'rgba(147, 51, 234, 0.2)',  // Purple with transparency
+        borderColor: 'rgba(147, 51, 234, 0.8)',      // Solid purple
+        borderWidth: 2,
+        pointBackgroundColor: 'rgba(147, 51, 234, 1)',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: 'rgba(147, 51, 234, 1)',
+      };
+    }
+    
+    return data;
   }, [scores]);
   
-  // Chart options
+  // Use window width to adjust chart responsiveness
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  
+  // Chart options with improved mobile responsiveness
   const options = {
     responsive: true,
     maintainAspectRatio: true,
-    aspectRatio,
+    aspectRatio: isMobile ? 0.8 : aspectRatio,
     plugins: {
       legend: {
         display: showLegend,
         position: 'bottom' as const,
+        labels: {
+          boxWidth: isMobile ? 8 : 12,
+          padding: isMobile ? 8 : 10,
+          font: {
+            size: isMobile ? 10 : 12
+          }
+        }
       },
       tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         titleColor: '#222',
         bodyColor: '#666',
-        borderColor: '#ddd',
+        borderColor: 'rgba(147, 51, 234, 0.3)',
         borderWidth: 1,
-        padding: 10,
-        boxPadding: 4,
+        padding: isMobile ? 6 : 10,
+        boxPadding: isMobile ? 2 : 4,
         usePointStyle: true,
+        // ChartJS type compatibility
+        titleFont: {
+          size: isMobile ? 12 : 14,
+          weight: 'bold' as const
+        },
+        bodyFont: {
+          size: isMobile ? 10 : 12
+        },
         callbacks: {
           // Add a description of the dimension in the tooltip
           label: function(context: any) {
@@ -78,6 +113,11 @@ export function BondDimensionsChart({
             
             if (!dimension) {
               return [`${dimensionName}: ${score}/10`];
+            }
+            
+            // On mobile, show shorter description
+            if (isMobile) {
+              return [`${dimension.name}: ${score}/10`];
             }
             
             return [
@@ -95,20 +135,45 @@ export function BondDimensionsChart({
         beginAtZero: true,
         angleLines: {
           display: true,
-          color: 'rgba(0, 0, 0, 0.1)',
+          color: 'rgba(147, 51, 234, 0.1)',
         },
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
+          color: 'rgba(147, 51, 234, 0.05)',
         },
         pointLabels: {
           font: {
-            size: size === 'sm' ? 8 : size === 'md' ? 12 : 14,
+            size: isMobile ? 
+              (size === 'sm' ? 7 : size === 'md' ? 9 : 11) : 
+              (size === 'sm' ? 8 : size === 'md' ? 12 : 14),
+            weight: isMobile ? 'bold' : 'normal'
           },
           color: '#666',
+          padding: isMobile ? 4 : 8,
+          // For mobile, use shorter labels
+          callback: function(label: string) {
+            if (isMobile) {
+              // Try to create shorter labels for mobile
+              if (label === 'Communication') return 'Comm.';
+              if (label === 'Emotional Intimacy') return 'Emot.';
+              if (label === 'Conflict Resolution') return 'Confl.';
+              if (label === 'Physical Intimacy') return 'Phys.';
+              if (label === 'Shared Values/Goals') return 'Values';
+              if (label === 'Fun & Playfulness') return 'Fun';
+              if (label === 'Mutual Support') return 'Support';
+              if (label === 'Independence Balance') return 'Indep.';
+              // Otherwise return first 5 chars + .
+              return label.length > 6 ? label.slice(0, 5) + '.' : label;
+            }
+            return label;
+          }
         },
         ticks: {
-          stepSize: 2,
+          stepSize: isMobile ? 2.5 : 2,
           backdropColor: 'transparent',
+          z: 1,
+          font: {
+            size: isMobile ? 8 : 10
+          }
         }
       }
     },
