@@ -7,7 +7,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["sh", "-c", "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server"]
+build = ["sh", "-c", "npm run build"]
 run = ["sh", "-c", "npm run start"]
 
 [[ports]]

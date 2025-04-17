@@ -16,18 +16,26 @@ else
 fi
 
 # Check if the frontend assets are built
-if [ -d "dist/assets" ]; then
+if [ -d "dist/public/assets" ]; then
   echo "✅ Frontend assets found"
 else
-  echo "❌ Frontend assets NOT found in dist/assets"
+  echo "❌ Frontend assets NOT found in dist/public/assets"
   exit 1
 fi
 
 # Check for index.html
-if [ -f "dist/index.html" ]; then
+if [ -f "dist/public/index.html" ]; then
   echo "✅ Frontend index.html found"
 else
   echo "❌ Frontend index.html NOT found"
+  exit 1
+fi
+
+# Check for compatibility symlink
+if [ -L "dist/index.js" ]; then
+  echo "✅ Compatibility symlink found"
+else
+  echo "❌ Compatibility symlink NOT found"
   exit 1
 fi
 
