@@ -3,6 +3,13 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { bondDimensions } from "./bondDimensions";
 
+// Session table for express-session with connect-pg-simple
+export const sessions = pgTable("sessions", {
+  sid: text("sid").primaryKey().notNull(),
+  sess: json("sess").notNull(),
+  expire: timestamp("expire", { withTimezone: true }).notNull(),
+});
+
 // User Model
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
