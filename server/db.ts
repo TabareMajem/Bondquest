@@ -13,12 +13,22 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 20, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
+  connectionTimeoutMillis: 2000, // How long to wait for a connection to become available
 });
 
-// Test the database connection
-pool.connect()
-  .then(() => console.log('Connected to PostgreSQL database'))
-  .catch(err => console.error('Database connection error:', err.message));
+// Test the database connection but don't keep it open
+(async () => {
+  const client = await pool.connect();
+  try {
+    console.log('Connected to PostgreSQL database');
+  } catch (err) {
+    console.error('Database connection error:', err instanceof Error ? err.message : String(err));
+  } finally {
+    client.release(); // Important: Release the client back to the pool
+  }
+})().catch(err => console.error('Database initialization error:', err instanceof Error ? err.message : String(err)));
 
 export const db = drizzle(pool, { schema });

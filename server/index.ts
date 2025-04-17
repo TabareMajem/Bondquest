@@ -94,11 +94,28 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("Error:", err);
+    
+    // Check if it's a database connection error
+    if (err.code && 
+        (err.code === '57P01' || // terminating connection
+         err.code === '08006' || // connection timeout
+         err.code === '08001' || // unable to connect
+         err.code === '08004')) { // rejected connection
+      
+      console.error("Database connection error detected. Attempting to recover...");
+      
+      // For database connection errors, we will try to reconnect on the next request
+      res.status(503).json({ 
+        message: "Service temporarily unavailable. Please try again in a few moments." 
+      });
+      return;
+    }
+    
+    // For all other errors
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after
