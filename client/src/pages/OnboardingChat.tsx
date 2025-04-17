@@ -249,13 +249,25 @@ export default function OnboardingChat() {
       });
     }
     
-    // Navigate to partner linking
-    navigate("/partner-linking");
-    
-    toast({
-      title: t('onboarding.chatCompleted', 'Great conversation!'),
-      description: t('onboarding.chatCompletedDescription', 'Thanks for sharing! Now let\'s connect you with your partner.'),
-    });
+    // Navigate to home if skipping, otherwise to partner linking
+    const isSkipping = showSkipDialog;
+    if (isSkipping) {
+      // If skipping, go directly to home dashboard
+      navigate("/home");
+      
+      toast({
+        title: "Skipped AI Onboarding",
+        description: "You can always talk to Aurora later through the AI Assistant menu.",
+      });
+    } else {
+      // Regular flow - continue to partner linking
+      navigate("/partner-linking");
+      
+      toast({
+        title: t('onboarding.chatCompleted', 'Great conversation!'),
+        description: t('onboarding.chatCompletedDescription', 'Thanks for sharing! Now let\'s connect you with your partner.'),
+      });
+    }
   };
   
   // Handle form submission
