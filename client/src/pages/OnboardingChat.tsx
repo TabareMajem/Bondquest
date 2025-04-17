@@ -252,12 +252,15 @@ export default function OnboardingChat() {
     // Navigate to home if skipping, otherwise to partner linking
     const isSkipping = showSkipDialog;
     if (isSkipping) {
-      // If skipping, go directly to home dashboard
+      // If skipping, mark profile as completed and go to home dashboard in solo mode
+      localStorage.setItem("profile_setup_completed", "true");
+      
+      // Then navigate to home
       navigate("/home");
       
       toast({
         title: "Skipped AI Onboarding",
-        description: "You can always talk to Aurora later through the AI Assistant menu.",
+        description: "You'll start in solo mode. You can connect with a partner anytime.",
       });
     } else {
       // Regular flow - continue to partner linking
