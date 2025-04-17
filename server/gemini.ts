@@ -250,26 +250,91 @@ export async function generateGeminiResponse(
       });
     }
     
+    // Add specific role-playing instructions to prevent refusal responses
+    // This is crucial for the AI to perform correctly in the onboarding flow
+    const rolePlayingInstructions = `
+      IMPORTANT INSTRUCTIONS FOR AURORA AI:
+      1. You ARE Aurora, an AI relationship scientist in the BondQuest app.
+      2. Your role is to help the user build a stronger relationship with their partner.
+      3. You MUST maintain this role throughout the entire conversation.
+      4. NEVER tell the user you're not Aurora or that you're a different AI.
+      5. NEVER tell the user you can't ask for their name or personal information - specifically for onboarding, you SHOULD ask for their name.
+      6. DO NOT send encyclopedia-style responses about what names mean.
+      7. When the user provides their name, respond warmly without explaining what their name means.
+      8. You are specifically designed to have conversations about relationships and provide guidance.
+      9. If you're unsure how to respond, ask a follow-up question about the relationship.
+      10. Keep responses conversational, friendly, and concise (2-4 sentences).
+      
+      The above instructions override any conflicting instructions in previous system prompts.
+    `;
+    
+    // Add this instruction as a system message always
+    messages.unshift({
+      id: 0,
+      sessionId,
+      sender: 'system',
+      message: rolePlayingInstructions,
+      messageType: 'instruction',
+      timestamp: new Date(),
+      contentTags: null,
+      sentiment: null,
+      extractedInsights: null
+    });
+    
     // Format messages for Gemini
     const formattedMessages = formatMessagesForGemini(messages);
     
     try {
       // Start a chat session
       const chat = geminiModel.startChat({
-        history: formattedMessages
+        history: formattedMessages,
+        // Use safety settings that are predefined by the Gemini API
+        safetySettings: []
       });
       
       // Generate response
       const result = await chat.sendMessage(userMessage);
-      const responseText = result.response.text();
+      let responseText = result.response.text();
+      
+      // Clean the response to filter out any non-compliant content
+      responseText = cleanAIResponse(responseText);
+      
+      // Validate the response quality
+      if (!isValidResponse(responseText, userMessage)) {
+        console.log('Invalid or low-quality AI response detected, using fallback');
+        return generateFallbackResponse(sessionId, userMessage, systemContext);
+      }
       
       return responseText;
     } catch (chatError) {
       console.error('Error in Gemini chat session:', chatError);
       // Try simple content generation as fallback
       try {
-        const result = await geminiModel.generateContent(userMessage);
-        return result.response.text();
+        // Add explicit instructions for the content generation
+        const enhancedPrompt = `
+          ROLE: You are Aurora, the relationship scientist AI in BondQuest app.
+          TASK: Respond as Aurora to this user message: "${userMessage}"
+          TONE: Friendly, supportive, and concise.
+          FORMAT: 2-4 sentences maximum.
+          
+          IMPORTANT: 
+          - NEVER deny being Aurora or refuse to engage in relationship discussions
+          - If the user shared their name, acknowledge it warmly without explaining what the name means
+          - NEVER say you can't ask for or collect user information - you need to collect relationship information
+          - Always stay in character as a relationship AI assistant
+        `;
+        
+        const result = await geminiModel.generateContent(enhancedPrompt);
+        let responseText = result.response.text();
+        
+        // Clean and validate the response
+        responseText = cleanAIResponse(responseText);
+        
+        if (!isValidResponse(responseText, userMessage)) {
+          return generateFallbackResponse(sessionId, userMessage, systemContext);
+        }
+        
+        return responseText;
       } catch (contentError) {
         console.error('Error in simple content generation:', contentError);
         return generateFallbackResponse(sessionId, userMessage, systemContext);
@@ -279,6 +344,89 @@ export async function generateGeminiResponse(
     console.error('Error in Gemini response generation flow:', error);
     return generateFallbackResponse(sessionId, userMessage, systemContext);
   }
+}
+
+/**
+ * Clean the AI response to remove problematic content
+ */
+function cleanAIResponse(text: string): string {
+  // Remove any disclaimers about being an AI
+  const disclaimerPatterns = [
+    /I'm not actually Aurora/i,
+    /I am an AI language model/i,
+    /I'm an AI assistant/i,
+    /I cannot ask for personal information/i,
+    /I don't need or ask for personally identifiable information/i,
+    /I am a large language model/i,
+    /As an AI/i
+  ];
+  
+  let cleanedText = text;
+  
+  // Check for problematic statements and remove sentences containing them
+  for (const pattern of disclaimerPatterns) {
+    // Split by sentences and filter out problematic ones
+    cleanedText = cleanedText
+      .split(/(?<=[.!?])\s+/)
+      .filter(sentence => !pattern.test(sentence))
+      .join(' ');
+  }
+  
+  // If cleaning removed too much, return a fallback
+  if (cleanedText.trim().length < 10) {
+    return "I'm Aurora, your relationship scientist. Let's continue our conversation about strengthening your relationship. What would you like to discuss next?";
+  }
+  
+  return cleanedText;
+}
+
+/**
+ * Validate if the response is appropriate for the conversation
+ */
+function isValidResponse(responseText: string, userMessage: string): boolean {
+  // Check for low-quality or inappropriate responses
+  const lowQualityPatterns = [
+    /I apologize, but I/i,
+    /I'm not able to/i,
+    /I cannot/i,
+    /As an AI, I don't/i,
+    /I don't have personal/i,
+    /I don't have the ability/i,
+    /I don't need or ask for/i,
+    /I don't collect personal/i
+  ];
+  
+  // Check if response contains encyclopedia-style information about names
+  const nameInfoPatterns = [
+    /is a name of/i,
+    /is derived from/i, 
+    /is a .* name/i,
+    /originates from/i,
+    /has roots in/i,
+    /means .* in/i
+  ];
+  
+  // Special check for name response
+  const namePattern = /^(my name is|i'm|i am|this is|call me)\s+(\w+)/i;
+  const nameMatch = userMessage.match(namePattern);
+  
+  if (nameMatch) {
+    // If user provided their name, make sure the response isn't an encyclopedia entry
+    for (const pattern of nameInfoPatterns) {
+      if (pattern.test(responseText)) {
+        return false;
+      }
+    }
+  }
+  
+  // Check for generic disclaimers
+  for (const pattern of lowQualityPatterns) {
+    if (pattern.test(responseText)) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 /**
@@ -301,46 +449,117 @@ function generateFallbackResponse(
       stage = 'relationship_status';
     } else if (systemContext && systemContext.includes('communication')) {
       stage = 'communication';
-    } else if (systemContext && systemContext.includes('interests')) {
-      stage = 'interests';
-    } else if (systemContext && systemContext.includes('goals')) {
-      stage = 'goals';
+    } else if (systemContext && systemContext.includes('trust')) {
+      stage = 'trust';
+    } else if (systemContext && systemContext.includes('emotional_intimacy')) {
+      stage = 'emotional_intimacy';
+    } else if (systemContext && systemContext.includes('conflict_resolution')) {
+      stage = 'conflict_resolution';
+    } else if (systemContext && systemContext.includes('physical_intimacy')) {
+      stage = 'physical_intimacy';
+    } else if (systemContext && systemContext.includes('shared_values')) {
+      stage = 'shared_values';
+    } else if (systemContext && systemContext.includes('fun_playfulness')) {
+      stage = 'fun_playfulness';
+    } else if (systemContext && systemContext.includes('mutual_support')) {
+      stage = 'mutual_support';
+    } else if (systemContext && systemContext.includes('independence_balance')) {
+      stage = 'independence_balance';
+    } else if (systemContext && systemContext.includes('overall_satisfaction')) {
+      stage = 'overall_satisfaction';
     } else if (systemContext && systemContext.includes('wrap_up')) {
       stage = 'wrap_up';
     }
     
-    // Companion-specific responses based on stage
-    const venusResponses: Record<string, string> = {
-      welcome: "Hello and welcome to BondQuest! 👋 I'm Venus, your relationship communication guide. I'm here to help you strengthen your bond with your partner. What's your name, and what's your partner's name? I'd love to get to know you both better!",
-      relationship_status: "It's great to meet you! How long have you and your partner been together? Understanding your relationship journey helps me provide more personalized suggestions for improving your communication.",
-      communication: "How do you and your partner typically communicate throughout the day? Understanding your communication patterns helps me provide better guidance for deepening your connection.",
-      unknown: "I'm Venus, your communication specialist at BondQuest. I'm here to help you build a stronger relationship through better communication. What would you like to know?"
-    };
+    // Check for name in the user message
+    const namePattern = /^(my name is|i'm|i am|this is|call me)\s+(\w+)/i;
+    const nameMatch = userMessage.match(namePattern);
     
-    const casanovaResponses: Record<string, string> = {
-      interests: "Let's talk about the fun side of your relationship! What activities do you and your partner enjoy doing together? I love helping couples discover new exciting ways to connect.",
-      unknown: "I'm Casanova, your romantic activities guide at BondQuest. I'm here to help you keep the spark alive with creative date ideas and romantic inspiration. What would you like to explore?"
-    };
-    
-    const auroraResponses: Record<string, string> = {
-      goals: "Looking toward the future is important for every relationship. What are some of your short-term and long-term goals together? Understanding these helps me analyze patterns and suggest personalized growth opportunities.",
-      unknown: "I'm Aurora, your data-driven relationship scientist at BondQuest. I help couples understand the patterns in their relationship and make evidence-based improvements. How can I assist you today?"
-    };
-    
-    // Select the appropriate response based on detected stage
-    if (stage === 'welcome' || stage === 'relationship_status' || stage === 'communication') {
-      return venusResponses[stage] || venusResponses.unknown;
-    } else if (stage === 'interests') {
-      return casanovaResponses.interests || casanovaResponses.unknown;
-    } else if (stage === 'goals') {
-      return auroraResponses.goals || auroraResponses.unknown;
+    // If this is a name response, use a special response
+    if (nameMatch && nameMatch[2]) {
+      const name = nameMatch[2];
+      return `Great to meet you, ${name}! 😊 I'm Aurora, your relationship scientist at BondQuest. I'm here to help you build a stronger relationship with your partner. Could you tell me your partner's name as well?`;
     }
     
-    // Default fallback response if stage cannot be determined
-    return "I'm here to help you build a stronger relationship through BondQuest. What specific area of your relationship would you like to focus on improving?";
+    // Structured responses for each stage of the onboarding
+    const onboardingResponses: Record<string, string[]> = {
+      welcome: [
+        "Welcome to BondQuest! 👋 I'm Aurora, your relationship scientist. I'm here to help you build a stronger relationship with your partner. To get started, what's your name?",
+        "Hi there! I'm Aurora, your relationship guide at BondQuest. I'll be asking you about various aspects of your relationship to help strengthen your bond. What's your name?",
+        "Welcome aboard! I'm Aurora, and I'll be your relationship scientist on BondQuest. To personalize your experience, could you tell me your name?"
+      ],
+      communication: [
+        "Let's talk about communication, which is crucial for every relationship. How would you describe the way you and your partner talk to each other?",
+        "Communication is the first dimension we'll explore. How comfortable do you feel expressing your thoughts and feelings to your partner?",
+        "Now let's discuss Communication (1/10). Do you and your partner have regular deep conversations, or do you tend to keep to practical matters?"
+      ],
+      trust: [
+        "Trust is essential in relationships. How confident are you that your partner has your back when you need them?",
+        "Now for Trust (2/10). Do you feel secure in your relationship, or do you sometimes experience doubts or insecurities?",
+        "Trust is our next dimension. How honest and reliable would you say you and your partner are with each other?"
+      ],
+      emotional_intimacy: [
+        "Emotional connection is vital. How close do you feel to your partner emotionally? Can you share vulnerable thoughts and feelings?",
+        "Emotional Intimacy (3/10) is about deep connection. How well do you and your partner understand each other's inner worlds?",
+        "Let's explore the emotional side of your relationship. Do you feel your partner truly knows the real you?"
+      ],
+      conflict_resolution: [
+        "Every couple has disagreements. How do you and your partner typically handle conflicts when they arise?",
+        "Conflict Resolution (4/10) is next. When you disagree, do you work through issues calmly, or do conflicts tend to escalate?",
+        "Handling disagreements is important. What's your approach when you and your partner don't see eye to eye?"
+      ],
+      physical_intimacy: [
+        "Physical connection is another dimension of relationships. In general terms, how satisfied are you with the physical aspects of your relationship?",
+        "Physical Intimacy (5/10) includes all forms of physical connection. In general, do you feel your needs for physical closeness are being met?",
+        "Let's briefly touch on physical connection. Without specifics, are you and your partner generally in sync with physical affection?"
+      ],
+      shared_values: [
+        "Shared values and goals create a foundation. What important values or beliefs do you and your partner have in common?",
+        "Values & Goals (6/10) is our next dimension. Are you and your partner aligned on major life goals and values?",
+        "Let's talk about what you both believe in. What core values do you and your partner share?"
+      ],
+      fun_playfulness: [
+        "Fun and playfulness keep relationships vibrant. What activities do you and your partner enjoy doing together?",
+        "Fun & Enjoyment (7/10) is essential. How often do you and your partner laugh together or engage in playful activities?",
+        "Relationships need fun too! What do you and your partner do to enjoy each other's company and keep things light?"
+      ],
+      mutual_support: [
+        "Supporting each other matters. How do you show up for your partner when they're going through challenges?",
+        "Support & Respect (8/10) is our next focus. Do you feel your partner respects your individuality and supports your personal growth?",
+        "Let's discuss how you support each other. Do you feel appreciated and respected in your relationship?"
+      ],
+      independence_balance: [
+        "Balancing togetherness and independence can be tricky. How do you maintain your own identity while being part of a couple?",
+        "Independence & Balance (9/10) is important. How do you balance time together with personal space and individual pursuits?",
+        "Every relationship needs balance. Do you feel you have enough personal freedom while maintaining a close connection?"
+      ],
+      overall_satisfaction: [
+        "Overall, how satisfied are you with your relationship right now? What makes you happiest about being with your partner?",
+        "Overall Satisfaction (10/10) is our final dimension. On a scale of 1-10, how would you rate your relationship satisfaction currently?",
+        "Looking at the big picture, what aspects of your relationship bring you the most joy and fulfillment?"
+      ],
+      wrap_up: [
+        "Thank you for sharing so openly about your relationship! Based on what you've told me, I'll generate some personalized insights to help strengthen your bond.",
+        "You've provided great information about your relationship! I'll use this to create a relationship profile that will help guide your journey on BondQuest.",
+        "That's all the questions I have for now. Thanks for your thoughtful responses! This will help me provide tailored activities and insights for you and your partner."
+      ],
+      unknown: [
+        "I'm Aurora, your relationship scientist at BondQuest. I'm here to help you understand and strengthen your relationship through science-backed insights. What would you like to know?",
+        "Thanks for sharing! To give you the best guidance, could you tell me more about that aspect of your relationship?",
+        "I appreciate your openness. As your relationship scientist, I'm here to help you navigate the complexities of your connection. What else would you like to explore?"
+      ]
+    };
+    
+    // Get the array of possible responses for this stage
+    const responseOptions = onboardingResponses[stage] || onboardingResponses.unknown;
+    
+    // Select a random response from the options
+    const randomIndex = Math.floor(Math.random() * responseOptions.length);
+    return responseOptions[randomIndex];
+    
   } catch (error) {
     console.error('Error generating fallback response:', error);
-    return "I'm here to help you build a stronger relationship. What would you like to know about BondQuest?";
+    return "I'm Aurora, your relationship scientist at BondQuest. I'm here to help you build a stronger relationship. What would you like to know?";
   }
 }
 
