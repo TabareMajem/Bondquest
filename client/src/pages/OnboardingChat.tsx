@@ -7,9 +7,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, Send, Heart, CheckCircle2, Info } from "lucide-react";
+import { ArrowRight, Send, Heart, CheckCircle2, Info, Sparkles } from "lucide-react";
 import { bondDimensions, bondDimensionOrder, getNextDimension, getDimensionById } from "@shared/bondDimensions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { LoadingAnimation } from "@/components/ui/loading-animation";
+import { motion } from "framer-motion";
 
 // Import the assistant message component
 import Message from "@/components/ai/Message";
@@ -336,25 +338,47 @@ export default function OnboardingChat() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="absolute left-1/2 transform -translate-x-1/2 bottom-24 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 shadow-lg cursor-help">
+              <motion.div 
+                className="absolute left-1/2 transform -translate-x-1/2 bottom-24 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20 shadow-lg cursor-help"
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 260,
+                  damping: 20,
+                  duration: 0.3 
+                }}
+                whileHover={{ 
+                  scale: 1.05,
+                  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                  transition: { duration: 0.2 }
+                }}
+              >
                 <div className="flex items-center space-x-2">
                   <div 
-                    className="w-5 h-5 flex items-center justify-center"
-                    style={{ color: getDimensionById(currentStage)?.color || '#EC4899' }}
+                    className="w-6 h-6 flex items-center justify-center rounded-full"
+                    style={{ 
+                      background: `linear-gradient(135deg, ${getDimensionById(currentStage)?.color || '#9333EA'}, rgba(236, 72, 153, 0.8))`,
+                      boxShadow: '0 0 10px rgba(147, 51, 234, 0.5)' 
+                    }}
                   >
-                    <Heart className="w-4 h-4" />
+                    <Sparkles className="w-3.5 h-3.5 text-white" />
                   </div>
                   <span className="text-sm text-white font-medium">
                     {dimensionNames[currentStage]}
                   </span>
-                  <Info className="w-3 h-3 text-white/70" />
+                  <span className="text-xs text-white/70 bg-white/10 px-2 py-0.5 rounded-full">
+                    {currentStageIndex}/{conversationStages.length-2}
+                  </span>
                 </div>
-              </div>
+              </motion.div>
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="text-sm">{getDimensionById(currentStage)?.description}</p>
-              <div className="mt-2 text-xs text-muted-foreground">
-                Tap to learn more about this dimension
+            <TooltipContent className="max-w-xs bg-black/90 border-purple-500/50">
+              <h4 className="font-medium text-purple-300">{dimensionNames[currentStage]}</h4>
+              <p className="text-sm text-white/80 mt-1">{getDimensionById(currentStage)?.description}</p>
+              <div className="mt-2 text-xs text-purple-300/70 flex items-center">
+                <Info className="w-3 h-3 mr-1" />
+                Share your thoughts on this dimension
               </div>
             </TooltipContent>
           </Tooltip>
@@ -386,27 +410,65 @@ export default function OnboardingChat() {
         
         {/* Continue Button */}
         {(isReadyToContinue || currentStage === 'wrap_up' || messages.filter(m => m.sender === 'user').length >= conversationStages.length) && (
-          <div className="flex justify-center mt-4">
-            <Button
-              onClick={handleContinue}
-              className="bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 px-6 py-5 rounded-xl font-medium shadow-md hover:shadow-lg transition-all"
+          <motion.div 
+            className="flex justify-center mt-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ 
+              type: "spring",
+              stiffness: 300,
+              damping: 20
+            }}
+          >
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {currentStage === 'wrap_up' ? 'Connect with Partner' : 'Continue'} <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
+              <Button
+                onClick={handleContinue}
+                className="bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 px-8 py-6 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all border border-yellow-300/30"
+                size="lg"
+              >
+                <motion.span
+                  className="flex items-center"
+                  initial={{ opacity: 1 }}
+                  whileHover={{ 
+                    opacity: [1, 0.8, 1], 
+                    transition: { duration: 1.5, repeat: Infinity }
+                  }}
+                >
+                  {currentStage === 'wrap_up' ? 'Connect with Partner' : 'Continue'} 
+                  <motion.div
+                    className="ml-2"
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                  </motion.div>
+                </motion.span>
+              </Button>
+            </motion.div>
+          </motion.div>
         )}
       </div>
       
       {/* Show typing indicator when AI is responding */}
       {sendMessageMutation.isPending && (
-        <div className="absolute bottom-24 left-8 bg-purple-600/80 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm shadow-md animate-pulse flex items-center">
-          <div className="flex gap-1 items-center">
-            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-          </div>
-          <span className="ml-2">Aurora is thinking...</span>
-        </div>
+        <motion.div 
+          className="absolute bottom-24 left-8 bg-purple-600/80 backdrop-blur-sm rounded-full px-4 py-2 text-white text-sm shadow-md flex items-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.2 }}
+        >
+          <LoadingAnimation 
+            variant="bounce" 
+            size="xs" 
+            color="default" 
+            text="Aurora is thinking..." 
+            textPosition="right"
+          />
+        </motion.div>
       )}
     </div>
   );

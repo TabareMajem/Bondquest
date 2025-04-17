@@ -91,18 +91,33 @@ export async function createConversationSession(sessionData: InsertConversationS
  * Add a message to a conversation session
  */
 export async function addConversationMessage(messageData: InsertConversationMessage) {
+  // Strict type checking for contentTags and extracted insights
+  // to prevent type errors with SQL insertions
+  let contentTagsValue = null;
+  if (messageData.contentTags) {
+    contentTagsValue = Array.isArray(messageData.contentTags) ? messageData.contentTags : null;
+  }
+  
+  let extractedInsightsValue = null;
+  if (messageData.extractedInsights) {
+    extractedInsightsValue = typeof messageData.extractedInsights === 'object' ? messageData.extractedInsights : null;
+  }
+  
+  // Create a properly typed values object for insertion
+  const insertValues = {
+    sessionId: messageData.sessionId,
+    message: messageData.message,
+    sender: messageData.sender,
+    messageType: messageData.messageType || 'text',
+    timestamp: new Date(),
+    contentTags: contentTagsValue,
+    sentiment: messageData.sentiment || null,
+    extractedInsights: extractedInsightsValue
+  };
+  
   const [message] = await db
     .insert(conversationMessages)
-    .values({
-      sessionId: messageData.sessionId,
-      message: messageData.message,
-      sender: messageData.sender,
-      messageType: messageData.messageType || 'text',
-      timestamp: new Date(),
-      contentTags: messageData.contentTags || null,
-      sentiment: messageData.sentiment || null,
-      extractedInsights: messageData.extractedInsights || null
-    })
+    .values(insertValues)
     .returning();
   
   return message;

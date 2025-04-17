@@ -145,7 +145,7 @@ export function BondDimensionsChart({
             size: isMobile ? 
               (size === 'sm' ? 7 : size === 'md' ? 9 : 11) : 
               (size === 'sm' ? 8 : size === 'md' ? 12 : 14),
-            weight: isMobile ? 'bold' : 'normal'
+            weight: isMobile ? 'bold' as const : 'normal' as const
           },
           color: '#666',
           padding: isMobile ? 4 : 8,
