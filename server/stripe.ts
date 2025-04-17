@@ -23,7 +23,7 @@ export class StripeService {
           userId: userId.toString(),
         },
       });
-      
+
       return customer;
     } catch (error) {
       console.error('Error creating Stripe customer:', error);
@@ -42,7 +42,7 @@ export class StripeService {
         payment_behavior: 'default_incomplete',
         expand: ['latest_invoice.payment_intent'],
       });
-      
+
       return subscription;
     } catch (error) {
       console.error('Error creating Stripe subscription:', error);
@@ -68,10 +68,10 @@ export class StripeService {
   async updateSubscription(subscriptionId: string, priceId: string) {
     try {
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      
+
       // Get the subscription item ID
       const itemId = subscription.items.data[0].id;
-      
+
       // Update the subscription with the new price
       return await stripe.subscriptions.update(subscriptionId, {
         items: [{ id: itemId, price: priceId }],
@@ -92,11 +92,11 @@ export class StripeService {
         currency,
         automatic_payment_methods: { enabled: true },
       };
-      
+
       if (customerId) {
         paymentIntentOptions.customer = customerId;
       }
-      
+
       return await stripe.paymentIntents.create(paymentIntentOptions);
     } catch (error) {
       console.error('Error creating payment intent:', error);
@@ -129,11 +129,11 @@ export class StripeService {
         unit_amount: amount,
         currency,
       };
-      
+
       if (recurring) {
         priceOptions.recurring = recurring;
       }
-      
+
       return await stripe.prices.create(priceOptions);
     } catch (error) {
       console.error('Error creating price:', error);
@@ -189,17 +189,17 @@ export class StripeService {
       // Get the customer
       const customer = await stripe.customers.retrieve(subscription.customer as string);
       if (!customer || customer.deleted) return;
-      
+
       // Get the userId from customer metadata
       const userId = customer.metadata.userId;
       if (!userId) return;
-      
+
       // Find the subscription in our database
       const [existingSubscription] = await db
         .select()
         .from(userSubscriptions)
         .where(eq(userSubscriptions.stripeSubscriptionId, subscription.id));
-      
+
       if (existingSubscription) {
         // Update existing subscription
         await db
@@ -219,9 +219,9 @@ export class StripeService {
           .select()
           .from(subscriptionTiers)
           .where(eq(subscriptionTiers.stripePriceId, price.id));
-          
+
         if (!tier) return;
-        
+
         // Create new subscription record
         await db.insert(userSubscriptions).values({
           userId: parseInt(userId),
@@ -250,7 +250,7 @@ export class StripeService {
         .select()
         .from(userSubscriptions)
         .where(eq(userSubscriptions.stripeSubscriptionId, subscription.id));
-      
+
       if (existingSubscription) {
         // Update subscription status to canceled
         await db
