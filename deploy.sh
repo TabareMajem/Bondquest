@@ -12,9 +12,16 @@ rm -rf dist
 echo "Building application..."
 vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server
 
+# Create server public directory if it doesn't exist
+echo "Creating server public directory..."
+mkdir -p dist/server/public
+
+# Copy frontend build to server public directory
+echo "Copying frontend build to server/public..."
+cp -r dist/public/* dist/server/public/
+
 # Copy necessary files to ensure server works correctly
 echo "Copying configuration files..."
-cp -r server/public dist/server/public 2>/dev/null || true
 cp .env dist/ 2>/dev/null || true
 
 # Create a symbolic link for compatibility with potential older references
