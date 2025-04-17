@@ -37,7 +37,7 @@ export const createAuthRouter = () => {
   router.get('/google/callback', 
     passport.authenticate('google', { 
       failureRedirect: '/login',
-      successRedirect: '/onboarding'
+      successRedirect: '/onboarding-chat'
     })
   );
 
