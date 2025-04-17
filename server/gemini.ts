@@ -91,36 +91,38 @@ export async function createConversationSession(sessionData: InsertConversationS
  * Add a message to a conversation session
  */
 export async function addConversationMessage(messageData: InsertConversationMessage) {
-  // Strict type checking for contentTags and extracted insights
-  // to prevent type errors with SQL insertions
-  let contentTagsValue = null;
-  if (messageData.contentTags) {
-    contentTagsValue = Array.isArray(messageData.contentTags) ? messageData.contentTags : null;
+  try {
+    // Convert any arrays to proper PostgreSQL arrays
+    let contentTagsValue = null;
+    if (messageData.contentTags) {
+      contentTagsValue = Array.isArray(messageData.contentTags) ? messageData.contentTags : null;
+    }
+    
+    let extractedInsightsValue = null;
+    if (messageData.extractedInsights) {
+      extractedInsightsValue = typeof messageData.extractedInsights === 'object' ? messageData.extractedInsights : null;
+    }
+
+    // Using the standard method for inserting records
+    const [result] = await db
+      .insert(conversationMessages)
+      .values({
+        sessionId: messageData.sessionId,
+        message: messageData.message,
+        sender: messageData.sender,
+        messageType: messageData.messageType || 'text',
+        timestamp: new Date(),
+        contentTags: contentTagsValue,
+        sentiment: messageData.sentiment || null,
+        extractedInsights: extractedInsightsValue
+      })
+      .returning();
+    
+    return result;
+  } catch (error) {
+    console.error('Error adding conversation message:', error);
+    throw error;
   }
-  
-  let extractedInsightsValue = null;
-  if (messageData.extractedInsights) {
-    extractedInsightsValue = typeof messageData.extractedInsights === 'object' ? messageData.extractedInsights : null;
-  }
-  
-  // Create a properly typed values object for insertion
-  const insertValues = {
-    sessionId: messageData.sessionId,
-    message: messageData.message,
-    sender: messageData.sender,
-    messageType: messageData.messageType || 'text',
-    timestamp: new Date(),
-    contentTags: contentTagsValue,
-    sentiment: messageData.sentiment || null,
-    extractedInsights: extractedInsightsValue
-  };
-  
-  const [message] = await db
-    .insert(conversationMessages)
-    .values(insertValues)
-    .returning();
-  
-  return message;
 }
 
 /**
@@ -186,11 +188,14 @@ function formatMessagesForGemini(messages: ConversationMessage[]) {
   }
   
   // Make sure the first message is from a user
-  if (filteredMessages[0].sender !== 'user') {
+  if (filteredMessages.length > 0 && filteredMessages[0].sender !== 'user') {
+    // Use sessionId from first message or default to 0 if there's no session ID
+    const sessionId = filteredMessages[0]?.sessionId || 0;
+    
     // Add a dummy user message at the beginning
     filteredMessages.unshift({
       id: 0,
-      sessionId: filteredMessages[0].sessionId,
+      sessionId: sessionId,
       sender: 'user',
       message: 'Hello',
       messageType: 'text',
