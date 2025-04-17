@@ -148,7 +148,13 @@
     "typeMessage": "Type a message...",
     "chatCompleted": "Great conversation!",
     "chatCompletedDescription": "Thanks for sharing! Now let's connect you with your partner.",
-    "continue": "Continue to Partner Linking"
+    "continue": "Continue to Partner Linking",
+    "skipAssistant": "Skip AI Assistant",
+    "skipAssistantConfirm": "Are you sure you want to skip the AI assistant onboarding?",
+    "skipAssistantDescription": "You'll miss personalized relationship insights, but you can always come back later.",
+    "skipAndContinue": "Skip & Continue",
+    "stayAndComplete": "Stay & Complete",
+    "progress": "Progress: {{current}}/{{total}}"
   },
   "quiz": {
     "startQuiz": "Start Quiz",

@@ -7,11 +7,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, Send, Heart, CheckCircle2, Info, Sparkles } from "lucide-react";
+import { ArrowRight, Send, Heart, CheckCircle2, Info, Sparkles, SkipForward, AlertTriangle } from "lucide-react";
 import { bondDimensions, bondDimensionOrder, getNextDimension, getDimensionById } from "@shared/bondDimensions";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LoadingAnimation } from "@/components/ui/loading-animation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Import the assistant message component
 import Message from "@/components/ai/Message";
@@ -82,6 +90,7 @@ export default function OnboardingChat() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showSkipDialog, setShowSkipDialog] = useState(false);
   
   // Track conversation stage (which bond dimension we're on)
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
@@ -286,19 +295,63 @@ export default function OnboardingChat() {
           </div>
         </div>
         
-        {/* Progress indicator */}
-        <div className="flex items-center">
-          <span className="text-xs text-white/80 mr-2">
-            {currentStage !== 'welcome' && currentStage !== 'wrap_up' ? dimensionNames[currentStage] : ''}
-          </span>
-          <div className="w-16 h-2 bg-white/20 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-yellow-400 to-pink-500"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
+        <div className="flex items-center space-x-3">
+          {/* Skip button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSkipDialog(true)}
+            className="text-white/70 hover:text-white hover:bg-white/10 border border-white/30"
+          >
+            <SkipForward className="w-4 h-4 mr-1" />
+            {t('onboarding.skipAssistant')}
+          </Button>
+          
+          {/* Progress indicator */}
+          <div className="flex items-center">
+            <span className="text-xs text-white/80 mr-2">
+              {currentStage !== 'welcome' && currentStage !== 'wrap_up' ? dimensionNames[currentStage] : ''}
+            </span>
+            <div className="w-16 h-2 bg-white/20 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-yellow-400 to-pink-500"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
           </div>
         </div>
       </div>
+      
+      {/* Skip Confirmation Dialog */}
+      <Dialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
+        <DialogContent className="sm:max-w-[425px] bg-gradient-to-br from-gray-900 to-purple-950 text-white border-purple-500/30">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-white">
+              <AlertTriangle className="w-5 h-5 mr-2 text-amber-400" />
+              {t('onboarding.skipAssistantConfirm')}
+            </DialogTitle>
+            <DialogDescription className="text-white/70">
+              {t('onboarding.skipAssistantDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col sm:flex-row justify-end gap-3 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSkipDialog(false)}
+              className="border-purple-400/30 text-white hover:bg-purple-500/20"
+            >
+              {t('onboarding.stayAndComplete')}
+            </Button>
+            <Button 
+              onClick={handleContinue}
+              className="bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700"
+            >
+              {t('onboarding.skipAndContinue')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Dimension Progress Bar (only show after welcome) */}
       {currentStageIndex > 0 && currentStageIndex < totalStages - 1 && (
