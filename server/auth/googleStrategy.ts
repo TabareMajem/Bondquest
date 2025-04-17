@@ -67,7 +67,6 @@ export const configureGoogleStrategy = (passport: PassportStatic, storage: IStor
 
       // Create new user
       const generatedUsername = `user_${nanoid(8)}`;
-      const partnerCode = nanoid(10);
       
       const newUser = await storage.createUser({
         username: generatedUsername,
@@ -76,7 +75,7 @@ export const configureGoogleStrategy = (passport: PassportStatic, storage: IStor
         googleId: profile.id,
         displayName: profile.displayName || generatedUsername,
         avatar: profile.photos?.[0]?.value || null,
-        partnerCode: partnerCode
+        partnerCode: nanoid(10)
       });
 
       return done(null, newUser);

@@ -236,7 +236,7 @@ export const coupleRewards = pgTable("couple_rewards", {
 });
 
 // Insert Schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, partnerCode: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertCoupleSchema = createInsertSchema(couples).omit({ id: true, createdAt: true });
 export const insertQuizSchema = createInsertSchema(quizzes).omit({ id: true });
 export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });

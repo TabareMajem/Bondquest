@@ -47,7 +47,6 @@ export const configureInstagramStrategy = (passport: PassportStatic, storage: IS
 
       // Create new user from Instagram profile
       const generatedUsername = `user_${nanoid(8)}`;
-      const partnerCode = nanoid(10);
       
       const newUser = await storage.createUser({
         username: generatedUsername,
@@ -56,7 +55,7 @@ export const configureInstagramStrategy = (passport: PassportStatic, storage: IS
         instagramId: profile.id,
         displayName: profile.displayName || generatedUsername,
         avatar: profile._json?.data?.profile_picture || null,
-        partnerCode: partnerCode
+        partnerCode: nanoid(10)
       });
 
       return done(null, newUser);
