@@ -74,21 +74,15 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      // Use login with dummy credentials instead of socialLogin for better mobile compatibility
-      await login({ username: "google_user", password: "google_auth" });
-      
-      navigate("/home");
-      toast({
-        title: t('auth.loginSuccess'),
-        description: t('auth.loginSuccess'),
-      });
+      // Redirect to Google OAuth flow
+      await socialLogin('google');
+      // The page will redirect, so we don't need to navigate here
     } catch (error: any) {
       toast({
         title: t('auth.loginFailed'),
         description: error.message || "Google authentication failed. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsGoogleLoading(false);
     }
   };
@@ -96,21 +90,15 @@ export default function Login() {
   const handleInstagramLogin = async () => {
     setIsInstagramLoading(true);
     try {
-      // Use login with dummy credentials instead of socialLogin for better mobile compatibility
-      await login({ username: "instagram_user", password: "instagram_auth" });
-      
-      navigate("/home");
-      toast({
-        title: t('auth.loginSuccess'),
-        description: t('auth.loginSuccess'),
-      });
+      // Redirect to Instagram OAuth flow
+      await socialLogin('instagram');
+      // The page will redirect, so we don't need to navigate here
     } catch (error: any) {
       toast({
         title: t('auth.loginFailed'),
         description: error.message || "Instagram authentication failed. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsInstagramLoading(false);
     }
   };

@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   login: (credentials: { username: string; password: string }) => Promise<void>;
-  socialLogin: (provider: string, accessToken?: string) => Promise<void>;
+  socialLogin: (provider: string) => Promise<void>;
   logout: () => void;
   updateCouple: (coupleData: Couple) => void;
   createMockCouple: () => void; // Added mock couple function
@@ -124,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       avatar: null,
       loveLanguage: "Quality Time",
       relationshipStatus: "Dating",
-      anniversary: new Date(Date.now() - 1000 * 60 * 60 * 24 * 365), // 1 year ago
+      anniversary: new Date(Date.now() - 1000 * 60 * 60 * 24 * 365).toISOString().split('T')[0], // 1 year ago
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30), // 30 days ago
       partnerCode: `MOCK-${Math.floor(Math.random() * 10000)}`,
     };
@@ -132,17 +132,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Create a mock couple
     const mockCouple: Couple = {
       id: 500,
-      user1Id: user.id,
-      user2Id: mockPartner.id,
+      userId1: user.id,
+      userId2: mockPartner.id,
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30), // 30 days ago
-      lastSyncDate: new Date(),
       bondStrength: 75,
       xp: 1200,
-      level: 5,
-      perfectStreak: 8,
-      attributes: { "Communication": 85, "Trust": 90, "EmotionalIntimacy": 80, "Respect": 95, "Teamwork": 88 },
-      currentTier: "Bronze",
-      status: "active",
+      level: 5
     };
     
     // Set the couple and store in localStorage
