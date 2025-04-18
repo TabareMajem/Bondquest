@@ -24,6 +24,8 @@ import BondAssessment from "./pages/BondAssessment";
 
 // Admin Pages
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
+import AdminQuizzes from "./pages/AdminQuizzes";
 import AdminRewards from "./pages/AdminRewards";
 import AdminRewardForm from "./pages/AdminRewardForm";
 import AdminCompetitions from "./pages/AdminCompetitions";
@@ -73,15 +75,29 @@ function Router() {
       
       {/* Admin Routes */}
       <Route path="/admin" component={AdminDashboard} />
+      
+      {/* Admin User Management */}
+      <Route path="/admin/users" component={AdminUsers} />
+      
+      {/* Admin Quiz Management */}
+      <Route path="/admin/quizzes" component={AdminQuizzes} />
+      
+      {/* Admin Rewards Management */}
       <Route path="/admin/rewards" component={AdminRewards} />
       <Route path="/admin/rewards/new" component={AdminRewardForm} />
       <Route path="/admin/rewards/:id/edit" component={AdminRewardForm} />
+      
+      {/* Admin Competition Management */}
       <Route path="/admin/competitions" component={AdminCompetitions} />
       <Route path="/admin/competitions/new" component={AdminCompetitionForm} />
       <Route path="/admin/competitions/:id/edit" component={AdminCompetitionForm} />
+      
+      {/* Admin Subscription Management */}
       <Route path="/admin/subscriptions" component={AdminSubscriptions} />
       <Route path="/admin/subscriptions/tiers/new" component={AdminSubscriptionTierForm} />
       <Route path="/admin/subscriptions/tiers/:id/edit" component={AdminSubscriptionTierForm} />
+      
+      {/* Admin AI Tools */}
       <Route path="/admin/ai-wizard" component={AdminAIWizard} />
       
       <Route component={NotFound} />
