@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import { AuthProvider } from "./contexts/AuthContext";
 import { QuizProvider } from "./contexts/QuizContext";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
 import SignUp from "./pages/SignUp";
@@ -95,6 +96,7 @@ function App() {
         <QuizProvider>
           <Router />
           <Toaster />
+          <InstallPrompt />
         </QuizProvider>
       </AuthProvider>
     </QueryClientProvider>
