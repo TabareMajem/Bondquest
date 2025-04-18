@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import BottomNavigation from "./BottomNavigation";
 import ResponsiveContainer from "./ResponsiveContainer";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -34,6 +35,25 @@ export default function PageLayout({
   hideHeader = false,
   className = ""
 }: PageLayoutProps) {
+  // Use media query hook to detect desktop vs mobile
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  
+  // Force a re-check on component mount
+  useEffect(() => {
+    const checkForDesktop = () => {
+      // Directly access the matchMedia API for a one-time check
+      const isLargeScreen = window.matchMedia('(min-width: 1024px)').matches;
+      console.log('Screen size check - Desktop:', isLargeScreen, 'window.innerWidth:', window.innerWidth);
+    };
+    
+    // Check immediately and after a small delay
+    checkForDesktop();
+    
+    // Check again after 1 second to ensure window dimensions are properly measured
+    const timerId = setTimeout(checkForDesktop, 1000);
+    
+    return () => clearTimeout(timerId);
+  }, []);
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900">
       {/* Header */}
@@ -52,8 +72,8 @@ export default function PageLayout({
       
       {/* Desktop sidebar for large screens (hidden on mobile) */}
       <div className="flex flex-1">
-        {activeTab !== "none" && (
-          <div className="hidden lg:flex lg:w-64 xl:w-72 h-screen bg-gradient-to-b from-purple-900/90 to-purple-800/90 backdrop-blur-md shadow-xl border-r border-purple-700/30 flex-col fixed left-0 top-0 pt-20 px-4">
+        {activeTab !== "none" && isDesktop && (
+          <div className={`${isDesktop ? 'flex' : 'hidden'} w-64 xl:w-72 h-screen bg-gradient-to-b from-purple-900/90 to-purple-800/90 backdrop-blur-md shadow-xl border-r border-purple-700/30 flex-col fixed left-0 top-0 pt-20 px-4`}>
             <div className="flex flex-col space-y-6 py-8">
               <div className="flex items-center space-x-3 mb-8">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -91,9 +111,11 @@ export default function PageLayout({
       </div>
       
       {/* Bottom Navigation (only on mobile) */}
-      <div className="lg:hidden">
-        <BottomNavigation activeTab={activeTab} />
-      </div>
+      {!isDesktop && (
+        <div className="block">
+          <BottomNavigation activeTab={activeTab} />
+        </div>
+      )}
     </div>
   );
 }
