@@ -12,8 +12,7 @@ import { QuizProvider } from "./contexts/QuizContext";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import Home from "./pages/Home";
 import Onboarding from "./pages/Onboarding";
-import SignUp from "./pages/SignUp";
-import Login from "./pages/Login";
+import AuthPage from "./pages/auth-page";
 import OnboardingChat from "./pages/OnboardingChat";
 import PartnerLinking from "./pages/PartnerLinking";
 import ProfileSetup from "./pages/ProfileSetup";
@@ -63,8 +62,19 @@ function Router() {
     <Switch>
       {/* User Routes */}
       <Route path="/" component={Onboarding} />
-      <Route path="/signup" component={SignUp} />
-      <Route path="/login" component={Login} />
+      <Route path="/auth" component={AuthPage} />
+      <Route path="/signup">
+        {() => {
+          window.location.href = "/auth";
+          return null;
+        }}
+      </Route>
+      <Route path="/login">
+        {() => {
+          window.location.href = "/auth";
+          return null;
+        }}
+      </Route>
       <Route path="/onboarding-chat" component={OnboardingChat} />
       <Route path="/partner-linking" component={PartnerLinking} />
       <Route path="/profile-setup" component={ProfileSetup} />

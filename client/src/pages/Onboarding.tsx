@@ -39,7 +39,7 @@ export default function Onboarding() {
         
         <Button 
           className="bg-white text-primary-600 font-semibold py-3 px-10 rounded-full shadow-lg hover:shadow-xl transition-all mb-6"
-          onClick={() => navigate("/signup")}
+          onClick={() => navigate("/auth")}
         >
           Start Your Quest
         </Button>
@@ -50,8 +50,8 @@ export default function Onboarding() {
             // Clear any previous user data first
             localStorage.removeItem("bondquest_user");
             localStorage.removeItem("bondquest_couple");
-            // Navigate to signup which handles login too
-            navigate("/signup");
+            // Navigate to auth page with login tab active
+            navigate("/auth");
           }} 
           className="text-white underline font-medium"
         >
