@@ -250,7 +250,15 @@ export default function OnboardingChat() {
     }
     
     // Navigate to home if skipping, otherwise to partner linking
+    // Check if user is skipping via the dialog
     const isSkipping = showSkipDialog;
+    
+    // Log for debugging
+    console.log("Continue handler - isSkipping:", isSkipping, "showSkipDialog:", showSkipDialog);
+    
+    // IMPORTANT: Ensure the profile completion flag is always set
+    localStorage.setItem("profile_setup_completed", "true");
+    
     if (isSkipping) {
       // If skipping, mark profile as completed and go to home dashboard in solo mode
       localStorage.setItem("profile_setup_completed", "true");
@@ -360,11 +368,22 @@ export default function OnboardingChat() {
             </Button>
             <Button 
               onClick={() => {
-                // Explicitly set the profile as complete for solo mode
+                // Super aggressive solo mode enabling - set multiple flags
                 localStorage.setItem("profile_setup_completed", "true");
+                localStorage.setItem("solo_mode_enabled", "true");
+                localStorage.setItem("skip_partner_linking", "true");
+                
+                // Set showSkipDialog to true to trigger the isSkipping condition
+                setShowSkipDialog(true);
                 
                 // And then continue with the regular continue handler
                 handleContinue();
+                
+                // Explicitly navigate to home as a backup measure
+                setTimeout(() => {
+                  console.log("Forcing navigation to /home via setTimeout");
+                  navigate("/home");
+                }, 100);
               }}
               className="bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700"
             >
