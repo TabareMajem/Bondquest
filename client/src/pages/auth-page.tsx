@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { nanoid } from "nanoid";
 
 // Force stable rendering behavior to prevent flickering
 const FIXED_STYLES = {
@@ -132,18 +133,27 @@ const AuthPage = memo(function AuthPage() {
   const onSignUpSubmit = async (values: SignUpFormValues) => {
     setIsLoading(true);
     try {
-      // Call register API endpoint
+      // Generate a unique partner code for the user
+      const partnerCode = nanoid(10);
+      
+      // Call register API endpoint with the generated partner code
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          partnerCode // Add the required partnerCode field
+        }),
       });
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Registration failed");
+        console.error("Registration error details:", errorData);
+        throw new Error(typeof errorData.message === 'string' 
+          ? errorData.message 
+          : "Registration failed. Please check your information.");
       }
       
       // If registration successful, log them in with same credentials
