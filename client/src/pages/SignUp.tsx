@@ -42,7 +42,12 @@ export default function SignUp() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: SignUpFormValues & { partnerCode: string }) => {
-      const response = await apiRequest("POST", "/api/auth/register", data);
+      // Ensure partnerCode is a string before sending to the server
+      const registrationData = {
+        ...data,
+        partnerCode: data.partnerCode.toString()
+      };
+      const response = await apiRequest("POST", "/api/auth/register", registrationData);
       return response.json();
     },
     onSuccess: (data) => {
@@ -75,9 +80,10 @@ export default function SignUp() {
       const partnerCode = nanoid(8);
       
       // Add the partner code to the registration data
+      // Ensure partnerCode is sent as a string, not an array
       await registerMutation.mutateAsync({
         ...data,
-        partnerCode
+        partnerCode: partnerCode.toString()
       });
     } finally {
       setIsLoading(false);
