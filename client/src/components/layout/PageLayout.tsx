@@ -89,7 +89,7 @@ export default function PageLayout({
               
               <NavItem title="Home" icon="home" isActive={activeTab === "home"} href="/home" />
               <NavItem title="Quizzes" icon="play" isActive={activeTab === "play"} href="/quizzes" />
-              <NavItem title="Compete" icon="compete" isActive={activeTab === "compete"} href="/competitions" />
+              <NavItem title="Compete" icon="compete" isActive={activeTab === "compete"} href="/compete" />
               <NavItem title="Insights" icon="insights" isActive={activeTab === "insights"} href="/insights" />
               <NavItem title="Bond" icon="bond" isActive={activeTab === "bond"} href="/bond-assessment" />
               <NavItem title="AI Assistant" icon="ai" isActive={activeTab === "ai"} href="/ai-assistant" />
