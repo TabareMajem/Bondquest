@@ -103,12 +103,15 @@ export default function Home() {
     );
   }
   
-  // If authenticated but no couple, show partner linking screen
+  // If authenticated but no couple, show partner linking screen unless skipped
   if (!couple) {
-    // Check if they've completed the profile setup and explicitly skipped partner linking
-    const hasSkippedPartnerLinking = localStorage.getItem("profile_setup_completed") === "true";
+    // ALWAYS allow access to Home in solo mode if they come from the OnboardingChat
+    // Set this flag to prevent loops when coming from OnboardingChat or skipping AI assistant
+    localStorage.setItem("profile_setup_completed", "true");
+    // The flag is now always set, so this will always be true
+    const hasSkippedPartnerLinking = true;
     
-    // If they've explicitly chosen to skip, use the solo mode UI
+    // Solo mode UI
     if (hasSkippedPartnerLinking) {
       // Create custom header content
       const headerContent = (
