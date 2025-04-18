@@ -27,38 +27,64 @@ export function applyBrowserPatches() {
   const isExternalBrowser = !window.location.hostname.includes('replit');
   
   if (isExternalBrowser) {
-    console.log("EXTERNAL BROWSER DETECTED - APPLYING SAFETY PATCHES");
+    console.log("EXTERNAL BROWSER DETECTED - APPLYING GENTLE SAFETY PATCHES");
     
-    // EMERGENCY FIX: Block all reload calls in external browsers
+    // Prevent excessive reload loops, but still allow intentional actions 
+    // like login/register to work properly
+    
+    // Track reload count to prevent infinite loops but allow initial manual reloads
+    let reloadCounter = 0;
+    const MAX_RELOADS = 2;
+    
+    // Store the counter in session storage to persist across page loads
+    const storedCounter = sessionStorage.getItem('reload_counter');
+    if (storedCounter) {
+      reloadCounter = parseInt(storedCounter, 10);
+    }
+    
+    // SAFETY FIX: Intelligently manage reload calls in external browsers
     // @ts-ignore
     window.location.reload = function() {
-      console.warn("⚠️ Blocked reload() call to prevent infinite loops");
-      
-      // Instead of reloading, try to refresh component state by:
-      // 1. Clearing local React query cache
-      if (window.__REACT_QUERY_GLOBAL_CALLBACKS) {
-        console.log("🔄 Triggering React Query cache refresh instead of page reload");
-        try {
-          // @ts-ignore - Access React Query internals to refresh cache
-          window.__REACT_QUERY_GLOBAL_CALLBACKS.forEach(cb => typeof cb === 'function' && cb());
-        } catch (e) {
-          console.error("Failed to refresh React Query cache:", e);
-        }
+      // Allow reloads that are triggered by login/signup actions
+      const isAuthAction = 
+        document.location.pathname.includes('/auth') || 
+        document.location.pathname === '/' ||
+        document.location.pathname.includes('/login') || 
+        document.location.pathname.includes('/signup');
+        
+      if (isAuthAction) {
+        console.log("✅ Allowing reload for authentication action");
+        // Reset the counter for auth actions
+        sessionStorage.setItem('reload_counter', '0');
+        return originalReload.apply(window.location, arguments);
       }
       
-      // 2. Dispatch a custom event that components can listen for
-      window.dispatchEvent(new CustomEvent('app:softRefresh', { 
-        detail: { timestamp: Date.now() } 
-      }));
+      // Check if we've reloaded too many times
+      if (reloadCounter >= MAX_RELOADS) {
+        console.warn(`⚠️ Blocked reload() after ${MAX_RELOADS} successive reloads to prevent infinite loops`);
+        
+        // Dispatch a custom event for soft refresh
+        window.dispatchEvent(new CustomEvent('app:softRefresh', { 
+          detail: { timestamp: Date.now() } 
+        }));
+        
+        return false;
+      }
       
-      return false;
+      // Increment and store the counter
+      reloadCounter++;
+      sessionStorage.setItem('reload_counter', reloadCounter.toString());
+      console.log(`Reload ${reloadCounter}/${MAX_RELOADS} permitted`);
+      
+      // Allow this reload
+      return originalReload.apply(window.location, arguments);
     };
     
     // Monkey-patch sessionStorage to prevent issues
     const originalSetItem = sessionStorage.setItem;
     sessionStorage.setItem = function(key: string, value: string) {
-      if (key === 'app_version') {
-        console.warn("⚠️ Blocked sessionStorage app_version update to prevent infinite loops");
+      if (key === 'app_version' && value.includes('now')) {
+        console.warn("⚠️ Blocked dangerous sessionStorage app_version update");
         return;
       }
       return originalSetItem.call(sessionStorage, key, value);
@@ -67,7 +93,7 @@ export function applyBrowserPatches() {
     // Create sentinel to prevent multiple patches
     window.__PATCHED_FOR_EXTERNAL = true;
     
-    console.log("🛡️ External browser patches applied successfully");
+    console.log("🛡️ External browser patches applied in balanced mode - auth will work");
   }
 }
 
