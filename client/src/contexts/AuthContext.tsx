@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedUser = localStorage.getItem("bondquest_user");
     const storedCouple = localStorage.getItem("bondquest_couple");
+    const profileSetupCompleted = localStorage.getItem("profile_setup_completed") === "true";
     
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
@@ -34,6 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if the user is an admin (has admin@bondquest.com email)
       if (parsedUser.email === "admin@bondquest.com") {
         setIsAdmin(true);
+      }
+      
+      // If user has completed profile setup but no couple data, create a temporary token
+      // to ensure they can access solo mode without the redirect loop
+      if (profileSetupCompleted && !storedCouple) {
+        console.log("Profile setup completed, enabling solo mode access");
+        // This is used by the Home component to determine if user should see solo mode
+        localStorage.setItem("profile_setup_completed", "true");
       }
     }
     

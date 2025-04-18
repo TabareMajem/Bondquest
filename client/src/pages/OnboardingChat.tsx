@@ -359,7 +359,13 @@ export default function OnboardingChat() {
               {t('onboarding.stayAndComplete')}
             </Button>
             <Button 
-              onClick={handleContinue}
+              onClick={() => {
+                // Explicitly set the profile as complete for solo mode
+                localStorage.setItem("profile_setup_completed", "true");
+                
+                // And then continue with the regular continue handler
+                handleContinue();
+              }}
               className="bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700"
             >
               {t('onboarding.skipAndContinue')}
