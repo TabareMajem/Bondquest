@@ -4,9 +4,17 @@
 # to ensure compatibility with Replit deployment
 echo "Starting deployment process..."
 
-# Clean previous build
-echo "Cleaning previous build..."
+# Kill any running node processes to prevent port conflicts
+echo "Terminating any existing Node.js processes..."
+pkill -f "node.*server/index.ts" || echo "No server processes found"
+sleep 2 # Give processes time to terminate
+
+# Clean previous build and node_modules to ensure clean deps
+echo "Cleaning previous build and node_modules..."
 rm -rf dist
+rm -rf node_modules/.vite
+rm -rf client/node_modules/.vite 2>/dev/null || true
+rm -rf .cache 2>/dev/null || true
 
 # Run the exact same build command as in package.json
 echo "Building application..."

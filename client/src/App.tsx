@@ -1,6 +1,10 @@
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
+
+// Force cache reload after deployment with a version timestamp
+const APP_VERSION = Date.now();
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -35,7 +39,7 @@ import AdminSubscriptionTierForm from "./pages/AdminSubscriptionTierForm";
 import AdminAIWizard from "./pages/AdminAIWizard";
 
 // Custom route component that checks for auth and skip settings
-function SoloModeEnabledRoute({ path, component: Component }: {path: string, component: React.ComponentType}) {
+function SoloModeEnabledRoute({ path, component: Component }: {path: string, component: React.ComponentType<any>}) {
   // Check localStorage directly to avoid import issues with useAuth
   const storedUser = localStorage.getItem("bondquest_user");
   
@@ -44,7 +48,13 @@ function SoloModeEnabledRoute({ path, component: Component }: {path: string, com
     localStorage.setItem("profile_setup_completed", "true");
   }
 
-  return <Route path={path} component={Component} />;
+  // Use a render prop pattern instead of component prop to fix type issues
+  return (
+    <Route 
+      path={path} 
+      render={(props) => <Component {...props} />} 
+    />
+  );
 }
 
 function Router() {
@@ -106,6 +116,33 @@ function Router() {
 }
 
 function App() {
+  // Force cache reload after deployment
+  useEffect(() => {
+    console.log(`App version: ${APP_VERSION}`);
+    
+    // Add meta tag to force cache refresh
+    const meta = document.createElement('meta');
+    meta.name = 'app-version';
+    meta.content = APP_VERSION.toString();
+    document.head.appendChild(meta);
+    
+    // If the version in localStorage doesn't match current, clear cache and reload
+    const storedVersion = localStorage.getItem('app_version');
+    if (storedVersion && storedVersion !== APP_VERSION.toString()) {
+      localStorage.setItem('app_version', APP_VERSION.toString());
+      
+      // Clear any cached data that might be affecting layout
+      localStorage.removeItem('media_query_cache');
+      
+      // Hard reload after a slight delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
+    } else {
+      localStorage.setItem('app_version', APP_VERSION.toString());
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
