@@ -182,7 +182,7 @@ export default function Profile() {
 
       {/* Profile Content */}
       {activeTab === "profile" && (
-        <div className="px-6">
+        <div className="px-6 lg:grid lg:grid-cols-2 lg:gap-6">
           {/* User Profile Card */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-pink-500/20">
             <div className="flex items-center">
@@ -279,56 +279,177 @@ export default function Profile() {
           </div>
           
           {/* Preferences */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-pink-500/20">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-pink-500/20 lg:col-span-2">
             <h3 className="text-white font-medium mb-3">Love Language</h3>
             <p className="text-pink-200 mb-1">Not set yet</p>
             <button className="text-sm text-pink-400 flex items-center">
               <span>Set your love language</span>
             </button>
           </div>
+          
+          {/* Desktop Only - Additional Card */}
+          <div className="hidden lg:block lg:col-span-2">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-pink-500/20">
+              <h3 className="text-white font-medium mb-3">Relationship Timeline</h3>
+              <div className="relative pt-3">
+                <div className="absolute top-0 left-4 h-full w-0.5 bg-purple-600/30"></div>
+                <div className="relative pl-8 pb-5">
+                  <div className="absolute top-0 left-2 w-4 h-4 rounded-full bg-purple-600 border-2 border-purple-300"></div>
+                  <h4 className="text-white text-sm font-medium">Account Created</h4>
+                  <p className="text-purple-300 text-xs mt-1">Today</p>
+                </div>
+                <div className="relative pl-8 pb-5">
+                  <div className="absolute top-0 left-2 w-4 h-4 rounded-full bg-purple-900/50 border-2 border-purple-700/50"></div>
+                  <h4 className="text-white/50 text-sm font-medium">Partner Connected</h4>
+                  <p className="text-purple-300/50 text-xs mt-1">Coming soon</p>
+                </div>
+                <div className="relative pl-8 pb-5">
+                  <div className="absolute top-0 left-2 w-4 h-4 rounded-full bg-purple-900/50 border-2 border-purple-700/50"></div>
+                  <h4 className="text-white/50 text-sm font-medium">First Assessment Completed</h4>
+                  <p className="text-purple-300/50 text-xs mt-1">Coming soon</p>
+                </div>
+                <div className="relative pl-8">
+                  <div className="absolute top-0 left-2 w-4 h-4 rounded-full bg-purple-900/50 border-2 border-purple-700/50"></div>
+                  <h4 className="text-white/50 text-sm font-medium">First Milestone Achieved</h4>
+                  <p className="text-purple-300/50 text-xs mt-1">Coming soon</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Achievements Tab */}
       {activeTab === "achievements" && (
-        <div className="px-6">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-purple-500/20">
-            <h3 className="text-white font-medium mb-4">Your Achievements</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              {/* Locked Achievement */}
-              <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl text-center shadow-md border border-purple-500/30">
-                <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-700 to-purple-500 rounded-full flex items-center justify-center mb-2 opacity-50 shadow-lg">
-                  <Trophy className="w-7 h-7 text-purple-200" />
-                </div>
-                <h4 className="text-white font-medium text-sm">First Quiz</h4>
-                <p className="text-purple-300 text-xs mt-1">Complete your first quiz</p>
-              </div>
+        <div className="px-6 lg:grid lg:grid-cols-3 lg:gap-6">
+          <div className="col-span-3 mb-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-purple-500/20">
+              <h3 className="text-white font-medium mb-4">Your Achievements</h3>
               
-              {/* Locked Achievement */}
-              <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl text-center shadow-md border border-purple-500/30">
-                <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-700 to-purple-500 rounded-full flex items-center justify-center mb-2 opacity-50 shadow-lg">
-                  <Heart className="w-7 h-7 text-purple-200" />
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Locked Achievement */}
+                <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl text-center shadow-md border border-purple-500/30">
+                  <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-700 to-purple-500 rounded-full flex items-center justify-center mb-2 opacity-50 shadow-lg">
+                    <Trophy className="w-7 h-7 text-purple-200" />
+                  </div>
+                  <h4 className="text-white font-medium text-sm">First Quiz</h4>
+                  <p className="text-purple-300 text-xs mt-1">Complete your first quiz</p>
                 </div>
-                <h4 className="text-white font-medium text-sm">Perfect Match</h4>
-                <p className="text-purple-300 text-xs mt-1">Score 100% on a couple quiz</p>
+                
+                {/* Locked Achievement */}
+                <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl text-center shadow-md border border-purple-500/30">
+                  <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-700 to-purple-500 rounded-full flex items-center justify-center mb-2 opacity-50 shadow-lg">
+                    <Heart className="w-7 h-7 text-purple-200" />
+                  </div>
+                  <h4 className="text-white font-medium text-sm">Perfect Match</h4>
+                  <p className="text-purple-300 text-xs mt-1">Score 100% on a couple quiz</p>
+                </div>
+                
+                {/* More locked achievements */}
+                <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl text-center shadow-md border border-purple-500/30">
+                  <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-700 to-purple-500 rounded-full flex items-center justify-center mb-2 opacity-50 shadow-lg">
+                    <CalendarDays className="w-7 h-7 text-purple-200" />
+                  </div>
+                  <h4 className="text-white font-medium text-sm">Week Streak</h4>
+                  <p className="text-purple-300 text-xs mt-1">Log in 7 days in a row</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl text-center shadow-md border border-purple-500/30">
+                  <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-700 to-purple-500 rounded-full flex items-center justify-center mb-2 opacity-50 shadow-lg">
+                    <Award className="w-7 h-7 text-purple-200" />
+                  </div>
+                  <h4 className="text-white font-medium text-sm">Bond Builder</h4>
+                  <p className="text-purple-300 text-xs mt-1">Reach 50% bond strength</p>
+                </div>
               </div>
+            </div>
+          </div>
+          
+          {/* Desktop Only - Additional Achievements Content */}
+          <div className="hidden lg:block lg:col-span-2">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-purple-500/20">
+              <h3 className="text-white font-medium mb-4">Achievement Progress</h3>
               
-              {/* More locked achievements */}
-              <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl text-center shadow-md border border-purple-500/30">
-                <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-700 to-purple-500 rounded-full flex items-center justify-center mb-2 opacity-50 shadow-lg">
-                  <CalendarDays className="w-7 h-7 text-purple-200" />
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-white text-sm">Relationship Builder</span>
+                    <span className="text-purple-300 text-sm">15%</span>
+                  </div>
+                  <div className="w-full h-2 bg-purple-900/50 rounded-full overflow-hidden">
+                    <div className="bg-gradient-to-r from-purple-600 to-pink-500 h-full rounded-full" style={{width: '15%'}}></div>
+                  </div>
+                  <p className="text-purple-300 text-xs mt-1">Complete 10 quizzes together</p>
                 </div>
-                <h4 className="text-white font-medium text-sm">Week Streak</h4>
-                <p className="text-purple-300 text-xs mt-1">Log in 7 days in a row</p>
+                
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-white text-sm">Communication Expert</span>
+                    <span className="text-purple-300 text-sm">0%</span>
+                  </div>
+                  <div className="w-full h-2 bg-purple-900/50 rounded-full overflow-hidden">
+                    <div className="bg-gradient-to-r from-purple-600 to-pink-500 h-full rounded-full" style={{width: '0%'}}></div>
+                  </div>
+                  <p className="text-purple-300 text-xs mt-1">Achieve 90% in Communication dimension</p>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-white text-sm">Quality Time Champion</span>
+                    <span className="text-purple-300 text-sm">0%</span>
+                  </div>
+                  <div className="w-full h-2 bg-purple-900/50 rounded-full overflow-hidden">
+                    <div className="bg-gradient-to-r from-purple-600 to-pink-500 h-full rounded-full" style={{width: '0%'}}></div>
+                  </div>
+                  <p className="text-purple-300 text-xs mt-1">Complete 30 daily check-ins</p>
+                </div>
               </div>
-              
-              <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl text-center shadow-md border border-purple-500/30">
-                <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-700 to-purple-500 rounded-full flex items-center justify-center mb-2 opacity-50 shadow-lg">
-                  <Award className="w-7 h-7 text-purple-200" />
+            </div>
+          </div>
+          
+          <div className="hidden lg:block lg:col-span-1">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-purple-500/20">
+              <h3 className="text-white font-medium mb-4">Achievement Levels</h3>
+              <div className="space-y-3">
+                <div className="flex items-center p-2 rounded-lg bg-purple-800/30">
+                  <div className="w-10 h-10 rounded-full bg-purple-900/80 flex items-center justify-center mr-3">
+                    <span className="text-purple-300 font-bold">1</span>
+                  </div>
+                  <div>
+                    <h4 className="text-white text-sm font-medium">Beginner</h4>
+                    <p className="text-purple-300 text-xs">0-5 achievements</p>
+                  </div>
                 </div>
-                <h4 className="text-white font-medium text-sm">Bond Builder</h4>
-                <p className="text-purple-300 text-xs mt-1">Reach 50% bond strength</p>
+                
+                <div className="flex items-center p-2 rounded-lg bg-purple-800/30">
+                  <div className="w-10 h-10 rounded-full bg-purple-900/80 flex items-center justify-center mr-3">
+                    <span className="text-purple-300 font-bold">2</span>
+                  </div>
+                  <div>
+                    <h4 className="text-white text-sm font-medium">Explorer</h4>
+                    <p className="text-purple-300 text-xs">6-15 achievements</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center p-2 rounded-lg bg-purple-800/30">
+                  <div className="w-10 h-10 rounded-full bg-purple-900/80 flex items-center justify-center mr-3">
+                    <span className="text-purple-300 font-bold">3</span>
+                  </div>
+                  <div>
+                    <h4 className="text-white text-sm font-medium">Expert</h4>
+                    <p className="text-purple-300 text-xs">16-30 achievements</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center p-2 rounded-lg bg-purple-800/30">
+                  <div className="w-10 h-10 rounded-full bg-purple-900/80 flex items-center justify-center mr-3">
+                    <span className="text-purple-300 font-bold">4</span>
+                  </div>
+                  <div>
+                    <h4 className="text-white text-sm font-medium">Master</h4>
+                    <p className="text-purple-300 text-xs">31+ achievements</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -653,409 +774,38 @@ export default function Profile() {
         </DialogContent>
       </Dialog>
       
-      {/* Privacy Settings Modal */}
-      <Dialog open={privacyModalOpen} onOpenChange={setPrivacyModalOpen}>
-        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-white text-center">{t('profile.privacy')}</DialogTitle>
-            <DialogDescription className="text-purple-200 text-center">
-              Manage your privacy settings
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 mt-4">
-            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
-              <div className="flex items-center">
-                <Shield className="w-5 h-5 text-pink-400 mr-3" />
-                <div>
-                  <h4 className="text-white text-sm font-medium">Public Profile</h4>
-                  <p className="text-purple-200 text-xs">Allow others to find you by email</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end">
-                <input 
-                  type="checkbox" 
-                  defaultChecked={false}
-                  className="w-4 h-4 accent-pink-500"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
-              <div className="flex items-center">
-                <Shield className="w-5 h-5 text-pink-400 mr-3" />
-                <div>
-                  <h4 className="text-white text-sm font-medium">Activity Visibility</h4>
-                  <p className="text-purple-200 text-xs">Show your activities in leaderboards</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end">
-                <input 
-                  type="checkbox" 
-                  defaultChecked={true}
-                  className="w-4 h-4 accent-pink-500"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
-              <div className="flex items-center">
-                <Shield className="w-5 h-5 text-pink-400 mr-3" />
-                <div>
-                  <h4 className="text-white text-sm font-medium">Data Collection</h4>
-                  <p className="text-purple-200 text-xs">Allow anonymous data collection to improve the app</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end">
-                <input 
-                  type="checkbox" 
-                  defaultChecked={true}
-                  className="w-4 h-4 accent-pink-500"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
-              <div className="flex items-center">
-                <Shield className="w-5 h-5 text-pink-400 mr-3" />
-                <div>
-                  <h4 className="text-white text-sm font-medium">Marketing Emails</h4>
-                  <p className="text-purple-200 text-xs">Receive promotional emails and updates</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end">
-                <input 
-                  type="checkbox" 
-                  defaultChecked={false}
-                  className="w-4 h-4 accent-pink-500"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter className="mt-6 flex gap-3">
-            <Button 
-              variant="outline" 
-              className="flex-1 border-purple-500/30 text-white hover:bg-purple-700/50"
-              onClick={() => setPrivacyModalOpen(false)}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button 
-              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white"
-              onClick={() => {
-                toast({
-                  title: "Privacy settings updated",
-                  description: "Your privacy preferences have been saved",
-                });
-                setPrivacyModalOpen(false);
-              }}
-            >
-              {t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* AI Preferences Modal */}
-      <Dialog open={aiPreferencesModalOpen} onOpenChange={setAiPreferencesModalOpen}>
-        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-white text-center">AI {t('common.ai')} {t('profile.preferences')}</DialogTitle>
-            <DialogDescription className="text-purple-200 text-center">
-              Customize your AI assistant preferences
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 mt-4">
-            <div className="flex flex-col space-y-2">
-              <label className="text-sm text-purple-200">Preferred AI Assistant</label>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-purple-800/50 p-3 rounded-lg border border-pink-500/50 flex flex-col items-center cursor-pointer">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-lg font-bold text-white mb-2">
-                    👨‍🎤
-                  </div>
-                  <span className="text-white text-xs font-medium">Casanova</span>
-                  <span className="text-purple-200 text-xs">{t('assistants.casanovaDesc')}</span>
-                </div>
-                
-                <div className="bg-purple-800/50 p-3 rounded-lg border border-purple-500/30 flex flex-col items-center cursor-pointer">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg font-bold text-white mb-2">
-                    👩‍🚀
-                  </div>
-                  <span className="text-white text-xs font-medium">Venus</span>
-                  <span className="text-purple-200 text-xs">{t('assistants.venusDesc')}</span>
-                </div>
-                
-                <div className="bg-purple-800/50 p-3 rounded-lg border border-purple-500/30 flex flex-col items-center cursor-pointer">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-lg font-bold text-white mb-2">
-                    🤖
-                  </div>
-                  <span className="text-white text-xs font-medium">Aurora</span>
-                  <span className="text-purple-200 text-xs">{t('assistants.auroraDesc')}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
-              <div className="flex items-center">
-                <MessageSquare className="w-5 h-5 text-pink-400 mr-3" />
-                <div>
-                  <h4 className="text-white text-sm font-medium">Proactive AI Suggestions</h4>
-                  <p className="text-purple-200 text-xs">Receive AI suggestions based on your activities</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end">
-                <input 
-                  type="checkbox" 
-                  defaultChecked={true}
-                  className="w-4 h-4 accent-pink-500"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
-              <div className="flex items-center">
-                <MessageSquare className="w-5 h-5 text-pink-400 mr-3" />
-                <div>
-                  <h4 className="text-white text-sm font-medium">Personalized Insights</h4>
-                  <p className="text-purple-200 text-xs">Allow AI to analyze your relationship patterns</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end">
-                <input 
-                  type="checkbox" 
-                  defaultChecked={true}
-                  className="w-4 h-4 accent-pink-500"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-purple-800/40 rounded-lg border border-purple-500/30">
-              <div className="flex items-center">
-                <MessageSquare className="w-5 h-5 text-pink-400 mr-3" />
-                <div>
-                  <h4 className="text-white text-sm font-medium">Content Customization</h4>
-                  <p className="text-purple-200 text-xs">Let AI customize content based on your interests</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end">
-                <input 
-                  type="checkbox" 
-                  defaultChecked={true}
-                  className="w-4 h-4 accent-pink-500"
-                />
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter className="mt-6 flex gap-3">
-            <Button 
-              variant="outline" 
-              className="flex-1 border-purple-500/30 text-white hover:bg-purple-700/50"
-              onClick={() => setAiPreferencesModalOpen(false)}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button 
-              className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white"
-              onClick={() => {
-                toast({
-                  title: "AI preferences updated",
-                  description: "Your AI preferences have been saved",
-                });
-                setAiPreferencesModalOpen(false);
-              }}
-            >
-              {t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Help & Support Modal */}
-      <Dialog open={helpModalOpen} onOpenChange={setHelpModalOpen}>
-        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-white text-center">{t('profile.help')}</DialogTitle>
-            <DialogDescription className="text-purple-200 text-center">
-              Get help and support
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 mt-4">
-            <div className="bg-purple-800/40 p-4 rounded-lg border border-purple-500/30">
-              <h3 className="text-white font-medium mb-2 flex items-center">
-                <HelpCircle className="w-5 h-5 text-pink-400 mr-2" />
-                Frequently Asked Questions
-              </h3>
-              <div className="space-y-3">
-                <div className="bg-purple-900/60 p-3 rounded-lg">
-                  <h4 className="text-white text-sm font-medium mb-1">How do I connect with my partner?</h4>
-                  <p className="text-purple-200 text-xs">Share your partner code or send them an email invitation from your profile.</p>
-                </div>
-                <div className="bg-purple-900/60 p-3 rounded-lg">
-                  <h4 className="text-white text-sm font-medium mb-1">How do I earn points and increase bond strength?</h4>
-                  <p className="text-purple-200 text-xs">Complete daily challenges, quizzes, and participate in competitions together.</p>
-                </div>
-                <div className="bg-purple-900/60 p-3 rounded-lg">
-                  <h4 className="text-white text-sm font-medium mb-1">Can I change my AI assistant?</h4>
-                  <p className="text-purple-200 text-xs">Yes, you can select your preferred AI assistant in AI Preferences.</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-purple-800/40 p-4 rounded-lg border border-purple-500/30">
-              <h3 className="text-white font-medium mb-2 flex items-center">
-                <MessageSquare className="w-5 h-5 text-pink-400 mr-2" />
-                Contact Support
-              </h3>
-              <div className="space-y-3">
-                <textarea 
-                  className="w-full bg-purple-800/50 border border-purple-500/30 rounded-lg p-3 text-white placeholder:text-purple-300 resize-none"
-                  placeholder="Describe your issue or question..."
-                  rows={4}
-                ></textarea>
-                <Button 
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white"
-                  onClick={() => {
-                    toast({
-                      title: "Message sent",
-                      description: "We'll get back to you as soon as possible",
-                    });
-                  }}
-                >
-                  Send Message
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter className="mt-6">
-            <Button 
-              variant="outline" 
-              className="w-full border-purple-500/30 text-white hover:bg-purple-700/50"
-              onClick={() => setHelpModalOpen(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Subscription Modal */}
-      <Dialog open={subscriptionsModalOpen} onOpenChange={setSubscriptionsModalOpen}>
-        <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-white text-center">{t('profile.subscriptions')}</DialogTitle>
-            <DialogDescription className="text-purple-200 text-center">
-              Manage your subscription plan
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 mt-4">
-            <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl border border-purple-500/30">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white font-medium">Current Plan</h3>
-                <span className="bg-purple-600 py-1 px-2 rounded-full text-xs text-white">Free</span>
-              </div>
-              
-              <div className="text-purple-200 text-sm space-y-2">
-                <p>• 5 quizzes per month</p>
-                <p>• Basic AI suggestions</p>
-                <p>• Standard relationship insights</p>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl border border-purple-500/30">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white font-medium">Premium Plan</h3>
-                <span className="bg-pink-500 py-1 px-2 rounded-full text-xs text-white">$9.99/month</span>
-              </div>
-              
-              <div className="text-purple-200 text-sm space-y-2">
-                <p>• Unlimited quizzes</p>
-                <p>• Advanced AI relationship coaching</p>
-                <p>• Detailed relationship insights</p>
-                <p>• Priority support</p>
-                <p>• Ad-free experience</p>
-              </div>
-              
-              <Button
-                className="w-full mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white"
-                onClick={() => toast({
-                  title: "Coming soon!",
-                  description: "Premium subscriptions will be available soon.",
-                })}
-              >
-                Upgrade to Premium
-              </Button>
-            </div>
-          </div>
-          
-          <DialogFooter className="mt-6">
-            <Button 
-              variant="outline" 
-              className="w-full border-purple-500/30 text-white hover:bg-purple-700/50"
-              onClick={() => setSubscriptionsModalOpen(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Partner Linking Modal */}
+      {/* Partner Link Modal */}
       <Dialog open={partnerLinkModalOpen} onOpenChange={setPartnerLinkModalOpen}>
         <DialogContent className="max-w-md bg-gradient-to-br from-purple-900 to-purple-800 text-white border-purple-500/30">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-white text-center">Link with Partner</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-white text-center">Connect with Partner</DialogTitle>
             <DialogDescription className="text-purple-200 text-center">
-              Connect with your partner to start your journey together
+              Link with your partner to start your relationship journey
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="share-code" className="mt-4">
-            <TabsList className="grid grid-cols-2 mb-4 bg-purple-800/50">
-              <TabsTrigger value="share-code" className="data-[state=active]:bg-purple-700 text-white">
-                Share Your Code
-              </TabsTrigger>
-              <TabsTrigger value="enter-code" className="data-[state=active]:bg-purple-700 text-white">
-                Enter Partner Code
-              </TabsTrigger>
+          <Tabs defaultValue="invite" className="mt-4">
+            <TabsList className="w-full grid grid-cols-2 bg-purple-800/50 border border-purple-500/30">
+              <TabsTrigger value="invite" className="text-sm data-[state=active]:bg-purple-700">Send Invitation</TabsTrigger>
+              <TabsTrigger value="enter-code" className="text-sm data-[state=active]:bg-purple-700">Enter Code</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="share-code" className="space-y-5">
+            <TabsContent value="invite" className="space-y-5 mt-5">
               <div className="text-center">
-                <p className="text-purple-200 mb-3">Share your invitation code with your partner:</p>
-                <div className="bg-purple-800/70 p-4 rounded-lg flex items-center justify-between border border-purple-500/30">
-                  <span className="text-xl font-mono text-white tracking-wider">
-                    {user?.partnerCode || "BOND-12345"}
-                  </span>
-                  <button 
-                    className="text-white opacity-80 hover:opacity-100 p-2"
-                    onClick={copyPartnerCode}
-                  >
-                    <Copy className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <p className="text-purple-200">Or send an email invitation:</p>
-                <div className="flex">
+                <p className="text-purple-200 mb-3">Invite your partner via email:</p>
+                <div className="space-y-3">
                   <Input
                     type="email"
                     placeholder="partner@example.com"
                     value={partnerEmail}
                     onChange={(e) => setPartnerEmail(e.target.value)}
-                    className="flex-grow px-4 py-3 rounded-l-lg bg-purple-800/50 border border-purple-500/30 text-white placeholder:text-purple-300"
+                    className="w-full px-4 py-3 rounded-lg bg-purple-800/50 border border-purple-500/30 text-white placeholder:text-purple-300"
                     disabled={isInviteLoading}
                   />
                   <Button
                     onClick={handleSendInvite}
-                    className="px-4 py-3 rounded-r-lg bg-pink-500 text-white font-medium"
                     disabled={isInviteLoading}
+                    className="w-full py-3 rounded-lg bg-pink-500 text-white font-medium hover:bg-pink-600"
                   >
                     {isInviteLoading ? (
                       <>
@@ -1065,6 +815,28 @@ export default function Profile() {
                       "Send"
                     )}
                   </Button>
+                </div>
+                
+                <div className="flex items-center justify-center mt-5 space-x-2">
+                  <div className="h-px flex-grow bg-purple-700/50"></div>
+                  <span className="text-purple-300 text-sm px-2">or share your code</span>
+                  <div className="h-px flex-grow bg-purple-700/50"></div>
+                </div>
+                
+                <div className="mt-5">
+                  <p className="text-purple-200 mb-3">Your partner code:</p>
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="bg-purple-800/50 border border-purple-500/30 rounded-lg px-4 py-2 text-center">
+                      <p className="text-white text-xl font-mono">{user?.partnerCode || 'XXXX-XXXX'}</p>
+                    </div>
+                    <button
+                      onClick={copyPartnerCode}
+                      className="ml-2 p-2 rounded-lg bg-purple-700/30 hover:bg-purple-700/60 transition-colors"
+                    >
+                      <Copy className="w-5 h-5 text-purple-300" />
+                    </button>
+                  </div>
+                  <p className="text-purple-200 text-xs">Share this code with your partner so they can link with you</p>
                 </div>
               </div>
             </TabsContent>
@@ -1104,7 +876,6 @@ export default function Profile() {
           </div>
         </DialogContent>
       </Dialog>
-      
-    </div>
+    </PageLayout>
   );
 }
