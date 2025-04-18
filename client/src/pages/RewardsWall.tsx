@@ -171,7 +171,7 @@ export default function RewardsWall() {
           Win prizes, experiences, and create lasting memories together!
         </p>
 
-      <Tabs
+        <Tabs
         defaultValue="rewards"
         value={activeTab}
         onValueChange={setActiveTab}
@@ -239,7 +239,7 @@ export default function RewardsWall() {
             </div>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
       </div>
     </PageLayout>
   );
