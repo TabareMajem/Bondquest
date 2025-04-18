@@ -449,9 +449,13 @@ export default function AIAssistant() {
           </div>
           
           {/* Quick Tip */}
-          <div className={`bg-gradient-to-br from-purple-900/50 to-${
-            assistantType === "casanova" ? "pink" : assistantType === "venus" ? "blue" : "purple"
-          }-900/40 rounded-lg p-4 border border-purple-700/30 shadow-md`}>
+          <div className={`bg-gradient-to-br ${
+            assistantType === "casanova" 
+              ? "from-purple-900/50 to-pink-900/40" 
+              : assistantType === "venus" 
+                ? "from-purple-900/50 to-blue-900/40" 
+                : "from-purple-900/50 to-purple-900/40"
+          } rounded-lg p-4 border border-purple-700/30 shadow-md`}>
             <h4 className="font-medium text-white text-sm mb-2 flex items-center">
               <svg className="w-4 h-4 mr-2 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 010-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"></path>
@@ -462,7 +466,7 @@ export default function AIAssistant() {
               {assistantType === "casanova" 
                 ? "The most memorable dates are often about shared experiences, not just fancy dinners. Try activities that create stories you'll both tell for years."
                 : assistantType === "venus"
-                ? "When discussing sensitive topics, try the XYZ format: "When you do X in situation Y, I feel Z." This helps avoid blame while clearly expressing your feelings."
+                ? "When discussing sensitive topics, try the XYZ format: 'When you do X in situation Y, I feel Z.' This helps avoid blame while clearly expressing your feelings."
                 : "Research shows that a 5:1 ratio of positive to negative interactions predicts relationship success. Focus on increasing small, daily positive moments."}
             </p>
           </div>
