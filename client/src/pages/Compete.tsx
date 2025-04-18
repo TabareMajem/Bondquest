@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { Trophy, Clock, Flame, Medal, ChevronRight, Heart } from "lucide-react";
+import { Trophy, Clock, Flame, Medal, ChevronRight, Heart as LucideHeart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageLayout from "../components/layout/PageLayout";
 
@@ -107,7 +107,7 @@ export default function Compete() {
                   <span className="text-white font-bold">?</span>
                 </div>
                 <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <Heart className="w-8 h-8 text-white" />
+                  <LucideHeart className="w-8 h-8 text-white" />
                 </div>
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function Compete() {
             <div className="w-16 h-16 mr-4 flex items-center justify-center">
               <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center">
-                  <Heart className="w-5 h-5 text-white" />
+                  <HeartIcon className="w-5 h-5 text-white" />
                 </div>
               </div>
             </div>
