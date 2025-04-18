@@ -85,15 +85,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Call logout API endpoint
       await apiRequest("POST", "/api/auth/logout");
-    } catch (error) {
-      console.error("Logout API call failed:", error);
-    } finally {
-      // Clear local state regardless of API call success
+      
+      // Clear local state
       setUser(null);
       setCouple(null);
       setIsAdmin(false);
+      
+      // Clear all local storage items that might affect state
       localStorage.removeItem("bondquest_user");
       localStorage.removeItem("bondquest_couple");
+      localStorage.removeItem("profile_setup_completed");
+      localStorage.removeItem("media_query_cache");
+      
+      // Force a page reload to ensure all components are reset
+      window.location.href = "/";
+      return; // Early return as we're reloading the page
+    } catch (error) {
+      console.error("Logout API call failed:", error);
+      // Even if API call failed, still clear local state and reload
+      localStorage.removeItem("bondquest_user");
+      localStorage.removeItem("bondquest_couple");
+      localStorage.removeItem("profile_setup_completed");
+      window.location.href = "/";
+    } finally {
       setIsLoading(false);
     }
   };

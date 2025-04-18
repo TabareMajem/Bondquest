@@ -48,12 +48,11 @@ function SoloModeEnabledRoute({ path, component: Component }: {path: string, com
     localStorage.setItem("profile_setup_completed", "true");
   }
 
-  // Use a render prop pattern instead of component prop to fix type issues
+  // Use children pattern instead of component prop to fix type issues
   return (
-    <Route 
-      path={path} 
-      render={(props) => <Component {...props} />} 
-    />
+    <Route path={path}>
+      <Component />
+    </Route>
   );
 }
 
