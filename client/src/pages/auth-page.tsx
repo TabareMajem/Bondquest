@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { nanoid } from "nanoid";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 // Force stable rendering behavior to prevent flickering
 const FIXED_STYLES = {
@@ -78,11 +79,9 @@ const AuthPage = memo(function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
-  // Determine if we should show the hero section based on screen width
-  // We'll only calculate this once when the component mounts
-  const [showHero] = useState(() => {
-    return typeof window !== 'undefined' && window.innerWidth >= 1024;
-  });
+  // Use the media query hook to dynamically detect screen size changes
+  // This will update whenever the window size changes, including after deployment
+  const showHero = useMediaQuery('(min-width: 1024px)');
 
   // Check user auth status once
   useEffect(() => {
