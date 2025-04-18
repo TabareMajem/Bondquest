@@ -1,26 +1,28 @@
-// Service Worker for BondQuest app
+// Service Worker Version
+const CACHE_VERSION = 'v1';
+const CACHE_NAME = `bondquest-cache-${CACHE_VERSION}`;
 
-const CACHE_NAME = 'bondquest-cache-v1';
-const OFFLINE_URL = '/offline.html';
-
-// Resources to cache
-const CACHE_ASSETS = [
+// Assets to cache immediately on installation
+const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/offline.html',
   '/manifest.json',
+  '/offline.html',
+  '/icons/icon-72x72.png',
+  '/icons/icon-96x96.png',
+  '/icons/icon-128x128.png',
+  '/icons/icon-144x144.png',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  // Add CSS, JS, and other static resources you want to cache
+  '/icons/icon-512x512.png'
 ];
 
-// Install event - cache resources
+// Install event - precache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Service Worker: Opened cache');
-        return cache.addAll(CACHE_ASSETS);
+        console.log('Service worker precaching assets');
+        return cache.addAll(PRECACHE_ASSETS);
       })
       .then(() => self.skipWaiting())
   );
@@ -31,87 +33,144 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Removing old cache', cacheName);
-            return caches.delete(cacheName);
+        cacheNames.map((name) => {
+          if (name !== CACHE_NAME) {
+            console.log('Service worker: clearing old cache', name);
+            return caches.delete(name);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  return self.clients.claim();
 });
 
-// Fetch event - respond with cached resources when offline
+// Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
-  // Handle API requests differently
+  // Handle API requests differently (network-first)
   if (event.request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          return caches.match('/offline-api.json');
-        })
-    );
-    return;
+    return networkFirstStrategy(event);
   }
 
-  // For GET requests, try network first, fallback to cache
-  if (event.request.method === 'GET') {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Clone the response before using it
-          const responseClone = response.clone();
-          
-          // Open cache and store the new response
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          
-          return response;
-        })
-        .catch(() => {
-          // If offline, try to serve from cache
-          return caches.match(event.request)
-            .then((cachedResponse) => {
-              // Return cached response or offline page
-              return cachedResponse || caches.match(OFFLINE_URL);
-            });
-        })
-    );
+  // For non-API requests, use cache-first strategy
+  event.respondWith(
+    cacheFirstStrategy(event)
+      .catch(() => {
+        // If both cache and network fail, serve offline page for navigation requests
+        return caches.match('/offline.html');
+      })
+  );
+});
+
+// Cache-first strategy
+async function cacheFirstStrategy(event) {
+  const cachedResponse = await caches.match(event.request);
+  
+  if (cachedResponse) {
+    // Return cached response
+    return cachedResponse;
+  }
+  
+  // If not in cache, fetch from network and cache if successful
+  return fetchAndCache(event.request);
+}
+
+// Network-first strategy for API requests
+async function networkFirstStrategy(event) {
+  try {
+    // Try network first
+    const response = await fetchAndCache(event.request);
+    return response;
+  } catch (error) {
+    // If network fails, try cache
+    const cachedResponse = await caches.match(event.request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // If not in cache, rethrow the error
+    throw error;
+  }
+}
+
+// Helper to fetch from network and cache the response
+async function fetchAndCache(request) {
+  const response = await fetch(request);
+  
+  // Only cache valid responses for GET requests
+  if (response.ok && request.method === 'GET') {
+    // Clone the response as it can only be used once
+    const responseToCache = response.clone();
+    
+    // Cache the response
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        cache.put(request, responseToCache);
+      });
+  }
+  
+  return response;
+}
+
+// Handle background sync for offline form submissions
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-forms') {
+    event.waitUntil(syncFormData());
   }
 });
 
-// Push event for notifications
+// Helper function to sync stored form data
+async function syncFormData() {
+  // Implementation will depend on how we store offline form data
+  // This is a placeholder for future implementation
+  console.log('Service worker: syncing offline data');
+}
+
+// Push notification event handler
 self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  
   const data = event.data.json();
   
   const options = {
-    body: data.body,
+    body: data.body || 'Something new in BondQuest!',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
+    badge: '/icons/icon-72x72.png',
+    vibrate: [100, 50, 100],
     data: {
       url: data.url || '/'
     }
   };
   
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(data.title || 'BondQuest', options)
   );
 });
 
-// Notification click event
+// Notification click event handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   event.waitUntil(
-    clients.openWindow(event.notification.data.url)
+    clients.matchAll({ type: 'window' })
+      .then((clientList) => {
+        const url = event.notification.data.url;
+        
+        // If a window is already open, focus it
+        for (const client of clientList) {
+          if (client.url === url && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        
+        // Otherwise open a new window
+        if (clients.openWindow) {
+          return clients.openWindow(url);
+        }
+      })
   );
 });
