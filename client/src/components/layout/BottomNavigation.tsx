@@ -68,9 +68,9 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   
   // Determine which tabs to show based on screen size
   const renderTabs = () => {
-    // On mobile, limit the number of visible tabs to prevent overcrowding
+    // Make sure 'compete' tab is always visible
     const visibleTabs = isMobile
-      ? ['home', 'play', 'insights', 'ai', 'profile'] // Core tabs only on mobile
+      ? ['home', 'play', 'compete', 'insights', 'ai', 'profile'] // Include compete on mobile
       : ['home', 'play', 'compete', 'insights', 'ai', 'profile'];
       
     return (
