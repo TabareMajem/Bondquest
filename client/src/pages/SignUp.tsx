@@ -54,14 +54,18 @@ export default function SignUp() {
       // Log in the user after registration
       login({ ...data, password: form.getValues().password });
       
-      // Navigate to onboarding chat first
-      navigate("/onboarding-chat");
-      
       toast({
         title: "Account created!",
         description: "Your account has been created successfully. Let's get to know each other better!",
         className: "animate-in fade-in-50 slide-in-from-bottom-5",
       });
+      
+      // Use setTimeout to ensure the login state is properly set before navigation
+      setTimeout(() => {
+        // Navigate to onboarding chat first
+        navigate("/onboarding-chat");
+        console.log("Navigating to onboarding chat after registration");
+      }, 500);
     },
     onError: (error) => {
       toast({
