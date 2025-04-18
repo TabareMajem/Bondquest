@@ -29,10 +29,28 @@ export function applyBrowserPatches() {
   if (isExternalBrowser) {
     console.log("EXTERNAL BROWSER DETECTED - APPLYING SAFETY PATCHES");
     
-    // Block reload calls in external browsers
+    // EMERGENCY FIX: Block all reload calls in external browsers
     // @ts-ignore
     window.location.reload = function() {
       console.warn("⚠️ Blocked reload() call to prevent infinite loops");
+      
+      // Instead of reloading, try to refresh component state by:
+      // 1. Clearing local React query cache
+      if (window.__REACT_QUERY_GLOBAL_CALLBACKS) {
+        console.log("🔄 Triggering React Query cache refresh instead of page reload");
+        try {
+          // @ts-ignore - Access React Query internals to refresh cache
+          window.__REACT_QUERY_GLOBAL_CALLBACKS.forEach(cb => typeof cb === 'function' && cb());
+        } catch (e) {
+          console.error("Failed to refresh React Query cache:", e);
+        }
+      }
+      
+      // 2. Dispatch a custom event that components can listen for
+      window.dispatchEvent(new CustomEvent('app:softRefresh', { 
+        detail: { timestamp: Date.now() } 
+      }));
+      
       return false;
     };
     
@@ -74,5 +92,6 @@ export function removeBrowserPatches() {
 declare global {
   interface Window {
     __PATCHED_FOR_EXTERNAL?: boolean;
+    __REACT_QUERY_GLOBAL_CALLBACKS?: Function[];
   }
 }

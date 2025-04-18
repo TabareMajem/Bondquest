@@ -7,6 +7,9 @@ import { useEffect } from "react";
 // Import the timestamp from build-info.ts which is only updated during forced deployments
 import { BUILD_TIMESTAMP } from './build-info';
 const APP_VERSION = BUILD_TIMESTAMP;
+
+// Import browser patch to prevent reload loops in external browsers
+import { applyBrowserPatches } from "./lib/browser-patch";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -127,31 +130,53 @@ function Router() {
 }
 
 function App() {
-  // Check version only once at app initialization - prevents endless reload loops
+  // Apply critical browser patches first, before anything else
   useEffect(() => {
+    // Apply radical patching to disable reload on external browsers
+    // This must run early before any other side effects
+    applyBrowserPatches();
+
     console.log(`App version: ${APP_VERSION}`);
     
-    // Don't check version or reload when accessed via external URL (not in Replit preview)
-    // This prevents endless reloading when opened in separate browser tab
-    const isExternalBrowser = !window.location.hostname.includes('replit');
-    
-    if (isExternalBrowser) {
-      console.log("External browser detected - skipping version check");
-      localStorage.setItem('app_version', APP_VERSION.toString());
-      return;
-    }
-    
-    // For Replit preview only: Add meta tag for cache refresh
-    const meta = document.createElement('meta');
-    meta.name = 'app-version';
-    meta.content = APP_VERSION.toString();
-    document.head.appendChild(meta);
-    
-    // Store current version without triggering reload
+    // This is now safer since our patches block harmful reload methods
     localStorage.setItem('app_version', APP_VERSION.toString());
     
-    // Clear any cached data that might be affecting layout
+    // Check for Replit preview environment
+    const isReplitPreview = window.location.hostname.includes('replit');
+    if (isReplitPreview) {
+      // Only add meta tag in Replit preview - it's safe there
+      const meta = document.createElement('meta');
+      meta.name = 'app-version';
+      meta.content = APP_VERSION.toString();
+      document.head.appendChild(meta);
+    }
+    
+    // Always clear stale cache data to prevent layout issues
     localStorage.removeItem('media_query_cache');
+    
+    // CRITICAL: Disable history API manipulations that could cause loops
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    // @ts-ignore - Block dangerous state changes in external browsers
+    window.history.pushState = function(...args) {
+      // Only allow safe navigation
+      const url = args[2];
+      if (url && (url.toString().includes('reload') || url.toString().includes('refresh'))) {
+        console.warn('⚠️ Blocked potentially harmful history.pushState call', url);
+        return;
+      }
+      return originalPushState.apply(this, args);
+    };
+    
+    // Return cleanup function
+    return () => {
+      // Restore original methods if component unmounts
+      // @ts-ignore
+      window.history.pushState = originalPushState;
+      // @ts-ignore
+      window.history.replaceState = originalReplaceState;
+    };
   }, []);
 
   return (
