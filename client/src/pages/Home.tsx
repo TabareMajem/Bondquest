@@ -356,99 +356,193 @@ export default function Home() {
       activeTab="home" 
       pageTitle={displayName}
       headerContent={headerContent}
+      maxWidth="2xl"
     >
-      {/* User profile section */}
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/30 shadow-xl bg-purple-700/30 flex items-center justify-center">
-          {data?.user1?.avatar ? (
-            <img 
-              src={data.user1.avatar} 
-              alt="Profile" 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <User className="w-8 h-8 text-white/70" />
-          )}
+      {/* Desktop Top Section - User Profile Card & Bond Strength Meter side by side */}
+      <div className="lg:flex lg:gap-6 mb-6">
+        {/* User profile section */}
+        <div className="flex items-center space-x-3 mb-4 lg:mb-0 lg:p-6 lg:bg-white/10 lg:backdrop-blur-sm lg:rounded-2xl lg:shadow-xl lg:border lg:border-white/10 lg:w-1/2">
+          <div className="w-14 h-14 lg:w-20 lg:h-20 rounded-full overflow-hidden border-2 border-white/30 shadow-xl bg-purple-700/30 flex items-center justify-center">
+            {data?.user1?.avatar ? (
+              <img 
+                src={data.user1.avatar} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-8 h-8 lg:w-10 lg:h-10 text-white/70" />
+            )}
+          </div>
+          <div>
+            <h2 className="text-white font-semibold text-lg lg:text-2xl">{displayName}</h2>
+            <div className="flex items-center">
+              <span className="text-xs lg:text-sm bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-2 py-0.5 rounded-full font-medium shadow-md">
+                Level {level}
+              </span>
+              <span className="text-xs lg:text-sm text-white/80 ml-2">{xp} XP</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <h2 className="text-white font-semibold text-lg">{displayName}</h2>
-          <div className="flex items-center">
-            <span className="text-xs bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-2 py-0.5 rounded-full font-medium shadow-md">
-              Level {level}
-            </span>
-            <span className="text-xs text-white/80 ml-2">{xp} XP</span>
+        
+        {/* Bond Strength Meter */}
+        <div className="mb-6 lg:mb-0 bg-white/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 shadow-xl border border-white/10 lg:w-1/2">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-white font-medium lg:text-lg">Bond Strength</span>
+            <span className="text-white text-xl lg:text-2xl font-bold">{bondStrength}%</span>
+          </div>
+          <div className="h-3 lg:h-4 bg-purple-900/50 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-pink-500 to-orange-400 rounded-full"
+              style={{ width: `${bondStrength}%` }}
+            ></div>
+          </div>
+          
+          {/* Desktop-only detailed stats */}
+          <div className="hidden lg:grid lg:grid-cols-3 lg:gap-4 lg:mt-6">
+            <div className="bg-purple-700/30 p-3 rounded-lg">
+              <div className="text-sm text-purple-200">Quizzes Completed</div>
+              <div className="text-xl text-white font-bold mt-1">12</div>
+            </div>
+            <div className="bg-blue-700/30 p-3 rounded-lg">
+              <div className="text-sm text-blue-200">Competition Rank</div>
+              <div className="text-xl text-white font-bold mt-1">#8</div>
+            </div>
+            <div className="bg-pink-700/30 p-3 rounded-lg">
+              <div className="text-sm text-pink-200">Check-in Streak</div>
+              <div className="text-xl text-white font-bold mt-1">5 days</div>
+            </div>
           </div>
         </div>
       </div>
       
-      {/* Bond Strength Meter */}
-      <div className="mb-6 bg-white/10 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-white/10">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-white font-medium">Bond Strength</span>
-          <span className="text-white text-xl font-bold">{bondStrength}%</span>
-        </div>
-        <div className="h-3 bg-purple-900/50 rounded-full overflow-hidden">
+      {/* Desktop layout - Two columns for various cards */}
+      <div className="lg:flex lg:gap-6">
+        {/* Left column */}
+        <div className="lg:w-1/2 space-y-6">
+          {/* Bond Assessment Card */}
           <div 
-            className="h-full bg-gradient-to-r from-pink-500 to-orange-400 rounded-full"
-            style={{ width: `${bondStrength}%` }}
-          ></div>
-        </div>
-      </div>
-      
-      {/* Bond Assessment Card */}
-      <div 
-        className="relative p-5 bg-gradient-to-br from-blue-500/90 to-violet-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-blue-500/20 mb-6"
-        onClick={() => navigate('/bond-assessment')}
-      >
-        <div className="absolute right-4 top-4 w-12 h-12 opacity-50">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="white" strokeWidth="2"/>
-            <path d="M12 8V16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M8 12H16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </div>
-        <h3 className="text-white text-sm font-medium mb-1">Relationship Assessment</h3>
-        <h2 className="text-white text-xl font-bold mb-1">Bond Dimensions</h2>
-        <p className="text-white/80 text-sm mb-3">
-          Assess and visualize the strength of your relationship across 10 key dimensions
-        </p>
-        <div className="flex justify-end">
-          <button className="bg-white/20 text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg">
-            ASSESS NOW
-          </button>
-        </div>
-      </div>
-      
-      {/* Daily Challenge Card */}
-      <div 
-        className="relative p-5 bg-gradient-to-br from-pink-500/90 to-purple-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-pink-500/20 mb-6"
-        onClick={() => data?.dailyQuiz && navigate(`/quizzes/${data.dailyQuiz.id}`)}
-      >
-        <div className="absolute right-4 top-4 w-12 h-12 opacity-50">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 21L12 21C16.9706 21 21 16.9706 21 12V12C21 7.02944 16.9706 3 12 3V3C7.02944 3 3 7.02944 3 12V12C3 16.9706 7.02944 21 12 21Z" stroke="white" strokeWidth="2"/>
-            <path d="M3.6 8.5H20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M3.6 15.5H20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M12 20.4V3.6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M8.5 3.6V20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M15.5 3.6V20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </div>
-        <h3 className="text-white text-sm font-medium mb-1">Daily Challenge</h3>
-        <h2 className="text-white text-xl font-bold mb-1">
-          {data?.dailyQuiz?.title || "Today's Quiz"}
-        </h2>
-        <p className="text-white/80 text-sm mb-3">
-          {data?.dailyQuiz?.description || "How Well Do You Know Me?"}
-        </p>
-        <div className="flex items-center justify-between">
-          <div className="bg-white/20 rounded-full px-3 py-1 text-xs text-white font-medium">
-            03:21:45
+            className="relative p-5 lg:p-6 bg-gradient-to-br from-blue-500/90 to-violet-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-blue-500/20 mb-6 lg:mb-0 cursor-pointer hover:shadow-2xl transition-all duration-300"
+            onClick={() => navigate('/bond-assessment')}
+          >
+            <div className="absolute right-4 top-4 w-12 h-12 opacity-50">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="white" strokeWidth="2"/>
+                <path d="M12 8V16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M8 12H16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <h3 className="text-white text-sm font-medium mb-1">Relationship Assessment</h3>
+            <h2 className="text-white text-xl lg:text-2xl font-bold mb-1">Bond Dimensions</h2>
+            <p className="text-white/80 text-sm lg:text-base mb-3">
+              Assess and visualize the strength of your relationship across 10 key dimensions
+            </p>
+            <div className="flex justify-end">
+              <button className="bg-white/20 hover:bg-white/30 text-white px-4 py-1 lg:px-5 lg:py-2 rounded-full text-sm font-medium shadow-lg transition-all">
+                ASSESS NOW
+              </button>
+            </div>
           </div>
-          <button className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg">
-            START
-          </button>
+          
+          {/* Recent Activity - Desktop Only */}
+          <div className="hidden lg:block bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white/10">
+            <h2 className="text-white text-xl font-bold mb-4">Recent Activity</h2>
+            <div className="space-y-4">
+              {data?.recentActivities && data.recentActivities.length > 0 ? (
+                data.recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-center p-3 bg-white/10 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-purple-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium">{activity.type}</h3>
+                      <p className="text-white/70 text-sm">{activity.description}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-white/60">No recent activities.</div>
+              )}
+            </div>
+          </div>
         </div>
+        
+        {/* Right column */}
+        <div className="lg:w-1/2 space-y-6">
+          {/* Daily Challenge Card */}
+          <div 
+            className="relative p-5 lg:p-6 bg-gradient-to-br from-pink-500/90 to-purple-600/90 backdrop-blur-md rounded-2xl shadow-xl border border-pink-500/20 mb-6 lg:mb-0 cursor-pointer hover:shadow-2xl transition-all duration-300"
+            onClick={() => data?.dailyQuiz && navigate(`/quizzes/${data.dailyQuiz.id}`)}
+          >
+            <div className="absolute right-4 top-4 w-12 h-12 opacity-50">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 21L12 21C16.9706 21 21 16.9706 21 12V12C21 7.02944 16.9706 3 12 3V3C7.02944 3 3 7.02944 3 12V12C3 16.9706 7.02944 21 12 21Z" stroke="white" strokeWidth="2"/>
+                <path d="M3.6 8.5H20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M3.6 15.5H20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M12 20.4V3.6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M8.5 3.6V20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M15.5 3.6V20.4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <h3 className="text-white text-sm font-medium mb-1">Daily Challenge</h3>
+            <h2 className="text-white text-xl lg:text-2xl font-bold mb-1">
+              {data?.dailyQuiz?.title || "Today's Quiz"}
+            </h2>
+            <p className="text-white/80 text-sm lg:text-base mb-3">
+              {data?.dailyQuiz?.description || "How Well Do You Know Me?"}
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="bg-white/20 rounded-full px-3 py-1 text-xs lg:text-sm text-white font-medium">
+                03:21:45
+              </div>
+              <button className="bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white px-4 py-1 lg:px-5 lg:py-2 rounded-full text-sm font-medium shadow-lg transition-all">
+                START
+              </button>
+            </div>
+          </div>
+          
+          {/* Quick Access Buttons - Desktop has different styling */}
+          <div className="hidden lg:block bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white/10">
+            <h2 className="text-white text-xl font-bold mb-4">Quick Access</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div 
+                className="p-4 bg-gradient-to-r from-purple-500/40 to-purple-600/40 rounded-xl cursor-pointer hover:from-purple-500/50 hover:to-purple-600/50 transition-all"
+                onClick={() => navigate("/ai-assistant")}
+              >
+                <div className="w-12 h-12 mb-2 bg-purple-200/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-purple-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <h3 className="text-white font-medium">AI Assistant</h3>
+                <p className="text-white/70 text-sm">Get relationship advice</p>
+              </div>
+              
+              <div 
+                className="p-4 bg-gradient-to-r from-indigo-500/40 to-blue-600/40 rounded-xl cursor-pointer hover:from-indigo-500/50 hover:to-blue-600/50 transition-all"
+                onClick={() => navigate("/quizzes")}
+              >
+                <div className="w-12 h-12 mb-2 bg-blue-200/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-white font-medium">Quizzes</h3>
+                <p className="text-white/70 text-sm">Take relationship quizzes</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile-only section for quick access buttons */}
+      <div className="block lg:hidden">
+        <QuickAccessButtons 
+          onAIAssistantClick={() => navigate("/ai-assistant")}
+          onStartQuizClick={() => navigate("/quizzes")}
+          onCheckInClick={handleCheckIn}
+        />
       </div>
       
       {/* Upcoming Competition Card */}
