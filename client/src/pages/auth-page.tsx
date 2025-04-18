@@ -79,9 +79,15 @@ const AuthPage = memo(function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
-  // Use the media query hook to dynamically detect screen size changes
-  // This will update whenever the window size changes, including after deployment
-  const showHero = useMediaQuery('(min-width: 1024px)');
+  // TEMPORARILY FORCE HERO SECTION TO ALWAYS SHOW
+  // This will ensure it appears even in deployed versions
+  const showHero = true; // Force show the hero section
+  
+  // Log to console for debugging
+  useEffect(() => {
+    console.log("Auth page rendered with showHero:", showHero);
+    console.log("Window width:", window.innerWidth);
+  }, []);
 
   // Check user auth status once
   useEffect(() => {
@@ -454,34 +460,27 @@ const AuthPage = memo(function AuthPage() {
     </div>
   );
 
-  // Static layout that doesn't depend on CSS media queries
+  // Use a more direct layout approach to ensure consistent rendering
   return (
     <div className="flex flex-row min-h-screen">
-      {/* Left column (Form) */}
+      {/* Left column (Form) - Always 50% width */}
       <div 
-        className="bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900 flex flex-col items-center justify-center p-8"
-        style={{ 
-          width: showHero ? '50%' : '100%',
-          minWidth: showHero ? '50%' : '100%',
-        }}
+        className="bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900 flex flex-col items-center justify-center p-8 w-1/2"
       >
         {renderForm()}
       </div>
 
-      {/* Right column (Hero) - Only shown on larger screens */}
-      {showHero && (
-        <div 
-          className="bg-purple-800 bg-opacity-90 flex flex-col items-center justify-center p-12 relative overflow-hidden"
-          style={{ width: '50%', minWidth: '50%' }}
-        >
-          {/* Background pattern */}
-          <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ 
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-          }}></div>
-          
-          {renderHero()}
-        </div>
-      )}
+      {/* Right column (Hero) - Always shown and 50% width */}
+      <div 
+        className="bg-purple-800 bg-opacity-90 flex flex-col items-center justify-center p-12 relative overflow-hidden w-1/2"
+      >
+        {/* Background pattern */}
+        <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ 
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+        }}></div>
+        
+        {renderHero()}
+      </div>
     </div>
   );
 });
