@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -18,6 +18,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Disable HMR for this component to prevent reload loops
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    // This intentionally does nothing on HMR updates for this file
+    console.log("HMR update for auth-page.tsx - ignored to prevent reload loops");
+  });
+}
+
 // Login form schema
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -35,7 +43,8 @@ const signUpSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
-export default function AuthPage() {
+// Use memo to prevent unnecessary re-renders
+const AuthPage = memo(function AuthPage() {
   const [, navigate] = useLocation();
   const { login, socialLogin, user } = useAuth();
   const { toast } = useToast();
@@ -442,4 +451,7 @@ export default function AuthPage() {
       )}
     </div>
   );
-}
+});
+
+// Export the memoized component
+export default AuthPage;
