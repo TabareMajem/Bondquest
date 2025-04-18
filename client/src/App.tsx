@@ -127,31 +127,31 @@ function Router() {
 }
 
 function App() {
-  // Force cache reload after deployment
+  // Check version only once at app initialization - prevents endless reload loops
   useEffect(() => {
     console.log(`App version: ${APP_VERSION}`);
     
-    // Add meta tag to force cache refresh
+    // Don't check version or reload when accessed via external URL (not in Replit preview)
+    // This prevents endless reloading when opened in separate browser tab
+    const isExternalBrowser = !window.location.hostname.includes('replit');
+    
+    if (isExternalBrowser) {
+      console.log("External browser detected - skipping version check");
+      localStorage.setItem('app_version', APP_VERSION.toString());
+      return;
+    }
+    
+    // For Replit preview only: Add meta tag for cache refresh
     const meta = document.createElement('meta');
     meta.name = 'app-version';
     meta.content = APP_VERSION.toString();
     document.head.appendChild(meta);
     
-    // If the version in localStorage doesn't match current, clear cache and reload
-    const storedVersion = localStorage.getItem('app_version');
-    if (storedVersion && storedVersion !== APP_VERSION.toString()) {
-      localStorage.setItem('app_version', APP_VERSION.toString());
-      
-      // Clear any cached data that might be affecting layout
-      localStorage.removeItem('media_query_cache');
-      
-      // Hard reload after a slight delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 300);
-    } else {
-      localStorage.setItem('app_version', APP_VERSION.toString());
-    }
+    // Store current version without triggering reload
+    localStorage.setItem('app_version', APP_VERSION.toString());
+    
+    // Clear any cached data that might be affecting layout
+    localStorage.removeItem('media_query_cache');
   }, []);
 
   return (
