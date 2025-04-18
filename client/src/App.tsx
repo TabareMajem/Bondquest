@@ -31,6 +31,19 @@ import AdminSubscriptions from "./pages/AdminSubscriptions";
 import AdminSubscriptionTierForm from "./pages/AdminSubscriptionTierForm";
 import AdminAIWizard from "./pages/AdminAIWizard";
 
+// Custom route component that checks for auth and skip settings
+function SoloModeEnabledRoute({ path, component: Component }: {path: string, component: React.ComponentType}) {
+  // Check localStorage directly to avoid import issues with useAuth
+  const storedUser = localStorage.getItem("bondquest_user");
+  
+  // Immediately enable solo mode for any authenticated user
+  if (storedUser) {
+    localStorage.setItem("profile_setup_completed", "true");
+  }
+
+  return <Route path={path} component={Component} />;
+}
+
 function Router() {
   const [location] = useLocation();
   
@@ -43,7 +56,11 @@ function Router() {
       <Route path="/onboarding-chat" component={OnboardingChat} />
       <Route path="/partner-linking" component={PartnerLinking} />
       <Route path="/profile-setup" component={ProfileSetup} />
-      <Route path="/home" component={Home} />
+      
+      {/* Use special route handler for home to ensure solo mode is enabled */}
+      <SoloModeEnabledRoute path="/home" component={Home} />
+      
+      {/* Regular routes */}
       <Route path="/quizzes" component={QuizSelector} />
       <Route path="/quizzes/:id" component={QuizGame} />
       <Route path="/ai-assistant" component={AIAssistant} />

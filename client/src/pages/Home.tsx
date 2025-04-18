@@ -34,13 +34,13 @@ interface DashboardData {
 
 export default function Home() {
   const [, navigate] = useLocation();
-  const { user, couple, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, couple, isLoading: authLoading } = useAuth();
   
   // Fetch dashboard data from the API
   const { data, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['/api/dashboard'],
-    // Only fetch if authenticated and has couple
-    enabled: isAuthenticated && !!couple
+    // Only fetch if user exists and has couple
+    enabled: !!user && !!couple
   });
   
   // Handle check-in action
@@ -81,7 +81,7 @@ export default function Home() {
   }
   
   // If not authenticated, redirect to login
-  if (!isAuthenticated) {
+  if (!user) {
     // Use effect to navigate to login
     useEffect(() => {
       navigate("/login");
