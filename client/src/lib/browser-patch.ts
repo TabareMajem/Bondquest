@@ -2,6 +2,7 @@
  * This module contains emergency patches for browser compatibility
  * and prevents the endless reload loops in external browsers
  */
+import { BUILD_TIMESTAMP, DEPLOY_ID } from '../build-info';
 
 // Original window.location methods
 let originalReload: Function;
@@ -16,7 +17,7 @@ export function applyBrowserPatches() {
   // Only apply in browsers, not in server-side rendering
   if (typeof window === 'undefined') return;
   
-  console.log("Applying browser compatibility patches");
+  console.log(`Applying browser patches - Build: ${BUILD_TIMESTAMP}, Deploy ID: ${DEPLOY_ID}`);
   
   // Store original methods
   originalReload = window.location.reload;
@@ -24,10 +25,22 @@ export function applyBrowserPatches() {
   originalReplace = window.location.replace;
   
   // Detect if running in external browser (not in Replit preview)
-  const isExternalBrowser = !window.location.hostname.includes('replit');
+  const isReplitPreview = window.location.hostname.includes('replit');
+  const isDeployedApp = window.location.hostname.includes('replit.app');
   
-  if (isExternalBrowser) {
-    console.log("EXTERNAL BROWSER DETECTED - APPLYING GENTLE SAFETY PATCHES");
+  // Add deployment detection to console for debugging
+  if (isReplitPreview) {
+    console.log("🔍 Running in Replit preview environment");
+  } else if (isDeployedApp) {
+    console.log("🚀 Running in deployed Replit environment");
+  } else {
+    console.log("🌐 Running in external browser environment");
+  }
+  
+  // Apply patches to all environments except Replit preview
+  // This ensures deployed apps also get the safety patches
+  if (!isReplitPreview || isDeployedApp) {
+    console.log("APPLYING BALANCED SAFETY PATCHES");
     
     // Prevent excessive reload loops, but still allow intentional actions 
     // like login/register to work properly
@@ -45,11 +58,12 @@ export function applyBrowserPatches() {
     // SAFETY FIX: Intelligently manage reload calls in external browsers
     // @ts-ignore
     window.location.reload = function() {
-      // Allow reloads that are triggered by login/signup actions
+      // Always allow reloads that are triggered by auth actions
       const isAuthAction = 
         document.location.pathname.includes('/auth') || 
         document.location.pathname === '/' ||
         document.location.pathname.includes('/login') || 
+        document.location.pathname.includes('/register') ||
         document.location.pathname.includes('/signup');
         
       if (isAuthAction) {
@@ -63,9 +77,12 @@ export function applyBrowserPatches() {
       if (reloadCounter >= MAX_RELOADS) {
         console.warn(`⚠️ Blocked reload() after ${MAX_RELOADS} successive reloads to prevent infinite loops`);
         
-        // Dispatch a custom event for soft refresh
+        // Instead of reloading, dispatch a custom event for components to refresh their state
         window.dispatchEvent(new CustomEvent('app:softRefresh', { 
-          detail: { timestamp: Date.now() } 
+          detail: { 
+            timestamp: BUILD_TIMESTAMP,
+            deployId: DEPLOY_ID
+          } 
         }));
         
         return false;
@@ -80,7 +97,7 @@ export function applyBrowserPatches() {
       return originalReload.apply(window.location, arguments);
     };
     
-    // Monkey-patch sessionStorage to prevent issues
+    // Monkey-patch sessionStorage to prevent issues with app_version updates
     const originalSetItem = sessionStorage.setItem;
     sessionStorage.setItem = function(key: string, value: string) {
       if (key === 'app_version' && value.includes('now')) {
@@ -93,7 +110,7 @@ export function applyBrowserPatches() {
     // Create sentinel to prevent multiple patches
     window.__PATCHED_FOR_EXTERNAL = true;
     
-    console.log("🛡️ External browser patches applied in balanced mode - auth will work");
+    console.log("🛡️ Browser patches applied in balanced mode - auth will work");
   }
 }
 
