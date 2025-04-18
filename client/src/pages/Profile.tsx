@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import BottomNavigation from "../components/layout/BottomNavigation";
-import { Settings, User, Heart, Trophy, Award, CalendarDays, Bell, Shield, MessageSquare, CreditCard, HelpCircle, LogOut, UserPlus, Copy, Users, Globe, Edit } from "lucide-react";
+import { Settings, User, Heart, Trophy, Award, CalendarDays, Bell, Shield, MessageSquare, CreditCard, HelpCircle, LogOut, UserPlus, Copy, Users, Globe, Edit, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { usePartnerLink } from "@/hooks/usePartnerLink";
+import PageLayout from "../components/layout/PageLayout";
 
 export default function Profile() {
   const [, navigate] = useLocation();
@@ -126,43 +126,58 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-fuchsia-900 pb-20">
-      {/* Profile Header */}
-      <div className="pt-8 px-6 text-white">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">{t('common.profile')}</h1>
-          {activeTab === "profile" && (
-            <button 
-              onClick={() => setActiveTab("settings")}
-              className="flex items-center gap-1 text-white rounded-full bg-purple-700/40 backdrop-blur-sm px-3 py-1.5 shadow-lg border border-purple-500/20"
-            >
-              <Settings className="w-4 h-4" />
-              <span className="text-sm">{t('profile.accountSettings')}</span>
-            </button>
-          )}
+    <PageLayout
+      activeTab="profile"
+      pageTitle={t('common.profile')}
+    >
+      {/* Profile Header - Desktop shows additional options */}
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-6">
+        <div className="hidden lg:block text-white">
+          <p className="text-purple-200">
+            Manage your account settings, view achievements, and connect with your partner.
+          </p>
         </div>
-
-        {/* Profile Tabs */}
-        <div className="flex border-b border-purple-700/50 mb-6">
+        
+        {activeTab === "profile" && (
           <button 
-            className={`pb-2 px-4 text-sm font-medium ${activeTab === "profile" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
-            onClick={() => setActiveTab("profile")}
-          >
-            {t('common.profile')}
-          </button>
-          <button 
-            className={`pb-2 px-4 text-sm font-medium ${activeTab === "achievements" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
-            onClick={() => setActiveTab("achievements")}
-          >
-            {t('home.recentAchievements')}
-          </button>
-          <button 
-            className={`pb-2 px-4 text-sm font-medium ${activeTab === "settings" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
             onClick={() => setActiveTab("settings")}
+            className="flex items-center gap-1 text-white rounded-full bg-purple-700/40 backdrop-blur-sm px-3 py-1.5 shadow-lg border border-purple-500/20 mt-2 lg:mt-0"
           >
-            {t('profile.accountSettings')}
+            <Settings className="w-4 h-4" />
+            <span className="text-sm">{t('profile.accountSettings')}</span>
           </button>
-        </div>
+        )}
+      </div>
+
+      {/* Profile Tabs */}
+      <div className="flex border-b border-purple-700/30 mb-6 overflow-x-auto lg:w-1/2">
+        <button 
+          className={`pb-2 px-4 text-sm font-medium whitespace-nowrap ${activeTab === "profile" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
+          onClick={() => setActiveTab("profile")}
+        >
+          <span className="flex items-center">
+            <User className="w-4 h-4 mr-2 lg:inline hidden" />
+            {t('common.profile')}
+          </span>
+        </button>
+        <button 
+          className={`pb-2 px-4 text-sm font-medium whitespace-nowrap ${activeTab === "achievements" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
+          onClick={() => setActiveTab("achievements")}
+        >
+          <span className="flex items-center">
+            <Trophy className="w-4 h-4 mr-2 lg:inline hidden" />
+            {t('home.recentAchievements')}
+          </span>
+        </button>
+        <button 
+          className={`pb-2 px-4 text-sm font-medium whitespace-nowrap ${activeTab === "settings" ? "text-white border-b-2 border-white" : "text-purple-300"}`}
+          onClick={() => setActiveTab("settings")}
+        >
+          <span className="flex items-center">
+            <Settings className="w-4 h-4 mr-2 lg:inline hidden" />
+            {t('profile.accountSettings')}
+          </span>
+        </button>
       </div>
 
       {/* Profile Content */}
@@ -322,7 +337,7 @@ export default function Profile() {
 
       {/* Settings Tab */}
       {activeTab === "settings" && (
-        <div className="px-6">
+        <div className="px-6 lg:grid lg:grid-cols-2 lg:gap-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden mb-6 shadow-xl border border-purple-500/20">
             <ul className="divide-y divide-purple-700/30">
               <li>
@@ -405,10 +420,59 @@ export default function Profile() {
               </li>
             </ul>
           </div>
+          
+          {/* Desktop Only - Account Information Card */}
+          <div className="hidden lg:block">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-xl border border-pink-500/20">
+              <h3 className="text-white font-medium mb-4">Account Information</h3>
+              
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl shadow-lg border border-purple-500/30">
+                  <div className="flex items-center mb-2">
+                    <BookOpen className="w-5 h-5 text-purple-300 mr-2" />
+                    <span className="text-white text-sm font-medium">Account ID</span>
+                  </div>
+                  <p className="text-lg text-purple-200">{user?.id || 'N/A'}</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl shadow-lg border border-purple-500/30">
+                  <div className="flex items-center mb-2">
+                    <User className="w-5 h-5 text-purple-300 mr-2" />
+                    <span className="text-white text-sm font-medium">Username</span>
+                  </div>
+                  <p className="text-lg text-purple-200">{user?.username || 'N/A'}</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl shadow-lg border border-purple-500/30">
+                  <div className="flex items-center mb-2">
+                    <Heart className="w-5 h-5 text-purple-300 mr-2" />
+                    <span className="text-white text-sm font-medium">Partner Status</span>
+                  </div>
+                  <p className="text-lg text-purple-200">{couple ? 'Linked' : 'Unlinked'}</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-purple-900/80 to-purple-700/80 p-4 rounded-xl shadow-lg border border-purple-500/30">
+                  <div className="flex items-center mb-2">
+                    <UserPlus className="w-5 h-5 text-purple-300 mr-2" />
+                    <span className="text-white text-sm font-medium">Partner Code</span>
+                  </div>
+                  <div className="flex items-center">
+                    <p className="text-lg text-purple-200 mr-2">{user?.partnerCode || 'N/A'}</p>
+                    {user?.partnerCode && (
+                      <button
+                        onClick={copyPartnerCode}
+                        className="text-purple-300 hover:text-white transition-colors"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
-
-      <BottomNavigation activeTab="profile" />
       
       {/* Edit Profile Modal */}
       <Dialog open={editProfileModalOpen} onOpenChange={setEditProfileModalOpen}>
