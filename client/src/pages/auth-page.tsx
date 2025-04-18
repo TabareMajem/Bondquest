@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
@@ -43,11 +43,22 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
-  // Redirect if user is already logged in
+  
+  // Static desktop detection to prevent layout flickering
+  const [isDesktop] = useState(() => {
+    return window.innerWidth >= 1024;
+  });
+  
+  // Only check user auth status once
+  const initialRenderComplete = useRef(false);
+  
   useEffect(() => {
-    if (user) {
-      navigate("/home");
+    if (!initialRenderComplete.current) {
+      initialRenderComplete.current = true;
+      
+      if (user) {
+        navigate("/home");
+      }
     }
   }, [user, navigate]);
 
@@ -143,10 +154,14 @@ export default function AuthPage() {
     }
   };
 
+  // Create a stable render to prevent flickering
   return (
-    <div className="min-h-screen flex">
-      {/* Left column - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900">
+    <div className="min-h-screen flex flex-row">
+      {/* Left column - Form with fixed width */}
+      <div 
+        className="w-full flex-shrink-0 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900"
+        style={{ minHeight: "100vh", width: isDesktop ? '50%' : '100%' }}
+      >
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <h1 className="text-4xl font-bold text-white">BondQuest</h1>
@@ -362,55 +377,57 @@ export default function AuthPage() {
       </div>
 
       {/* Right column - Hero Section (Only visible on desktop) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-purple-800 bg-opacity-90 flex-col items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ 
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-        }}></div>
+      {isDesktop && (
+        <div className="flex-shrink-0 w-1/2 bg-purple-800 bg-opacity-90 flex flex-col items-center justify-center p-12 relative overflow-hidden">
+          <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ 
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+          }}></div>
 
-        <div className="z-10 max-w-md text-center">
-          <div className="mb-6 inline-flex p-4 bg-pink-600 bg-opacity-30 rounded-full backdrop-blur-md">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </div>
-          
-          <h2 className="text-3xl font-bold text-white mb-4">Strengthen Your Relationship</h2>
-          
-          <p className="text-white text-opacity-90 mb-8">
-            BondQuest helps couples build stronger connections through fun activities, 
-            personalized insights, and AI-powered relationship guidance.
-          </p>
-          
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-white bg-opacity-10 p-4 rounded-lg backdrop-blur-sm">
-              <h3 className="font-semibold text-white mb-2">Relationship Quizzes</h3>
-              <p className="text-white text-opacity-80 text-sm">Test how well you know each other and learn new things about your partner</p>
+          <div className="z-10 max-w-md text-center">
+            <div className="mb-6 inline-flex p-4 bg-pink-600 bg-opacity-30 rounded-full backdrop-blur-md">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </div>
             
-            <div className="bg-white bg-opacity-10 p-4 rounded-lg backdrop-blur-sm">
-              <h3 className="font-semibold text-white mb-2">AI Relationship Assistant</h3>
-              <p className="text-white text-opacity-80 text-sm">Get personalized advice from Casanova & Venus to enhance your relationship</p>
+            <h2 className="text-3xl font-bold text-white mb-4">Strengthen Your Relationship</h2>
+            
+            <p className="text-white text-opacity-90 mb-8">
+              BondQuest helps couples build stronger connections through fun activities, 
+              personalized insights, and AI-powered relationship guidance.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-white bg-opacity-10 p-4 rounded-lg backdrop-blur-sm">
+                <h3 className="font-semibold text-white mb-2">Relationship Quizzes</h3>
+                <p className="text-white text-opacity-80 text-sm">Test how well you know each other and learn new things about your partner</p>
+              </div>
+              
+              <div className="bg-white bg-opacity-10 p-4 rounded-lg backdrop-blur-sm">
+                <h3 className="font-semibold text-white mb-2">AI Relationship Assistant</h3>
+                <p className="text-white text-opacity-80 text-sm">Get personalized advice from Casanova & Venus to enhance your relationship</p>
+              </div>
+              
+              <div className="bg-white bg-opacity-10 p-4 rounded-lg backdrop-blur-sm">
+                <h3 className="font-semibold text-white mb-2">Compete Together</h3>
+                <p className="text-white text-opacity-80 text-sm">Join challenges with other couples and win exciting rewards</p>
+              </div>
+              
+              <div className="bg-white bg-opacity-10 p-4 rounded-lg backdrop-blur-sm">
+                <h3 className="font-semibold text-white mb-2">Relationship Insights</h3>
+                <p className="text-white text-opacity-80 text-sm">Track your relationship's growth with data-driven analysis</p>
+              </div>
             </div>
             
-            <div className="bg-white bg-opacity-10 p-4 rounded-lg backdrop-blur-sm">
-              <h3 className="font-semibold text-white mb-2">Compete Together</h3>
-              <p className="text-white text-opacity-80 text-sm">Join challenges with other couples and win exciting rewards</p>
+            <div className="inline-flex items-center justify-center space-x-2 text-white text-opacity-80">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>Your data is secure and encrypted</span>
             </div>
-            
-            <div className="bg-white bg-opacity-10 p-4 rounded-lg backdrop-blur-sm">
-              <h3 className="font-semibold text-white mb-2">Relationship Insights</h3>
-              <p className="text-white text-opacity-80 text-sm">Track your relationship's growth with data-driven analysis</p>
-            </div>
-          </div>
-          
-          <div className="inline-flex items-center justify-center space-x-2 text-white text-opacity-80">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <span>Your data is secure and encrypted</span>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
