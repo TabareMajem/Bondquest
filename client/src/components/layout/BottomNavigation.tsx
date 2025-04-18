@@ -12,10 +12,8 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   const { user, isAdmin } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   
-  // Map consolidated tabs to their new locations
-  const adjustedTab = activeTab === "bond" ? "insights" : 
-                      activeTab === "rewards" ? "profile" : 
-                      activeTab;
+  // All tabs have their own dedicated routes now
+  const adjustedTab = activeTab;
   
   // Detect if we're on mobile
   useEffect(() => {
@@ -68,10 +66,11 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
   
   // Determine which tabs to show based on screen size
   const renderTabs = () => {
-    // Make sure 'compete' tab is always visible
-    const visibleTabs = isMobile
-      ? ['home', 'play', 'compete', 'insights', 'ai', 'profile'] // Include compete on mobile
-      : ['home', 'play', 'compete', 'insights', 'ai', 'profile'];
+    // Make sure all primary tabs are always visible
+    const mainTabs = ['home', 'play', 'compete', 'insights', 'ai', 'profile'];
+    
+    // On larger screens we can show more tabs
+    const visibleTabs = mainTabs;
       
     return (
       <>
@@ -116,7 +115,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
         
         {visibleTabs.includes('insights') && (
           <div 
-            onClick={(e) => handleNavigate(activeTab === "bond" ? "/bond-assessment" : "/insights", e)}
+            onClick={(e) => handleNavigate("/insights", e)}
             className={getButtonClassName("insights")}
           >
             {adjustedTab === "insights" && (
@@ -126,6 +125,18 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
             <span className={getLabelClassName("insights")}>Insights</span>
           </div>
         )}
+        
+        {/* Add Bond tab separately - visible on both mobile and desktop */}
+        <div 
+          onClick={(e) => handleNavigate("/bond-assessment", e)}
+          className={getButtonClassName("bond")}
+        >
+          {adjustedTab === "bond" && (
+            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+          )}
+          <Heart className={getIconClassName("bond")} />
+          <span className={getLabelClassName("bond")}>Bond</span>
+        </div>
         
         {visibleTabs.includes('ai') && (
           <div 
@@ -142,7 +153,7 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
         
         {visibleTabs.includes('profile') && (
           <div 
-            onClick={(e) => handleNavigate(activeTab === "rewards" ? "/rewards" : "/profile", e)}
+            onClick={(e) => handleNavigate("/profile", e)}
             className={getButtonClassName("profile")}
           >
             {adjustedTab === "profile" && (
@@ -152,6 +163,18 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
             <span className={getLabelClassName("profile")}>Profile</span>
           </div>
         )}
+        
+        {/* Dedicated Rewards tab */}
+        <div 
+          onClick={(e) => handleNavigate("/rewards", e)}
+          className={getButtonClassName("rewards")}
+        >
+          {adjustedTab === "rewards" && (
+            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+          )}
+          <Gift className={getIconClassName("rewards")} />
+          <span className={getLabelClassName("rewards")}>Rewards</span>
+        </div>
         
         {isAdmin && !isMobile && (
           <div 
