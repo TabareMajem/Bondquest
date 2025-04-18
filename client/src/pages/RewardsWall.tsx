@@ -18,7 +18,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import BottomNavigation from "@/components/layout/BottomNavigation";
+import PageLayout from "@/components/layout/PageLayout";
 import { format } from "date-fns";
 import { Trophy, Gift, Calendar, Info, Clock, Users, ArrowRight } from "lucide-react";
 import { Reward, Competition } from "@shared/schema";
@@ -161,14 +161,15 @@ export default function RewardsWall() {
   );
 
   return (
-    <div className="container mx-auto p-4 pb-24">
-      <header className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-center text-purple-800 mb-2">Rewards Wall</h1>
-        <p className="text-center text-gray-600 max-w-2xl mx-auto">
+    <PageLayout
+      activeTab="rewards"
+      pageTitle="Rewards Wall"
+    >
+      <div className="container mx-auto p-4">
+        <p className="text-center text-white/80 max-w-2xl mx-auto mb-6">
           Discover exciting rewards and competitions you can participate in with your partner.
           Win prizes, experiences, and create lasting memories together!
         </p>
-      </header>
 
       <Tabs
         defaultValue="rewards"
@@ -239,8 +240,7 @@ export default function RewardsWall() {
           )}
         </TabsContent>
       </Tabs>
-
-      <BottomNavigation activeTab="rewards" />
-    </div>
+      </div>
+    </PageLayout>
   );
 }
