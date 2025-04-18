@@ -97,16 +97,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("profile_setup_completed");
       localStorage.removeItem("media_query_cache");
       
-      // Force a page reload to ensure all components are reset
-      window.location.href = "/";
+      // Instead of forcing a page reload with location.href which can cause
+      // navigation loop issues, use history API to replace the current URL
+      // This avoids adding a new entry to history stack
+      window.history.replaceState({}, '', '/');
+      window.location.reload();
       return; // Early return as we're reloading the page
     } catch (error) {
       console.error("Logout API call failed:", error);
-      // Even if API call failed, still clear local state and reload
+      // Even if API call failed, still clear local state
       localStorage.removeItem("bondquest_user");
       localStorage.removeItem("bondquest_couple");
       localStorage.removeItem("profile_setup_completed");
-      window.location.href = "/";
+      localStorage.removeItem("media_query_cache");
+      
+      // Use same history replacement approach
+      window.history.replaceState({}, '', '/');
+      window.location.reload();
     } finally {
       setIsLoading(false);
     }

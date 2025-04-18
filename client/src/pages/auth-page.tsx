@@ -18,6 +18,30 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Force stable rendering behavior to prevent flickering
+const FIXED_STYLES = {
+  container: {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'row' as const,
+    overflow: 'hidden',
+  },
+  form: {
+    width: '100%',
+    maxWidth: '500px',
+    margin: '0 auto',
+    padding: '2rem',
+  },
+  hero: {
+    position: 'relative' as const,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgb(139 92 246 / 0.1)',
+    padding: '2rem',
+  }
+};
+
 // Disable HMR for this component to prevent reload loops
 if (import.meta.hot) {
   import.meta.hot.accept(() => {

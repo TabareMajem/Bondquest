@@ -1,16 +1,15 @@
 /**
- * This file contains build-time information to force cache busting in browsers.
- * The BUILD_TIMESTAMP is updated each time force-deploy.sh is run.
+ * This file contains build information that should be updated during deployments
+ * It is used for cache busting and version tracking
  */
 
-export const BUILD_TIMESTAMP = Date.now();
-export const BUILD_VERSION = '1.0.1'; // Increment this when making significant changes
+// This timestamp represents the build/deployment date
+// It should be updated during the deployment process
+export const BUILD_TIMESTAMP = 1744950000000; // Fixed timestamp (April 18, 2025)
 
-// Append timestamp to global CSS URLs to force cache invalidation
-export function appendCacheBuster(url: string): string {
-  if (!url.includes('?')) {
-    return `${url}?v=${BUILD_TIMESTAMP}`;
-  } else {
-    return `${url}&v=${BUILD_TIMESTAMP}`;
-  }
-}
+// Version number in semver format (can be used in addition to timestamp)
+export const APP_VERSION = '1.0.0';
+
+// Environment information
+export const NODE_ENV = import.meta.env.NODE_ENV || 'development';
+export const IS_PRODUCTION = NODE_ENV === 'production';
