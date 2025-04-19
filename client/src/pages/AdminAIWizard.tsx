@@ -10,7 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Award, Calendar, BookText, Trophy, ArrowRight } from "lucide-react";
+import { Loader2, Sparkles, Award, Calendar, BookText, Trophy, ArrowRight, Heart } from "lucide-react";
+
+// Import bond dimension types (if available)
+import type { BondDimension } from "@shared/bondDimensions";
 
 export default function AdminAIWizard() {
   const [, navigate] = useLocation();
@@ -29,6 +32,19 @@ export default function AdminAIWizard() {
   const [couples, setCouples] = useState<any[]>([]);
   const [loadingCouples, setLoadingCouples] = useState(false);
   const [generatedQuiz, setGeneratedQuiz] = useState<any>(null);
+  
+  // Bond Dimension Quiz Generator State
+  const [bondQuizTab, setBondQuizTab] = useState<"generator" | "results">("generator");
+  const [bondQuizLoading, setBondQuizLoading] = useState(false);
+  const [bondQuizTitle, setBondQuizTitle] = useState("");
+  const [bondDimension, setBondDimension] = useState("");
+  const [bondQuizDifficulty, setBondQuizDifficulty] = useState("medium");
+  const [bondQuizQuestionCount, setBondQuizQuestionCount] = useState(5);
+  const [bondQuizAdditionalInstructions, setBondQuizAdditionalInstructions] = useState("");
+  const [bondQuizTargetCouple, setBondQuizTargetCouple] = useState<number | null>(null);
+  const [generatedBondQuiz, setGeneratedBondQuiz] = useState<any>(null);
+  const [bondDimensions, setBondDimensions] = useState<BondDimension[]>([]);
+  const [loadingBondDimensions, setLoadingBondDimensions] = useState(false);
   
   // Competition Generator State
   const [competitionTab, setCompetitionTab] = useState<"generator" | "results">("generator");
@@ -74,7 +90,30 @@ export default function AdminAIWizard() {
       }
     };
     
+    // Fetch bond dimensions for the bond quiz generator
+    const fetchBondDimensions = async () => {
+      setLoadingBondDimensions(true);
+      try {
+        const response = await fetch("/api/bond/dimensions");
+        if (response.ok) {
+          const data = await response.json();
+          setBondDimensions(data);
+          // Set default dimension if available
+          if (data.length > 0) {
+            setBondDimension(data[0].id);
+          }
+        } else {
+          console.error("Failed to fetch bond dimensions");
+        }
+      } catch (error) {
+        console.error("Error fetching bond dimensions:", error);
+      } finally {
+        setLoadingBondDimensions(false);
+      }
+    };
+    
     fetchCouples();
+    fetchBondDimensions();
   }, [isAdmin, navigate]);
   
   const handleGenerateQuiz = async () => {
@@ -256,6 +295,155 @@ export default function AdminAIWizard() {
     }
   };
   
+  // Bond Dimension Quiz Generation
+  const handleGenerateBondQuiz = async () => {
+    if (!bondQuizTitle || !bondDimension) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill out all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setBondQuizLoading(true);
+    
+    try {
+      // Find the selected bond dimension details
+      const selectedDimension = bondDimensions.find(d => d.id === bondDimension);
+      
+      if (!selectedDimension) {
+        throw new Error("Selected dimension not found");
+      }
+      
+      // Prepare the request payload
+      const payload = {
+        topic: bondQuizTitle,
+        category: selectedDimension.name,
+        difficulty: bondQuizDifficulty,
+        questionCount: bondQuizQuestionCount,
+        dimensionId: bondDimension,
+        additionalInstructions: 
+          `This quiz is focused on the "${selectedDimension.name}" bond dimension: ${selectedDimension.description}. 
+           Create questions that specifically address this aspect of relationships using the provided format.
+           ${bondQuizAdditionalInstructions || ""}`,
+      };
+      
+      // Add coupleId for personalization if a couple is selected
+      if (bondQuizTargetCouple) {
+        Object.assign(payload, { coupleId: bondQuizTargetCouple });
+      }
+      
+      const response = await fetch("/api/quizzes/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to generate bond dimension quiz");
+      }
+      
+      const data = await response.json();
+      setGeneratedBondQuiz(data.quiz ? { ...data.quiz, questions: data.questions } : data);
+      setBondQuizTab("results");
+      
+      toast({
+        title: "Bond Quiz Generated",
+        description: `Your ${selectedDimension.name} dimension quiz has been created successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate bond quiz",
+        variant: "destructive",
+      });
+    } finally {
+      setBondQuizLoading(false);
+    }
+  };
+  
+  // Save Bond Quiz to the database
+  const handleSaveBondQuiz = async () => {
+    try {
+      if (!generatedBondQuiz) {
+        throw new Error("No quiz data available to save");
+      }
+      
+      // Quiz is already saved in the database if it has an ID
+      if (generatedBondQuiz.id) {
+        toast({
+          title: "Quiz Already Saved",
+          description: "This quiz is already saved in the database",
+        });
+        return;
+      }
+      
+      // If the quiz needs to be saved, use the existing save logic
+      const quizResponse = await fetch("/api/quizzes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: generatedBondQuiz.title,
+          description: generatedBondQuiz.description,
+          category: generatedBondQuiz.category,
+          type: generatedBondQuiz.type || "multiplayer",
+          difficulty: generatedBondQuiz.difficulty,
+          duration: generatedBondQuiz.duration || 10,
+          points: generatedBondQuiz.points || 100,
+          image: null,
+        }),
+      });
+      
+      if (!quizResponse.ok) {
+        const errorData = await quizResponse.json();
+        throw new Error(errorData.message || "Failed to save quiz");
+      }
+      
+      const savedQuiz = await quizResponse.json();
+      
+      // Save each question
+      for (const question of generatedBondQuiz.questions) {
+        await fetch("/api/questions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            quizId: savedQuiz.id,
+            text: question.text,
+            options: question.options,
+          }),
+        });
+      }
+      
+      toast({
+        title: "Bond Quiz Saved",
+        description: "Your bond dimension quiz has been successfully saved to the database",
+      });
+      
+      // Reset form and results
+      setBondQuizTitle("");
+      setBondQuizDifficulty("medium");
+      setBondQuizQuestionCount(5);
+      setBondQuizAdditionalInstructions("");
+      setGeneratedBondQuiz(null);
+      setBondQuizTab("generator");
+      
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: error instanceof Error ? error.message : "Failed to save bond quiz",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSaveCompetition = async () => {
     try {
       // Save the competition to the database
@@ -543,6 +731,257 @@ export default function AdminAIWizard() {
                     </Button>
                     <Button 
                       onClick={handleSaveQuiz} 
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700"
+                    >
+                      Save Quiz to Database
+                    </Button>
+                  </div>
+                )}
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          {/* Bond Dimension Quiz Generator Tab */}
+          <TabsContent value="bond-quizzes" className="mt-6">
+            <Card className="bg-purple-800/40 border-purple-700">
+              <CardHeader>
+                <CardTitle className="flex items-center text-2xl">
+                  <Heart className="mr-2 h-5 w-5 text-purple-300" />
+                  Bond Dimension Quiz Generator
+                </CardTitle>
+                <CardDescription className="text-purple-300">
+                  Create quizzes based on the 10 core bond dimensions framework
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={bondQuizTab} onValueChange={(value) => setBondQuizTab(value as "generator" | "results")}>
+                  <TabsList className="grid w-full grid-cols-2 bg-purple-900/40 rounded-xl mb-6">
+                    <TabsTrigger value="generator" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white rounded-xl">
+                      Generate
+                    </TabsTrigger>
+                    <TabsTrigger value="results" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white rounded-xl" disabled={!generatedBondQuiz}>
+                      Results
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="generator">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="bondQuizTitle">Quiz Title (Required)</Label>
+                          <Input 
+                            id="bondQuizTitle" 
+                            placeholder="Understanding Each Other's Communication Style"
+                            value={bondQuizTitle}
+                            onChange={(e) => setBondQuizTitle(e.target.value)}
+                            className="bg-purple-900/40 border-purple-600"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="bondDimension">Bond Dimension (Required)</Label>
+                          <Select 
+                            value={bondDimension} 
+                            onValueChange={setBondDimension}
+                          >
+                            <SelectTrigger className="bg-purple-900/40 border-purple-600">
+                              <SelectValue placeholder="Select bond dimension" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {loadingBondDimensions ? (
+                                <div className="flex items-center justify-center py-2">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span>Loading dimensions...</span>
+                                </div>
+                              ) : (
+                                bondDimensions.map((dimension) => (
+                                  <SelectItem key={dimension.id} value={dimension.id}>
+                                    {dimension.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="bondQuizDifficulty">Difficulty</Label>
+                          <Select 
+                            value={bondQuizDifficulty} 
+                            onValueChange={setBondQuizDifficulty}
+                          >
+                            <SelectTrigger className="bg-purple-900/40 border-purple-600">
+                              <SelectValue placeholder="Select difficulty" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="easy">Easy</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="hard">Hard</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="bondQuizQuestionCount">Number of Questions</Label>
+                          <Input 
+                            id="bondQuizQuestionCount" 
+                            type="number"
+                            min={3}
+                            max={15}
+                            value={bondQuizQuestionCount}
+                            onChange={(e) => setBondQuizQuestionCount(parseInt(e.target.value))}
+                            className="bg-purple-900/40 border-purple-600"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Dimension Description */}
+                      {bondDimension && (
+                        <div className="mt-4 p-4 rounded-lg bg-purple-700/20 border border-purple-600/40">
+                          <h3 className="text-lg font-medium mb-2">
+                            {bondDimensions.find(d => d.id === bondDimension)?.name} Dimension
+                          </h3>
+                          <p className="text-purple-200 text-sm">
+                            {bondDimensions.find(d => d.id === bondDimension)?.description}
+                          </p>
+                          
+                          {/* Example questions from dimension */}
+                          <div className="mt-3">
+                            <h4 className="text-sm font-medium mb-1 text-purple-200">Example Assessment Questions:</h4>
+                            <ul className="list-disc pl-5 text-xs text-purple-300 space-y-1">
+                              {bondDimensions.find(d => d.id === bondDimension)?.questions.map((q: { text: string, type: string }, idx: number) => (
+                                <li key={idx}>{q.text}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Couple selector for personalized content generation */}
+                      <div className="space-y-2 mt-4">
+                        <Label htmlFor="bondQuizTargetCouple">Target Couple (Optional)</Label>
+                        <div className="flex gap-2 items-center">
+                          <Select 
+                            value={bondQuizTargetCouple?.toString() || ""} 
+                            onValueChange={(value) => setBondQuizTargetCouple(value ? parseInt(value) : null)}
+                          >
+                            <SelectTrigger className="bg-purple-900/40 border-purple-600 flex-1">
+                              <SelectValue placeholder="Select a couple for personalized content" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">No specific couple (generic content)</SelectItem>
+                              {loadingCouples ? (
+                                <div className="flex items-center justify-center py-2">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span>Loading couples...</span>
+                                </div>
+                              ) : (
+                                couples.map((couple) => (
+                                  <SelectItem key={couple.id} value={couple.id.toString()}>
+                                    {couple.displayName}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {bondQuizTargetCouple && (
+                          <p className="text-xs text-purple-300 mt-1">
+                            The AI will personalize content using this couple's profile information and relationship history.
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="bondQuizAdditionalInstructions">Additional Instructions (Optional)</Label>
+                        <Textarea 
+                          id="bondQuizAdditionalInstructions" 
+                          placeholder="Any specific requirements or themes for this bond dimension quiz"
+                          value={bondQuizAdditionalInstructions}
+                          onChange={(e) => setBondQuizAdditionalInstructions(e.target.value)}
+                          className="bg-purple-900/40 border-purple-600 min-h-24"
+                        />
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="results">
+                    {generatedBondQuiz && (
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-semibold">{generatedBondQuiz.title}</h3>
+                          <p className="text-purple-300">{generatedBondQuiz.description}</p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <span className="px-2 py-1 text-xs bg-purple-700 rounded-lg">
+                              {generatedBondQuiz.category}
+                            </span>
+                            <span className="px-2 py-1 text-xs bg-purple-700 rounded-lg">
+                              {generatedBondQuiz.difficulty}
+                            </span>
+                            <span className="px-2 py-1 text-xs bg-purple-700 rounded-lg">
+                              {generatedBondQuiz.questions?.length || 0} questions
+                            </span>
+                            <span className="px-2 py-1 text-xs bg-gradient-to-r from-purple-700 to-pink-700 rounded-lg">
+                              Bond Dimension: {bondDimensions.find(d => d.id === bondDimension)?.name}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <h4 className="text-lg font-semibold">Questions</h4>
+                          {generatedBondQuiz.questions?.map((question: any, index: number) => (
+                            <div key={index} className="p-4 bg-purple-900/40 rounded-lg space-y-3">
+                              <p className="font-medium">
+                                {index + 1}. {question.text}
+                              </p>
+                              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                {question.options?.map((option: string, optIndex: number) => (
+                                  <div key={optIndex} className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 rounded-full bg-purple-700 flex items-center justify-center text-xs font-bold">
+                                      {String.fromCharCode(65 + optIndex)}
+                                    </div>
+                                    <span>{option}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+              <CardFooter className="flex justify-between border-t border-purple-700 pt-4">
+                {bondQuizTab === "generator" ? (
+                  <Button 
+                    onClick={handleGenerateBondQuiz} 
+                    className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700"
+                    disabled={bondQuizLoading}
+                  >
+                    {bondQuizLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating Bond Quiz...
+                      </>
+                    ) : (
+                      <>
+                        <Heart className="mr-2 h-4 w-4" />
+                        Generate Bond Quiz
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="flex w-full gap-4">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setBondQuizTab("generator")}
+                      className="flex-1 border-purple-600 text-white hover:bg-purple-700 hover:text-white"
+                    >
+                      Back to Editor
+                    </Button>
+                    <Button 
+                      onClick={handleSaveBondQuiz} 
                       className="flex-1 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700"
                     >
                       Save Quiz to Database
