@@ -1,10 +1,10 @@
 import { useLocation } from "wouter";
-import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, Settings, ShieldCheck, Gift, Heart, HeartHandshake } from "lucide-react";
+import { Home, Gamepad2, Trophy, BarChart3, MessageCircleHeart, Settings, ShieldCheck, Gift, Heart, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 
 interface BottomNavigationProps {
-  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "admin" | "rewards" | "bond" | "none";
+  activeTab: "home" | "play" | "compete" | "insights" | "ai" | "profile" | "admin" | "rewards" | "bond" | "none" | "account";
 }
 
 export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
