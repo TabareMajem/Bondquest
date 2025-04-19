@@ -32,9 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
       
-      // Check if the user is an admin (has admin@bondquest.com email)
-      if (parsedUser.email === "admin@bondquest.com") {
+      // Check if the user is an admin (has admin username or admin@bondquest.com email)
+      if (parsedUser.username === "admin" || parsedUser.email === "admin@bondquest.com") {
         setIsAdmin(true);
+        console.log("User has admin privileges");
       }
       
       // If user has completed profile setup but no couple data, create a temporary token
@@ -60,9 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user);
       setCouple(data.couple || null);
       
-      // Check if the user is an admin
-      if (data.user.email === "admin@bondquest.com") {
+      // Check if the user is an admin (has admin username or admin@bondquest.com email)
+      if (data.user.username === "admin" || data.user.email === "admin@bondquest.com") {
         setIsAdmin(true);
+        console.log("User has admin privileges");
       } else {
         setIsAdmin(false);
       }

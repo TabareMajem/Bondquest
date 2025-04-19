@@ -27,13 +27,16 @@ const AdminDashboard = () => {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   
-  // Check if user has admin access - in a real app, you would check user.role or similar
-  const isAdmin = user?.email === "admin@bondquest.com";
+  // Use the isAdmin state from AuthContext instead of checking email
+  const { isAdmin } = useAuth();
   
   // Redirect non-admin users
   React.useEffect(() => {
     if (!isAdmin) {
+      console.log("Non-admin user detected, redirecting from admin dashboard");
       navigate("/home");
+    } else {
+      console.log("Admin user verified, displaying admin dashboard");
     }
   }, [isAdmin, navigate]);
 
