@@ -176,6 +176,18 @@ export default function BottomNavigation({ activeTab }: BottomNavigationProps) {
           <span className={getLabelClassName("rewards")}>Rewards</span>
         </div>
         
+        {/* Account/Subscription tab */}
+        <div 
+          onClick={(e) => handleNavigate("/subscription", e)}
+          className={getButtonClassName("account")}
+        >
+          {adjustedTab === "account" && (
+            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"></div>
+          )}
+          <CreditCard className={getIconClassName("account")} />
+          <span className={getLabelClassName("account")}>Account</span>
+        </div>
+        
         {isAdmin && !isMobile && (
           <div 
             onClick={(e) => handleNavigate("/admin", e)}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +27,7 @@ export default function CheckoutPage() {
   const type = searchParams.get("type");
   const itemId = searchParams.get("itemId");
   const amount = Number(searchParams.get("amount") || "0");
-  const returnUrl = searchParams.get("returnUrl") || "/account";
+  const returnUrl = searchParams.get("returnUrl") || "/subscription";
 
   // Redirect if not logged in
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function CheckoutPage() {
 
         const data = await response.json();
         setClientSecret(data.clientSecret);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error creating payment intent:", err);
         setError("Failed to initialize payment. Please try again later.");
         toast({
@@ -87,7 +87,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <PageLayout activeTab="none" pageTitle="Checkout" className="max-w-md mx-auto">
+    <PageLayout activeTab="account" pageTitle="Checkout" className="max-w-md mx-auto">
       <Card className="border border-border shadow-md">
         <CardHeader className="pb-4">
           <CardTitle className="text-xl">Complete Your Payment</CardTitle>
