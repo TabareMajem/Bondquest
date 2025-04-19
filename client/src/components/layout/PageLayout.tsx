@@ -35,24 +35,32 @@ export default function PageLayout({
   hideHeader = false,
   className = ""
 }: PageLayoutProps) {
-  // Use media query hook to detect desktop vs mobile
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // Directly detect desktop vs mobile without relying on the hook
+  // This avoids issues with the hook not working properly on deployment
+  const [isDesktop, setIsDesktop] = useState(false);
   
-  // Force a re-check on component mount
+  // Force a re-check on component mount and handle changes
   useEffect(() => {
     const checkForDesktop = () => {
-      // Directly access the matchMedia API for a one-time check
+      // Directly access the matchMedia API for a reliable check
       const isLargeScreen = window.matchMedia('(min-width: 1024px)').matches;
       console.log('Screen size check - Desktop:', isLargeScreen, 'window.innerWidth:', window.innerWidth);
+      setIsDesktop(isLargeScreen);
     };
     
-    // Check immediately and after a small delay
+    // Check immediately
     checkForDesktop();
     
-    // Check again after 1 second to ensure window dimensions are properly measured
+    // Add event listener for resize events
+    window.addEventListener('resize', checkForDesktop);
+    
+    // Check again after a delay to ensure window dimensions are properly measured
     const timerId = setTimeout(checkForDesktop, 1000);
     
-    return () => clearTimeout(timerId);
+    return () => {
+      window.removeEventListener('resize', checkForDesktop);
+      clearTimeout(timerId);
+    };
   }, []);
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900">
@@ -94,6 +102,7 @@ export default function PageLayout({
               <NavItem title="Bond" icon="bond" isActive={activeTab === "bond"} href="/bond-assessment" />
               <NavItem title="AI Assistant" icon="ai" isActive={activeTab === "ai"} href="/ai-assistant" />
               <NavItem title="Rewards" icon="rewards" isActive={activeTab === "rewards"} href="/rewards" />
+              <NavItem title="Account" icon="account" isActive={activeTab === "account"} href="/subscription" />
               <NavItem title="Profile" icon="profile" isActive={activeTab === "profile"} href="/profile" />
               {activeTab === "admin" && (
                 <NavItem title="Admin" icon="admin" isActive={true} href="/admin" />
@@ -140,6 +149,8 @@ function NavItem({ title, icon, isActive, href }: { title: string; icon: string;
         return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
       case "rewards":
         return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>;
+      case "account":
+        return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>;
       case "profile":
         return <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>;
       case "admin":
