@@ -176,7 +176,7 @@ export default function SubscriptionPage() {
                   <div>
                     <h3 className="font-medium text-lg">
                       {tiers?.find(t => t.id === userSubscription.tierId)?.name || "Unknown Plan"}
-                      <Badge variant={userSubscription.status === "active" ? "success" : "secondary"} className="ml-2">
+                      <Badge variant={userSubscription.status === "active" ? "default" : "secondary"} className="ml-2 bg-green-500 hover:bg-green-600">
                         {userSubscription.status === "active" ? "Active" : userSubscription.status}
                       </Badge>
                     </h3>

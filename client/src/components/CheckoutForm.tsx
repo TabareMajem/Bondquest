@@ -1,106 +1,163 @@
-import { useState } from "react";
-import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
-import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { useState, FormEvent, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { useStripe, useElements, PaymentElement, AddressElement } from '@stripe/react-stripe-js';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Loader2, CheckCircle, CheckCheck } from 'lucide-react';
 
 interface CheckoutFormProps {
-  returnUrl?: string;
-  amount?: number;
+  returnUrl: string;
+  amount: number;
 }
 
-export default function CheckoutForm({ returnUrl = "/", amount = 0 }: CheckoutFormProps) {
+export function CheckoutForm({ returnUrl, amount }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
-  const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (!stripe) {
+      return;
+    }
+
+    // Retrieve the payment intent to check the status
+    const clientSecret = new URLSearchParams(window.location.search).get(
+      'payment_intent_client_secret'
+    );
+
+    if (!clientSecret) {
+      return;
+    }
+
+    stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
+      if (!paymentIntent) {
+        return;
+      }
+
+      switch (paymentIntent.status) {
+        case 'succeeded':
+          setMessage('Payment succeeded!');
+          setIsSuccess(true);
+          break;
+        case 'processing':
+          setMessage('Your payment is processing.');
+          break;
+        case 'requires_payment_method':
+          setMessage('Your payment was not successful, please try again.');
+          break;
+        default:
+          setMessage('Something went wrong.');
+          break;
+      }
+    });
+  }, [stripe]);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      // Stripe.js hasn't yet loaded.
+      // Make sure to disable form submission until Stripe.js has loaded.
       return;
     }
 
     setIsLoading(true);
-    setErrorMessage(null);
 
-    // Format amount for display
-    const formattedAmount = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        // Return to the specified URL on successful payment
+        return_url: `${window.location.origin}${returnUrl}`,
+      },
+    });
 
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}${returnUrl}`,
-        },
-      });
-
-      if (error) {
-        setErrorMessage(error.message || "An unexpected error occurred");
-        toast({
-          title: "Payment failed",
-          description: error.message || "An unexpected error occurred",
-          variant: "destructive",
-        });
+    // This point will only be reached if there is an immediate error when
+    // confirming the payment. Otherwise, your customer will be redirected to
+    // your `return_url`. For some payment methods like iDEAL, your customer will
+    // be redirected to an intermediate site first to authorize the payment, then
+    // redirected to the `return_url`.
+    if (error) {
+      if (error.type === "card_error" || error.type === "validation_error") {
+        setMessage(error.message || "An unexpected error occurred.");
       } else {
-        // Success is handled by the return_url redirect from Stripe
-        toast({
-          title: "Payment successful",
-          description: `Your payment of ${formattedAmount} has been processed.`,
-        });
+        setMessage("An unexpected error occurred.");
       }
-    } catch (err: any) {
-      console.error("Payment error:", err);
-      setErrorMessage(err.message || "An unexpected error occurred");
       toast({
-        title: "Payment error",
-        description: err.message || "An unexpected error occurred",
+        title: "Payment failed",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-      
-      {errorMessage && (
-        <div className="text-sm text-destructive mt-2">
-          {errorMessage}
+    <form onSubmit={handleSubmit} className="w-full space-y-6">
+      {isSuccess ? (
+        <div className="text-center space-y-4 my-8">
+          <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+          <h3 className="text-xl font-semibold">Payment Successful!</h3>
+          <p className="text-muted-foreground">Thank you for your payment.</p>
+          <Button 
+            onClick={() => navigate(returnUrl)}
+            className="mt-4"
+          >
+            Continue
+          </Button>
         </div>
+      ) : (
+        <>
+          <div className="space-y-4">
+            <PaymentElement id="payment-element" options={{
+              layout: 'tabs'
+            }} />
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Billing Address</h3>
+            <AddressElement options={{
+              mode: 'shipping',
+              allowedCountries: ['US', 'CA', 'GB', 'AU'],
+            }} />
+          </div>
+
+          <div className="pt-4">
+            <Button
+              type="submit"
+              disabled={isLoading || !stripe || !elements}
+              className="w-full"
+            >
+              {isLoading ? (
+                <span className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </span>
+              ) : (
+                <span className="flex items-center">
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                  Pay ${amount.toFixed(2)}
+                </span>
+              )}
+            </Button>
+          </div>
+
+          {message && (
+            <div className={`text-sm text-center mt-4 ${
+              message.includes('succeeded') 
+                ? 'text-green-600' 
+                : 'text-destructive'
+            }`}>
+              {message}
+            </div>
+          )}
+        </>
       )}
-      
-      <Button 
-        type="submit" 
-        disabled={!stripe || isLoading} 
-        className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-500 hover:from-purple-700 hover:to-fuchsia-600"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          `Pay ${amount > 0 ? new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-          }).format(amount) : ''}`
-        )}
-      </Button>
-      
-      <div className="text-center text-xs text-muted-foreground mt-4">
-        <p>Your payment is secured with SSL encryption.</p>
-        <p className="mt-1">We do not store your card details.</p>
-      </div>
     </form>
   );
 }
