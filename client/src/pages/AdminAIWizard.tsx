@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, Award, Calendar, BookText, Trophy, ArrowRight, Heart } from "lucide-react";
 
-// Import bond dimension types (if available)
+// Import bond dimension types and data
 import type { BondDimension } from "@shared/bondDimensions";
+import { bondDimensions as fallbackBondDimensions } from "@shared/bondDimensions";
 
 export default function AdminAIWizard() {
   const [, navigate] = useLocation();
@@ -61,7 +62,11 @@ export default function AdminAIWizard() {
   useEffect(() => {
     // Redirect if not admin
     if (!isAdmin) {
+      console.log("Non-admin user attempting to access AI wizard, redirecting to login...");
       navigate("/login");
+      return;
+    } else {
+      console.log("Admin user verified, loading AI wizard...");
     }
     
     // Set default dates for competition (today and +7 days)
@@ -79,12 +84,28 @@ export default function AdminAIWizard() {
         const response = await fetch("/api/admin/couples");
         if (response.ok) {
           const data = await response.json();
+          console.log("Couples loaded successfully:", data.length);
           setCouples(data);
         } else {
-          console.error("Failed to fetch couples");
+          console.error("Failed to fetch couples:", response.status);
+          // Use placeholder data
+          setCouples([
+            { id: 1, displayName: "Test Couple 1" },
+            { id: 2, displayName: "Test Couple 2" }
+          ]);
+          toast({
+            title: "Failed to load couples",
+            description: "Using placeholder data instead",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error("Error fetching couples:", error);
+        // Use placeholder data
+        setCouples([
+          { id: 1, displayName: "Test Couple 1" },
+          { id: 2, displayName: "Test Couple 2" }
+        ]);
       } finally {
         setLoadingCouples(false);
       }
@@ -94,19 +115,45 @@ export default function AdminAIWizard() {
     const fetchBondDimensions = async () => {
       setLoadingBondDimensions(true);
       try {
+        console.log("Fetching bond dimensions...");
         const response = await fetch("/api/bond/dimensions");
+        
         if (response.ok) {
           const data = await response.json();
+          console.log("Bond dimensions loaded successfully:", data.length);
           setBondDimensions(data);
+          
           // Set default dimension if available
           if (data.length > 0) {
             setBondDimension(data[0].id);
           }
         } else {
-          console.error("Failed to fetch bond dimensions");
+          console.error("Failed to fetch bond dimensions:", response.status);
+          
+          // Use the imported constant from shared/bondDimensions.ts
+          console.log("Using fallback bond dimensions:", fallbackBondDimensions.length);
+          setBondDimensions(fallbackBondDimensions);
+          
+          if (fallbackBondDimensions.length > 0) {
+            setBondDimension(fallbackBondDimensions[0].id);
+          }
+          
+          toast({
+            title: "Failed to load bond dimensions from API",
+            description: "Using fallback data instead",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error("Error fetching bond dimensions:", error);
+        
+        // Use the imported constant from shared/bondDimensions.ts
+        console.log("Using fallback bond dimensions after error:", fallbackBondDimensions.length);
+        setBondDimensions(fallbackBondDimensions);
+        
+        if (fallbackBondDimensions.length > 0) {
+          setBondDimension(fallbackBondDimensions[0].id);
+        }
       } finally {
         setLoadingBondDimensions(false);
       }
@@ -114,7 +161,7 @@ export default function AdminAIWizard() {
     
     fetchCouples();
     fetchBondDimensions();
-  }, [isAdmin, navigate]);
+  }, [isAdmin, navigate, toast]);
   
   const handleGenerateQuiz = async () => {
     if (!quizTopic || !quizCategory) {
