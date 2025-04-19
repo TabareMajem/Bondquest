@@ -36,6 +36,8 @@ import {
 import bondRoutes from './routes/bondRoutes';
 import conversationRoutes from './routes/conversationRoutes';
 import stripeRoutes from './routes/stripeRoutes';
+import quizRoutes from './routes/quizRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 // Import auth configuration 
 import { configureAuth, createAuthRouter, registerUser } from './auth';
@@ -55,6 +57,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/bond', bondRoutes);
   app.use('/api/conversation', conversationRoutes);
   app.use('/api/stripe', stripeRoutes);
+  app.use('/api/quizzes', quizRoutes);
+  app.use('/api/admin', adminRoutes);
   
   // Register auth routes
   app.use('/auth', createAuthRouter());
