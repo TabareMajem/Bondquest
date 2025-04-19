@@ -1,8 +1,10 @@
 import passport from 'passport';
 import { Router } from 'express';
+import { configureLocalStrategy } from './localStrategy';
 import { configureGoogleStrategy } from './googleStrategy';
 import { configureInstagramStrategy } from './instagramStrategy';
 import { IStorage } from '../storage';
+import { hashPassword } from './passwordUtils';
 
 // Configure passport with our strategies
 export const configureAuth = (storage: IStorage) => {
@@ -21,6 +23,7 @@ export const configureAuth = (storage: IStorage) => {
   });
 
   // Set up authentication strategies
+  configureLocalStrategy(passport, storage);
   configureGoogleStrategy(passport, storage);
   configureInstagramStrategy(passport, storage);
 
@@ -60,3 +63,23 @@ export const createAuthRouter = () => {
 
   return router;
 };
+
+// Register a new user
+export async function registerUser(userData: any, storage: IStorage) {
+  // Check if user already exists
+  const existingUser = await storage.getUserByUsername(userData.username);
+  if (existingUser) {
+    throw new Error('Username already taken');
+  }
+  
+  // Hash the password
+  const hashedPassword = await hashPassword(userData.password);
+  
+  // Create the user with hashed password
+  const newUser = await storage.createUser({
+    ...userData,
+    password: hashedPassword
+  });
+  
+  return newUser;
+}
