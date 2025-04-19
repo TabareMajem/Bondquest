@@ -68,41 +68,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertUserSchema.parse(req.body);
       
-      // Check if username is already taken
-      const existingUser = await storage.getUserByUsername(validatedData.username);
+      // Check if username is already taken - using direct DB query
+      const [existingUser] = await db.select()
+        .from(users)
+        .where(eq(users.username, validatedData.username));
+      
       if (existingUser) {
         return res.status(400).json({ message: "Username already taken" });
       }
       
-      // Check if email is already taken
-      const existingEmail = await storage.getUserByEmail(validatedData.email);
+      // Check if email is already taken - using direct DB query
+      const [existingEmail] = await db.select()
+        .from(users)
+        .where(eq(users.email, validatedData.email));
+      
       if (existingEmail) {
         return res.status(400).json({ message: "Email already in use" });
       }
       
-      // Use registerUser to hash the password
-      const user = await registerUser(validatedData, storage);
+      // Import password utils for hashing
+      const { hashPassword } = require('./auth/passwordUtils');
+      const hashedPassword = await hashPassword(validatedData.password);
       
-      // Create default user preferences
+      // Create user with direct database query
+      const [user] = await db.insert(users)
+        .values({
+          ...validatedData,
+          password: hashedPassword
+        })
+        .returning();
+      
+      // Create default user preferences with direct database query
       try {
-        await storage.createUserPreferences({
-          userId: user.id,
-          dailyReminders: true,
-          partnerActivity: true,
-          competitionUpdates: true,
-          appUpdates: true,
-          publicProfile: false,
-          activityVisibility: true,
-          dataCollection: true,
-          marketingEmails: false,
-          preferredAssistant: "aurora",
-          proactiveAiSuggestions: true,
-          personalizedInsights: true,
-          contentCustomization: true,
-          darkMode: false,
-          accentColor: "purple",
-          language: "en-GB"
-        });
+        await db.insert(userPreferences)
+          .values({
+            userId: user.id,
+            dailyReminders: true,
+            partnerActivity: true,
+            competitionUpdates: true,
+            appUpdates: true,
+            publicProfile: false,
+            activityVisibility: true,
+            dataCollection: true,
+            marketingEmails: false,
+            preferredAssistant: "aurora",
+            proactiveAiSuggestions: true,
+            personalizedInsights: true,
+            contentCustomization: true,
+            darkMode: false,
+            accentColor: "purple",
+            language: "en-GB"
+          });
         console.log(`Created default preferences for user ${user.id}`);
       } catch (prefsError) {
         console.error(`Failed to create default preferences for user ${user.id}:`, prefsError);
@@ -156,33 +172,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const userWithoutPassword = { ...user };
             delete userWithoutPassword.password;
             
-            // Check if user is part of a couple
-            const couple = await storage.getCoupleByUserId(user.id);
+            // Check if user is part of a couple - using direct DB query
+            const [couple] = await db.select()
+              .from(couples)
+              .where(
+                sql`(${couples.userId1} = ${user.id} OR ${couples.userId2} = ${user.id})`
+              );
             
-            // Get user preferences
-            let preferences = await storage.getUserPreferences(user.id);
+            // Get user preferences - using direct DB query
+            let [preferences] = await db.select()
+              .from(userPreferences)
+              .where(eq(userPreferences.userId, user.id));
             
             // Create default preferences if none exist
             if (!preferences) {
               try {
-                preferences = await storage.createUserPreferences({
-                  userId: user.id,
-                  dailyReminders: true,
-                  partnerActivity: true,
-                  competitionUpdates: true,
-                  appUpdates: true,
-                  publicProfile: false,
-                  activityVisibility: true,
-                  dataCollection: true,
-                  marketingEmails: false,
-                  preferredAssistant: "aurora",
-                  proactiveAiSuggestions: true,
-                  personalizedInsights: true,
-                  contentCustomization: true,
-                  darkMode: false,
-                  accentColor: "purple",
-                  language: "en-GB"
-                });
+                const [newPreferences] = await db.insert(userPreferences)
+                  .values({
+                    userId: user.id,
+                    dailyReminders: true,
+                    partnerActivity: true,
+                    competitionUpdates: true,
+                    appUpdates: true,
+                    publicProfile: false,
+                    activityVisibility: true,
+                    dataCollection: true,
+                    marketingEmails: false,
+                    preferredAssistant: "aurora",
+                    proactiveAiSuggestions: true,
+                    personalizedInsights: true,
+                    contentCustomization: true,
+                    darkMode: false,
+                    accentColor: "purple",
+                    language: "en-GB"
+                  })
+                  .returning();
+                  
+                preferences = newPreferences;
                 console.log(`Created default preferences for user ${user.id} during login`);
               } catch (prefsError) {
                 console.error(`Failed to create default preferences for user ${user.id}:`, prefsError);
@@ -237,26 +263,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         partnerCode: z.string()
       }).parse(req.body);
       
-      // Get current user
-      const user = await storage.getUser(userId);
+      // Get current user - using direct DB query
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId));
+      
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Check if user is already in a couple
-      const existingCouple = await storage.getCoupleByUserId(userId);
+      // Check if user is already in a couple - using direct DB query
+      const [existingCouple] = await db.select()
+        .from(couples)
+        .where(
+          sql`(${couples.userId1} = ${userId} OR ${couples.userId2} = ${userId})`
+        );
+      
       if (existingCouple) {
         return res.status(400).json({ message: "User is already in a couple" });
       }
       
-      // Find partner by code
-      const partner = await storage.getUserByPartnerCode(partnerCode);
+      // Find partner by code - using direct DB query
+      const [partner] = await db.select()
+        .from(users)
+        .where(eq(users.partnerCode, partnerCode));
+      
       if (!partner) {
         return res.status(404).json({ message: "Partner not found with this code" });
       }
       
-      // Check if partner is already in a couple
-      const partnerCouple = await storage.getCoupleByUserId(partner.id);
+      // Check if partner is already in a couple - using direct DB query
+      const [partnerCouple] = await db.select()
+        .from(couples)
+        .where(
+          sql`(${couples.userId1} = ${partner.id} OR ${couples.userId2} = ${partner.id})`
+        );
+      
       if (partnerCouple) {
         return res.status(400).json({ message: "Partner is already in a couple" });
       }
@@ -266,14 +308,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Cannot link with yourself" });
       }
       
-      // Create couple
-      const couple = await storage.createCouple({
-        userId1: user.id,
-        userId2: partner.id,
-        bondStrength: 50,
-        level: 1,
-        xp: 0
-      });
+      // Create couple - using direct DB query
+      const [couple] = await db.insert(couples)
+        .values({
+          userId1: user.id,
+          userId2: partner.id,
+          bondStrength: 50,
+          level: 1,
+          xp: 0
+        })
+        .returning();
       
       res.status(201).json(couple);
     } catch (error) {
