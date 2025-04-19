@@ -57,31 +57,47 @@ export default function CheckoutPage() {
       returnUrl: returnUrl,
     });
 
-    // Create payment intent
-    const createPaymentIntent = async () => {
+    // Create payment intent or subscription
+    const createPayment = async () => {
       try {
-        const response = await apiRequest('POST', '/api/stripe/create-payment-intent', {
-          amount: parseFloat(amount) * 100, // Convert to cents
-          currency: 'usd',
-          metadata: {
-            type: type,
-            itemId: itemId,
-          },
-        });
+        let response;
+        
+        if (type === 'subscription') {
+          // For subscriptions, use the create-subscription endpoint
+          response = await apiRequest('POST', '/api/stripe/create-subscription', {
+            tierId: parseInt(itemId),
+            priceId: `price_${itemId}`, // This assumes there's a pattern to your Stripe price IDs
+          });
+        } else {
+          // For one-time payments, use the create-payment-intent endpoint
+          response = await apiRequest('POST', '/api/stripe/create-payment-intent', {
+            amount: parseFloat(amount) * 100, // Convert to cents
+            currency: 'usd',
+            metadata: {
+              type: type,
+              itemId: itemId,
+            },
+          });
+        }
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create payment intent');
+          throw new Error(errorData.error || 'Failed to create payment');
         }
 
         const data = await response.json();
         setClientSecret(data.clientSecret);
+        
+        // Store subscription ID in session storage if available (for subscription success handling)
+        if (data.subscriptionId) {
+          sessionStorage.setItem('lastSubscriptionId', data.subscriptionId);
+        }
       } catch (err: any) {
-        console.error('Error creating payment intent:', err);
-        setError(err.message || 'Error creating payment intent');
+        console.error('Error creating payment:', err);
+        setError(err.message || 'Error processing payment information');
         toast({
           title: 'Error',
-          description: err.message || 'Error creating payment intent',
+          description: err.message || 'Error processing payment information',
           variant: 'destructive',
         });
       } finally {
@@ -89,7 +105,7 @@ export default function CheckoutPage() {
       }
     };
 
-    createPaymentIntent();
+    createPayment();
   }, [user, navigate, toast]);
 
   const handleBackClick = () => {

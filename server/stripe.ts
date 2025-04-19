@@ -162,28 +162,68 @@ export async function reactivateSubscription(subscriptionId: string) {
 
 export async function updateUserSubscriptionStatus(userId: number, subscription: Stripe.Subscription) {
   try {
-    // Use raw SQL query to avoid Drizzle schema mismatch issues
-    const result = await db.execute(
-      `UPDATE user_subscriptions 
-       SET 
-        status = $1, 
-        current_period_start = $2, 
-        current_period_end = $3, 
-        cancel_at_period_end = $4,
-        updated_at = NOW()
-       WHERE user_id = $5
-       RETURNING *`,
-      [
-        subscription.status,
-        new Date(Number(subscription.current_period_start) * 1000), 
-        new Date(Number(subscription.current_period_end) * 1000),
-        subscription.cancel_at_period_end,
-        userId
-      ]
+    // Check if a record exists for this user
+    const existingResult = await db.execute(
+      `SELECT * FROM user_subscriptions WHERE user_id = $1`,
+      [userId]
     );
-    
-    // Return the updated subscription or null if none found
-    return result.rows.length > 0 ? result.rows[0] : null;
+
+    const currentPeriodStart = new Date(Number(subscription.current_period_start) * 1000);
+    const currentPeriodEnd = new Date(Number(subscription.current_period_end) * 1000);
+    const cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+
+    if (existingResult.rows.length > 0) {
+      // Update existing subscription
+      const result = await db.execute(
+        `UPDATE user_subscriptions 
+         SET 
+          status = $1, 
+          current_period_start = $2, 
+          current_period_end = $3, 
+          cancel_at_period_end = $4,
+          updated_at = NOW()
+         WHERE user_id = $5
+         RETURNING *`,
+        [
+          subscription.status,
+          currentPeriodStart, 
+          currentPeriodEnd,
+          cancelAtPeriodEnd,
+          userId
+        ]
+      );
+      
+      // Return the updated subscription
+      return result.rows.length > 0 ? result.rows[0] : null;
+    } else {
+      // Create a new subscription record if none exists
+      // This handles cases where webhook events arrive before the DB is updated
+      const result = await db.execute(
+        `INSERT INTO user_subscriptions (
+          user_id,
+          stripe_customer_id,
+          stripe_subscription_id,
+          status,
+          current_period_start,
+          current_period_end,
+          cancel_at_period_end,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        RETURNING *`,
+        [
+          userId,
+          subscription.customer,
+          subscription.id,
+          subscription.status,
+          currentPeriodStart,
+          currentPeriodEnd,
+          cancelAtPeriodEnd
+        ]
+      );
+      
+      return result.rows.length > 0 ? result.rows[0] : null;
+    }
   } catch (error) {
     console.error('Error updating user subscription status:', error);
     throw error;
@@ -196,21 +236,95 @@ export async function handleWebhookEvent(event: Stripe.Event) {
       case 'payment_intent.succeeded':
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log('Payment succeeded:', paymentIntent.id);
-        // Handle successful payment
+        
+        // Process successful payment
+        if (paymentIntent.metadata && paymentIntent.metadata.userId) {
+          const userId = Number(paymentIntent.metadata.userId);
+          console.log(`Processing successful payment for user ID: ${userId}`);
+          
+          if (paymentIntent.metadata.type === 'subscription') {
+            // This was for a subscription - but subscriptions are typically handled by 
+            // the subscription events below, not by payment_intent.succeeded
+            console.log('Subscription payment completed');
+          }
+        }
         break;
         
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
         const subscription = event.data.object as Stripe.Subscription;
-        // Update the subscription status in the database
-        // This requires mapping the subscription to a user ID through metadata or other means
-        console.log('Subscription updated:', subscription.id);
+        console.log('Subscription event:', subscription.id);
+        
+        // Find the user by customer ID
+        try {
+          // Use raw SQL for reliability
+          const result = await db.execute(
+            `SELECT * FROM user_subscriptions WHERE stripe_customer_id = $1 LIMIT 1`,
+            [subscription.customer]
+          );
+          
+          if (result.rows.length > 0) {
+            const userSubscription = result.rows[0];
+            const userId = userSubscription.user_id;
+            
+            // Update the subscription status in the database
+            await updateUserSubscriptionStatus(userId, subscription);
+            console.log(`Updated subscription status for user ${userId}`);
+          } else {
+            console.warn(`Could not find user for customer ID: ${subscription.customer}`);
+          }
+        } catch (err) {
+          console.error('Error processing subscription webhook:', err);
+        }
         break;
         
       case 'customer.subscription.deleted':
         const deletedSubscription = event.data.object as Stripe.Subscription;
         console.log('Subscription deleted:', deletedSubscription.id);
-        // Handle subscription deletion
+        
+        // Find the user by customer ID and update status
+        try {
+          // Use raw SQL for reliability
+          const result = await db.execute(
+            `SELECT * FROM user_subscriptions WHERE stripe_customer_id = $1 LIMIT 1`,
+            [deletedSubscription.customer]
+          );
+          
+          if (result.rows.length > 0) {
+            const userSubscription = result.rows[0];
+            const userId = userSubscription.user_id;
+            
+            // Mark subscription as canceled in the database
+            await db.execute(
+              `UPDATE user_subscriptions 
+               SET status = 'canceled', 
+                   updated_at = NOW()
+               WHERE user_id = $1`,
+              [userId]
+            );
+            console.log(`Marked subscription as canceled for user ${userId}`);
+          }
+        } catch (err) {
+          console.error('Error processing subscription deletion webhook:', err);
+        }
+        break;
+        
+      case 'invoice.payment_succeeded':
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log('Invoice payment succeeded:', invoice.id);
+        if (invoice.subscription) {
+          console.log(`Associated subscription: ${invoice.subscription}`);
+          // Could update subscription status or add payment history here
+        }
+        break;
+        
+      case 'invoice.payment_failed':
+        const failedInvoice = event.data.object as Stripe.Invoice;
+        console.log('Invoice payment failed:', failedInvoice.id);
+        if (failedInvoice.subscription) {
+          console.log(`Failed payment for subscription: ${failedInvoice.subscription}`);
+          // Could notify user or update subscription status here
+        }
         break;
         
       default:
