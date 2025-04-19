@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
-import { users, subscriptionTiers, rewards, quizSessions, userSubscriptions, couples as couplesTable } from '@shared/schema';
+import { users, subscriptionTiers, rewards, quizSessions, userSubscriptions, couples as couplesTable, coupleRewards, competitions as competitionsTable } from '@shared/schema';
 import { eq, sql, desc } from 'drizzle-orm';
 import { db } from '../db';
 
@@ -51,7 +51,7 @@ router.get('/stats', isAdmin, async (req, res) => {
     
     res.json({
       userCount: userCount?.count || 0,
-      coupleCount: couples.length,
+      coupleCount: couplesList.length,
       activeSubscriptions: activeSubscriptions.length,
       totalSubscriptions: subscriptions.length,
       monthlyRevenue,
@@ -209,8 +209,9 @@ router.post('/setup', async (req, res) => {
 // Competition management
 router.get('/competitions', isAdmin, async (req, res) => {
   try {
-    const competitions = await storage.getCompetitions();
-    res.json(competitions);
+    // Query directly from database for competitions
+    const competitionsList = await db.select().from(competitionsTable);
+    res.json(competitionsList);
   } catch (error) {
     console.error('Error fetching competitions:', error);
     res.status(500).json({ message: 'Failed to fetch competitions' });
@@ -219,7 +220,10 @@ router.get('/competitions', isAdmin, async (req, res) => {
 
 router.post('/competitions', isAdmin, async (req, res) => {
   try {
-    const newCompetition = await storage.createCompetition(req.body);
+    // Insert directly into database
+    const [newCompetition] = await db.insert(competitions)
+      .values(req.body)
+      .returning();
     res.status(201).json(newCompetition);
   } catch (error) {
     console.error('Error creating competition:', error);
@@ -231,7 +235,9 @@ router.post('/competitions', isAdmin, async (req, res) => {
 router.get('/fulfillment', isAdmin, async (req, res) => {
   try {
     // Get all couple rewards that are pending fulfillment
-    const pendingRewards = await storage.getPendingCoupleRewards();
+    // Query directly from database for pending rewards
+    const pendingRewards = await db.select().from(coupleRewards)
+      .where(eq(coupleRewards.status, 'pending'));
     res.json(pendingRewards);
   } catch (error) {
     console.error('Error fetching pending rewards:', error);
@@ -248,15 +254,36 @@ router.patch('/fulfillment/:id', isAdmin, async (req, res) => {
     
     const { status, trackingNumber, shippingAddress } = req.body;
     
+    // Create an object to hold all updates
+    const updates: any = {};
     if (status) {
-      await storage.updateCoupleRewardStatus(rewardId, status);
+      updates.status = status;
     }
     
-    if (trackingNumber && shippingAddress) {
-      await storage.updateCoupleRewardShipping(rewardId, trackingNumber, shippingAddress);
+    if (trackingNumber) {
+      updates.trackingNumber = trackingNumber;
     }
     
-    const updatedReward = await storage.getCoupleReward(rewardId);
+    if (shippingAddress) {
+      updates.shippingAddress = shippingAddress;
+    }
+    
+    // Update reward directly in database
+    if (Object.keys(updates).length > 0) {
+      await db.update(coupleRewards)
+        .set(updates)
+        .where(eq(coupleRewards.id, rewardId));
+    }
+    
+    // Fetch updated reward
+    const [updatedReward] = await db.select()
+      .from(coupleRewards)
+      .where(eq(coupleRewards.id, rewardId));
+      
+    if (!updatedReward) {
+      return res.status(404).json({ message: 'Reward not found' });
+    }
+    
     res.json(updatedReward);
   } catch (error) {
     console.error('Error updating reward fulfillment:', error);
