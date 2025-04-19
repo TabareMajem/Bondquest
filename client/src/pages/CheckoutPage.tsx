@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
-import CheckoutForm from '@/components/CheckoutForm';
+import { CheckoutForm } from '@/components/CheckoutForm';
 import PageLayout from '@/components/layout/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, AlertCircle, ArrowLeftIcon } from 'lucide-react';
@@ -101,7 +101,7 @@ export default function CheckoutPage() {
   };
 
   return (
-    <PageLayout pageTitle="Checkout" className="max-w-2xl mx-auto">
+    <PageLayout pageTitle="Checkout" className="max-w-2xl mx-auto" activeTab="account">
       <div className="space-y-6">
         <Button 
           variant="ghost" 

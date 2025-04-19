@@ -10,7 +10,8 @@ import {
   cancelSubscription,
   reactivateSubscription,
   updateUserSubscriptionStatus,
-  handleWebhookEvent
+  handleWebhookEvent,
+  stripe
 } from '../stripe';
 import { db } from '../db';
 import { userSubscriptions, subscriptionTiers } from '@shared/schema';
