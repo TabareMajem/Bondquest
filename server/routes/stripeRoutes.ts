@@ -113,33 +113,47 @@ router.post('/create-subscription', async (req, res) => {
     
     // Save subscription details to database
     if (existingSubscription) {
-      // Update existing subscription
-      await db
-        .update(userSubscriptions)
-        .set({
+      // Update existing subscription using raw SQL to avoid schema mismatches
+      await db.execute(
+        `UPDATE user_subscriptions 
+         SET 
+          tier_id = $1, 
+          stripe_customer_id = $2,
+          stripe_subscription_id = $3,
+          status = $4,
+          current_period_start = $5,
+          current_period_end = $6,
+          cancel_at_period_end = $7,
+          updated_at = NOW()
+         WHERE user_id = $8`,
+        [
           tierId,
           stripeCustomerId,
-          stripeSubscriptionId: subscription.id,
-          status: subscription.status,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        })
-        .where(eq(userSubscriptions.userId, req.user.id));
+          subscription.id,
+          subscription.status,
+          new Date(Number(subscription.current_period_start) * 1000),
+          new Date(Number(subscription.current_period_end) * 1000),
+          subscription.cancel_at_period_end,
+          req.user.id
+        ]
+      );
     } else {
-      // Create new subscription record
-      await db
-        .insert(userSubscriptions)
-        .values({
-          userId: req.user.id,
+      // Create new subscription record using raw SQL to avoid schema mismatches
+      await db.execute(
+        `INSERT INTO user_subscriptions
+         (user_id, tier_id, stripe_customer_id, stripe_subscription_id, status, current_period_start, current_period_end, cancel_at_period_end, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+        [
+          req.user.id,
           tierId,
           stripeCustomerId,
-          stripeSubscriptionId: subscription.id,
-          status: subscription.status,
-          currentPeriodStart: new Date(subscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        });
+          subscription.id,
+          subscription.status,
+          new Date(Number(subscription.current_period_start) * 1000),
+          new Date(Number(subscription.current_period_end) * 1000),
+          subscription.cancel_at_period_end
+        ]
+      );
     }
     
     // Extract client secret from the subscription
