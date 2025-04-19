@@ -30,8 +30,39 @@ export async function createPaymentIntent(amount: number, currency: string, meta
 
 export async function getSubscriptionTiers() {
   try {
-    // Filter active subscription tiers
-    return await db.select().from(subscriptionTiers).where(eq(subscriptionTiers.active, true));
+    // First, check what columns actually exist in the table
+    // Filter active subscription tiers - select only essential columns that we know exist
+    const tiers = await db
+      .select({
+        id: subscriptionTiers.id,
+        name: subscriptionTiers.name,
+        description: subscriptionTiers.description,
+        price: subscriptionTiers.price,
+        billingPeriod: subscriptionTiers.billingPeriod,
+        features: subscriptionTiers.features,
+        active: subscriptionTiers.active
+      })
+      .from(subscriptionTiers)
+      .where(eq(subscriptionTiers.active, true));
+      
+    // Map the database data to the structure expected by the client
+    return tiers.map(tier => {
+      // Calculate yearly price (20% discount on monthly price × 12)
+      const yearlyPrice = tier.billingPeriod === 'yearly' 
+        ? Number(tier.price)
+        : Math.round(Number(tier.price) * 12 * 0.8 * 100) / 100;
+        
+      return {
+        id: tier.id,
+        name: tier.name,
+        description: tier.description,
+        price: Number(tier.price),
+        yearlyPrice: tier.billingPeriod === 'yearly' ? Number(tier.price) : yearlyPrice,
+        features: Array.isArray(tier.features) ? tier.features : [],
+        isPopular: tier.name.toLowerCase().includes('premium'),
+        isActive: tier.active
+      };
+    });
   } catch (error) {
     console.error('Error fetching subscription tiers:', error);
     throw error;
