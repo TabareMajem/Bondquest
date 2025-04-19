@@ -1,7 +1,7 @@
-const crypto = require('crypto');
-const util = require('util');
+import crypto from 'crypto';
+import { promisify } from 'util';
 
-const scryptAsync = util.promisify(crypto.scrypt);
+const scryptAsync = promisify(crypto.scrypt);
 
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
