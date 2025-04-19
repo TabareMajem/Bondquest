@@ -11,8 +11,54 @@ const router = Router();
 // Get publishable key
 router.get('/config', (req, res) => {
   res.json({
-    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+    publishableKey: process.env.VITE_STRIPE_PUBLIC_KEY,
   });
+});
+
+// Get all subscription tiers
+router.get('/subscription-tiers', async (req, res) => {
+  try {
+    const tiers = await db
+      .select()
+      .from(subscriptionTiers)
+      .where(eq(subscriptionTiers.active, true));
+    
+    res.json(tiers);
+  } catch (error) {
+    console.error('Error fetching subscription tiers:', error);
+    res.status(500).json({ error: 'Failed to fetch subscription tiers' });
+  }
+});
+
+// Get user's subscription
+router.get('/user-subscription/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    // Get subscription
+    const [subscription] = await db
+      .select({
+        ...userSubscriptions,
+        tierName: subscriptionTiers.name,
+      })
+      .from(userSubscriptions)
+      .leftJoin(subscriptionTiers, eq(userSubscriptions.tierId, subscriptionTiers.id))
+      .where(eq(userSubscriptions.userId, userId))
+      .orderBy(({ createdAt: fieldName }) => fieldName, 'desc');
+    
+    if (!subscription) {
+      return res.status(404).json({ error: 'No subscription found for this user' });
+    }
+    
+    res.json(subscription);
+  } catch (error) {
+    console.error('Error fetching user subscription:', error);
+    res.status(500).json({ error: 'Failed to fetch user subscription' });
+  }
 });
 
 // Create a subscription session
