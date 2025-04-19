@@ -1,0 +1,21 @@
+Dimension	Definition	Example Quiz/Check-In Questions	Measurement Approach
+Communication	The degree of openness, clarity, and effectiveness in how couples share thoughts, feelings, and information.	• “How often do you feel heard and understood by your partner?”
+• “Rate how comfortable you are discussing difficult topics.”	Likert scale (1 = very poor, 10 = excellent)
+Trust	The level of confidence each partner has in the other’s honesty, reliability, and loyalty.	• “How secure do you feel in your partner’s commitment?”
+• “How often do you feel you can confide in your partner without judgment?”	Likert scale; frequency measures (Never–Always)
+Emotional Intimacy	The closeness and warmth in sharing emotions, vulnerabilities, and supportive behaviors.	• “How emotionally close do you feel to your partner?”
+• “How often do you share your deepest feelings with your partner?”	Likert scale; qualitative rating
+Conflict Resolution	The effectiveness with which couples address disagreements and resolve conflicts respectfully.	• “When conflicts arise, how satisfied are you with the resolution process?”
+• “How well do you and your partner manage disagreements without lingering resentment?”	Likert scale; scenario-based responses
+Physical Intimacy	Satisfaction with physical affection, closeness, and sexual connection.	• “How satisfied are you with the level of physical intimacy in your relationship?”
+• “Rate your comfort with initiating physical affection.”	Likert scale; frequency (times per week/month)
+Shared Values/Goals	How aligned the partners are in their core life values, goals, and future plans.	• “How well do your long-term goals align with your partner’s?”
+• “How often do you discuss your life plans together?”	Likert scale; checklist comparisons
+Fun & Playfulness	The ability to enjoy light-hearted moments, shared humor, and playfulness together.	• “How frequently do you engage in fun activities or playful banter with each other?”
+• “Rate how much you enjoy your shared leisure time.”	Likert scale; frequency-based scoring
+Mutual Support & Respect	The extent to which partners provide support, affirmation, and respect for each other’s individuality and efforts.	• “How valued do you feel by your partner on a daily basis?”
+• “Rate your partner's support during challenging times.”	Likert scale; qualitative check-in ratings
+Independence & Togetherness Balance	The balance between healthy individual autonomy and shared couple time, ensuring personal growth alongside relationship nurturing.	• “How well do you balance personal space and together time in your relationship?”
+• “How satisfied are you with your independence within the couple context?”	Likert scale; situational items; ratio measures
+Overall Relationship Satisfaction	A global measure reflecting the couple’s overall contentment, combining all aspects of their interaction into one score.	• “Overall, how satisfied are you with your relationship?”
+• “Rate your general happiness as a couple.”	Global rating; composite of other scales

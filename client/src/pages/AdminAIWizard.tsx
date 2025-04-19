@@ -327,10 +327,14 @@ export default function AdminAIWizard() {
         </div>
         
         <Tabs defaultValue="quizzes" className="mb-32">
-          <TabsList className="grid w-full grid-cols-2 bg-purple-800 rounded-xl">
+          <TabsList className="grid w-full grid-cols-3 bg-purple-800 rounded-xl">
             <TabsTrigger value="quizzes" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white rounded-xl">
               <BookText className="mr-2 h-4 w-4" />
               Quiz Generator
+            </TabsTrigger>
+            <TabsTrigger value="bond-quizzes" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white rounded-xl">
+              <Heart className="mr-2 h-4 w-4" />
+              Bond Dimension Quiz
             </TabsTrigger>
             <TabsTrigger value="competitions" className="data-[state=active]:bg-purple-700 data-[state=active]:text-white rounded-xl">
               <Award className="mr-2 h-4 w-4" />
