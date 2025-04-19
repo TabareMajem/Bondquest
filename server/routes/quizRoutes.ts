@@ -1,8 +1,19 @@
 import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
+import { db } from '../db';
+import { eq, asc, desc } from 'drizzle-orm';
 import { bondDimensions } from '@shared/bondDimensions';
-import { insertQuizSchema, insertQuestionSchema, insertQuizSessionSchema } from '@shared/schema';
+import { 
+  insertQuizSchema, 
+  insertQuestionSchema, 
+  insertQuizSessionSchema,
+  quizzes,
+  questions,
+  quizSessions,
+  users,
+  couples
+} from '@shared/schema';
 import { generateQuiz } from '../openai';
 
 const router = express.Router();
@@ -18,8 +29,12 @@ function isAuthenticated(req: express.Request, res: express.Response, next: expr
 // Get all quizzes
 router.get('/', isAuthenticated, async (req, res) => {
   try {
-    const quizzes = await storage.getQuizzes();
-    res.json(quizzes);
+    // Use direct database query instead of storage
+    const quizList = await db.select()
+      .from(quizzes)
+      .orderBy(desc(quizzes.id));
+    
+    res.json(quizList);
   } catch (error) {
     console.error('Error fetching quizzes:', error);
     res.status(500).json({ message: 'Failed to fetch quizzes' });
@@ -89,8 +104,14 @@ router.post('/', isAuthenticated, async (req, res) => {
 router.get('/category/:category', isAuthenticated, async (req, res) => {
   try {
     const category = req.params.category;
-    const quizzes = await storage.getQuizzesByCategory(category);
-    res.json(quizzes);
+    
+    // Use direct database query instead of storage
+    const quizList = await db.select()
+      .from(quizzes)
+      .where(eq(quizzes.category, category))
+      .orderBy(desc(quizzes.id));
+    
+    res.json(quizList);
   } catch (error) {
     console.error('Error fetching quizzes by category:', error);
     res.status(500).json({ message: 'Failed to fetch quizzes' });
