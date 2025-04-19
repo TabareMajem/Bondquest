@@ -30,25 +30,27 @@ export async function createPaymentIntent(amount: number, currency: string, meta
 
 export async function getSubscriptionTiers() {
   try {
-    // First, check what columns actually exist in the table
-    // Filter active subscription tiers - select only essential columns that we know exist
-    const tiers = await db
-      .select({
-        id: subscriptionTiers.id,
-        name: subscriptionTiers.name,
-        description: subscriptionTiers.description,
-        price: subscriptionTiers.price,
-        billingPeriod: subscriptionTiers.billingPeriod,
-        features: subscriptionTiers.features,
-        active: subscriptionTiers.active
-      })
-      .from(subscriptionTiers)
-      .where(eq(subscriptionTiers.active, true));
+    // Use raw SQL query to avoid Drizzle schema mismatch issues
+    const result = await db.execute(
+      `SELECT id, name, description, price, billing_period, features, active 
+       FROM subscription_tiers 
+       WHERE active = true`
+    );
+    
+    const tiers = result.rows as {
+      id: number;
+      name: string;
+      description: string;
+      price: string; // Decimal stored as string
+      billing_period: string;
+      features: string[] | null;
+      active: boolean;
+    }[];
       
     // Map the database data to the structure expected by the client
     return tiers.map(tier => {
       // Calculate yearly price (20% discount on monthly price × 12)
-      const yearlyPrice = tier.billingPeriod === 'yearly' 
+      const yearlyPrice = tier.billing_period === 'yearly' 
         ? Number(tier.price)
         : Math.round(Number(tier.price) * 12 * 0.8 * 100) / 100;
         
@@ -57,7 +59,7 @@ export async function getSubscriptionTiers() {
         name: tier.name,
         description: tier.description,
         price: Number(tier.price),
-        yearlyPrice: tier.billingPeriod === 'yearly' ? Number(tier.price) : yearlyPrice,
+        yearlyPrice: tier.billing_period === 'yearly' ? Number(tier.price) : yearlyPrice,
         features: Array.isArray(tier.features) ? tier.features : [],
         isPopular: tier.name.toLowerCase().includes('premium'),
         isActive: tier.active
@@ -71,12 +73,27 @@ export async function getSubscriptionTiers() {
 
 export async function getUserSubscription(userId: number) {
   try {
-    const [subscription] = await db
-      .select()
-      .from(userSubscriptions)
-      .where(eq(userSubscriptions.userId, userId));
+    // Use raw SQL query to avoid Drizzle schema mismatch issues
+    const result = await db.execute(
+      `SELECT 
+        id, 
+        user_id as "userId", 
+        tier_id as "tierId", 
+        stripe_customer_id as "stripeCustomerId", 
+        stripe_subscription_id as "stripeSubscriptionId", 
+        status, 
+        current_period_start as "currentPeriodStart", 
+        current_period_end as "currentPeriodEnd", 
+        cancel_at_period_end as "cancelAtPeriodEnd", 
+        created_at as "createdAt", 
+        updated_at as "updatedAt"
+       FROM user_subscriptions 
+       WHERE user_id = $1`,
+      [userId]
+    );
     
-    return subscription;
+    // Return the first result or null if none found
+    return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
     console.error('Error fetching user subscription:', error);
     throw error;
@@ -145,18 +162,28 @@ export async function reactivateSubscription(subscriptionId: string) {
 
 export async function updateUserSubscriptionStatus(userId: number, subscription: Stripe.Subscription) {
   try {
-    const [updated] = await db
-      .update(userSubscriptions)
-      .set({
-        status: subscription.status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
-      })
-      .where(eq(userSubscriptions.userId, userId))
-      .returning();
+    // Use raw SQL query to avoid Drizzle schema mismatch issues
+    const result = await db.execute(
+      `UPDATE user_subscriptions 
+       SET 
+        status = $1, 
+        current_period_start = $2, 
+        current_period_end = $3, 
+        cancel_at_period_end = $4,
+        updated_at = NOW()
+       WHERE user_id = $5
+       RETURNING *`,
+      [
+        subscription.status,
+        new Date(Number(subscription.current_period_start) * 1000), 
+        new Date(Number(subscription.current_period_end) * 1000),
+        subscription.cancel_at_period_end,
+        userId
+      ]
+    );
     
-    return updated;
+    // Return the updated subscription or null if none found
+    return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
     console.error('Error updating user subscription status:', error);
     throw error;
