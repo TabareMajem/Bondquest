@@ -106,7 +106,10 @@ router.get('/subscriptions', isAdmin, async (req, res) => {
 
 router.post('/subscriptions', isAdmin, async (req, res) => {
   try {
-    const newTier = await storage.createSubscriptionTier(req.body);
+    // Insert directly into database
+    const [newTier] = await db.insert(subscriptionTiers)
+      .values(req.body)
+      .returning();
     res.status(201).json(newTier);
   } catch (error) {
     console.error('Error creating subscription tier:', error);
@@ -121,7 +124,16 @@ router.patch('/subscriptions/:id', isAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Invalid tier ID' });
     }
     
-    const updatedTier = await storage.updateSubscriptionTier(tierId, req.body);
+    // Update directly in database
+    await db.update(subscriptionTiers)
+      .set(req.body)
+      .where(eq(subscriptionTiers.id, tierId));
+    
+    // Fetch the updated subscription tier
+    const [updatedTier] = await db.select()
+      .from(subscriptionTiers)
+      .where(eq(subscriptionTiers.id, tierId));
+    
     if (!updatedTier) {
       return res.status(404).json({ message: 'Subscription tier not found' });
     }
@@ -146,7 +158,10 @@ router.get('/rewards', isAdmin, async (req, res) => {
 
 router.post('/rewards', isAdmin, async (req, res) => {
   try {
-    const newReward = await storage.createReward(req.body);
+    // Insert directly into database
+    const [newReward] = await db.insert(rewards)
+      .values(req.body)
+      .returning();
     res.status(201).json(newReward);
   } catch (error) {
     console.error('Error creating reward:', error);
@@ -161,7 +176,16 @@ router.patch('/rewards/:id', isAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Invalid reward ID' });
     }
     
-    const updatedReward = await storage.updateReward(rewardId, req.body);
+    // Update reward directly in database
+    await db.update(rewards)
+      .set(req.body)
+      .where(eq(rewards.id, rewardId));
+    
+    // Fetch the updated reward
+    const [updatedReward] = await db.select()
+      .from(rewards)
+      .where(eq(rewards.id, rewardId));
+    
     if (!updatedReward) {
       return res.status(404).json({ message: 'Reward not found' });
     }
@@ -177,7 +201,9 @@ router.patch('/rewards/:id', isAdmin, async (req, res) => {
 router.post('/setup', async (req, res) => {
   try {
     // Check if admin already exists
-    const existingAdmin = await storage.getUserByUsername('admin');
+    const [existingAdmin] = await db.select()
+      .from(users)
+      .where(eq(users.username, 'admin'));
     
     if (existingAdmin) {
       return res.json({ message: 'Admin already exists', exists: true });
@@ -186,14 +212,20 @@ router.post('/setup', async (req, res) => {
     // Create admin user with the provided password or a default one
     const password = req.body.password || 'admin123';
     
-    // This should be using your user registration function that hashes passwords
-    const adminUser = await storage.createUser({
-      username: 'admin',
-      password: password, // This should be hashed by your auth system
-      email: 'admin@bondquest.app',
-      displayName: 'BondQuest Admin',
-      partnerCode: 'ADMIN' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-    });
+    // Import password utils for hashing
+    const { hashPassword } = require('../auth/passwordUtils');
+    const hashedPassword = await hashPassword(password);
+    
+    // Create admin user with direct database query
+    const [adminUser] = await db.insert(users)
+      .values({
+        username: 'admin',
+        password: hashedPassword,
+        email: 'admin@bondquest.app',
+        displayName: 'BondQuest Admin',
+        partnerCode: 'ADMIN' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      })
+      .returning();
     
     res.status(201).json({ 
       message: 'Admin user created successfully',
@@ -221,7 +253,7 @@ router.get('/competitions', isAdmin, async (req, res) => {
 router.post('/competitions', isAdmin, async (req, res) => {
   try {
     // Insert directly into database
-    const [newCompetition] = await db.insert(competitions)
+    const [newCompetition] = await db.insert(competitionsTable)
       .values(req.body)
       .returning();
     res.status(201).json(newCompetition);

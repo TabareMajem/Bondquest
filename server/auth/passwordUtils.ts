@@ -1,38 +1,28 @@
-import { randomBytes, scrypt } from 'crypto';
+import { scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
 
-// Convert callback-based scrypt to Promise-based
 const scryptAsync = promisify(scrypt);
 
 /**
- * Hash a password with a random salt
+ * Hashes a password using scrypt with a random salt
+ * @param password - The password to hash
+ * @returns A string in the format "hashedPassword.salt"
  */
 export async function hashPassword(password: string): Promise<string> {
-  // Generate random salt
   const salt = randomBytes(16).toString('hex');
-  
-  // Hash the password with the salt
-  const derivedKey = await scryptAsync(password, salt, 64) as Buffer;
-  
-  // Return the hashed password with salt in the format: hash.salt
-  return `${derivedKey.toString('hex')}.${salt}`;
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString('hex')}.${salt}`;
 }
 
 /**
- * Compare a plaintext password with a hashed password
+ * Compares a supplied password with a stored hashed password
+ * @param supplied - The password to check
+ * @param stored - The stored password hash in the format "hashedPassword.salt"
+ * @returns true if the passwords match, false otherwise
  */
-export async function comparePasswords(plainPassword: string, hashedPassword: string | null): Promise<boolean> {
-  if (!hashedPassword) return false;
-  
-  // Extract the hash and salt
-  const [hash, salt] = hashedPassword.split('.');
-  
-  // If we don't have both parts, the stored password is invalid
-  if (!hash || !salt) return false;
-  
-  // Hash the plaintext password with the same salt
-  const derivedKey = await scryptAsync(plainPassword, salt, 64) as Buffer;
-  
-  // Compare the hashes (using timing-safe comparison via string comparison of hex values)
-  return derivedKey.toString('hex') === hash;
+export async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
+  const [hashed, salt] = stored.split('.');
+  const hashedBuf = Buffer.from(hashed, 'hex');
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
 }

@@ -16,16 +16,20 @@ export function configureLocalStrategy(passport: PassportStatic, storage: IStora
         }
         
         // Verify password
+        // Check if user has a password (it shouldn't be null, but let's be safe)
+        if (!user.password) {
+          return done(null, false, { message: 'Invalid credentials' });
+        }
+        
         const isMatch = await comparePasswords(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: 'Invalid credentials' });
         }
         
-        // Success - remove password from returned user object for security
-        const userWithoutPassword = { ...user };
-        delete userWithoutPassword.password;
+        // Success - create a new user object without the password for security
+        const { password, ...userWithoutPassword } = user;
         
-        return done(null, userWithoutPassword);
+        return done(null, userWithoutPassword as any);
       } catch (error) {
         return done(error);
       }
