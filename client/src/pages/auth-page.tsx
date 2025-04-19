@@ -121,7 +121,15 @@ const AuthPage = memo(function AuthPage() {
     setIsLoading(true);
     try {
       await login(values);
-      navigate("/home");
+      
+      // Check if user is part of a couple - if not, redirect to partner linking
+      const storedCouple = localStorage.getItem("bondquest_couple");
+      if (!storedCouple) {
+        navigate("/partner-linking");
+      } else {
+        // Normal flow if user already has a partner
+        navigate("/home");
+      }
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -167,8 +175,8 @@ const AuthPage = memo(function AuthPage() {
         password: values.password,
       });
       
-      // Navigate to onboarding chat or home
-      navigate("/onboarding-chat");
+      // Navigate to partner linking page first
+      navigate("/partner-linking");
     } catch (error) {
       console.error("Registration error:", error);
       toast({
