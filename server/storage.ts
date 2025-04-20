@@ -721,6 +721,317 @@ export class MemStorage implements IStorage {
   }
 
   // Initialize sample data
+  // Affiliate Partner Methods
+  async getAffiliatePartners(status?: string): Promise<AffiliatePartner[]> {
+    const partners = Array.from(this.affiliatePartners.values());
+    if (status) {
+      return partners.filter(partner => partner.status === status);
+    }
+    return partners;
+  }
+
+  async getAffiliatePartner(id: number): Promise<AffiliatePartner | undefined> {
+    return this.affiliatePartners.get(id);
+  }
+
+  async getAffiliatePartnerByEmail(email: string): Promise<AffiliatePartner | undefined> {
+    return Array.from(this.affiliatePartners.values())
+      .find(partner => partner.email === email);
+  }
+
+  async createAffiliatePartner(partner: InsertAffiliatePartner): Promise<AffiliatePartner> {
+    const id = this.affiliatePartnerId++;
+    const now = new Date();
+    const newPartner: AffiliatePartner = {
+      ...partner,
+      id,
+      status: partner.status || "pending",
+      createdAt: now,
+      updatedAt: now,
+      approvedAt: null,
+      termsAccepted: partner.termsAccepted || false,
+      commissionRate: partner.commissionRate || 10.00,
+      website: partner.website || null,
+      logoUrl: partner.logoUrl || null,
+      description: partner.description || null,
+      notes: partner.notes || null,
+      paymentDetails: partner.paymentDetails || null,
+      approvedBy: partner.approvedBy || null
+    };
+    this.affiliatePartners.set(id, newPartner);
+    return newPartner;
+  }
+
+  async updateAffiliatePartner(id: number, updates: Partial<AffiliatePartner>): Promise<AffiliatePartner | undefined> {
+    const partner = this.affiliatePartners.get(id);
+    if (partner) {
+      const updatedPartner = {
+        ...partner,
+        ...updates,
+        updatedAt: new Date()
+      };
+      this.affiliatePartners.set(id, updatedPartner);
+      return updatedPartner;
+    }
+    return undefined;
+  }
+
+  async approveAffiliatePartner(id: number, approvedBy: number): Promise<AffiliatePartner | undefined> {
+    const partner = this.affiliatePartners.get(id);
+    if (partner) {
+      const now = new Date();
+      const updatedPartner = {
+        ...partner,
+        status: "active",
+        approvedBy,
+        approvedAt: now,
+        updatedAt: now
+      };
+      this.affiliatePartners.set(id, updatedPartner);
+      return updatedPartner;
+    }
+    return undefined;
+  }
+
+  // Affiliate Coupon Methods
+  async getAffiliateCoupons(partnerId?: number, isActive?: boolean): Promise<AffiliateCoupon[]> {
+    let coupons = Array.from(this.affiliateCoupons.values());
+    
+    if (partnerId) {
+      coupons = coupons.filter(coupon => coupon.partnerId === partnerId);
+    }
+    
+    if (isActive !== undefined) {
+      coupons = coupons.filter(coupon => coupon.isActive === isActive);
+    }
+    
+    return coupons;
+  }
+
+  async getAffiliateCoupon(id: number): Promise<AffiliateCoupon | undefined> {
+    return this.affiliateCoupons.get(id);
+  }
+
+  async getAffiliateCouponByCode(code: string): Promise<AffiliateCoupon | undefined> {
+    return Array.from(this.affiliateCoupons.values())
+      .find(coupon => coupon.code === code);
+  }
+
+  async createAffiliateCoupon(coupon: InsertAffiliateCoupon): Promise<AffiliateCoupon> {
+    const id = this.affiliateCouponId++;
+    const now = new Date();
+    const newCoupon: AffiliateCoupon = {
+      ...coupon,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      currentUses: 0,
+      isActive: coupon.isActive !== undefined ? coupon.isActive : true,
+      description: coupon.description || null,
+      maxUses: coupon.maxUses || null,
+      maxUsesPerUser: coupon.maxUsesPerUser || 1,
+      minPurchaseAmount: coupon.minPurchaseAmount || null,
+      termsAndConditions: coupon.termsAndConditions || null,
+      tierId: coupon.tierId || null
+    };
+    this.affiliateCoupons.set(id, newCoupon);
+    return newCoupon;
+  }
+
+  async updateAffiliateCoupon(id: number, updates: Partial<AffiliateCoupon>): Promise<AffiliateCoupon | undefined> {
+    const coupon = this.affiliateCoupons.get(id);
+    if (coupon) {
+      const updatedCoupon = {
+        ...coupon,
+        ...updates,
+        updatedAt: new Date()
+      };
+      this.affiliateCoupons.set(id, updatedCoupon);
+      return updatedCoupon;
+    }
+    return undefined;
+  }
+
+  async incrementCouponUses(id: number): Promise<AffiliateCoupon | undefined> {
+    const coupon = this.affiliateCoupons.get(id);
+    if (coupon) {
+      const currentUses = coupon.currentUses + 1;
+      const isActive = coupon.maxUses ? currentUses < coupon.maxUses : coupon.isActive;
+      
+      const updatedCoupon = {
+        ...coupon,
+        currentUses,
+        isActive,
+        updatedAt: new Date()
+      };
+      
+      this.affiliateCoupons.set(id, updatedCoupon);
+      return updatedCoupon;
+    }
+    return undefined;
+  }
+
+  // Affiliate Referral Methods
+  async getAffiliateReferrals(partnerId: number): Promise<AffiliateReferral[]> {
+    return Array.from(this.affiliateReferrals.values())
+      .filter(referral => referral.partnerId === partnerId);
+  }
+
+  async getAffiliateReferral(id: number): Promise<AffiliateReferral | undefined> {
+    return this.affiliateReferrals.get(id);
+  }
+
+  async getAffiliateReferralByCode(code: string): Promise<AffiliateReferral | undefined> {
+    return Array.from(this.affiliateReferrals.values())
+      .find(referral => referral.referralCode === code);
+  }
+
+  async createAffiliateReferral(referral: InsertAffiliateReferral): Promise<AffiliateReferral> {
+    const id = this.affiliateReferralId++;
+    const now = new Date();
+    const newReferral: AffiliateReferral = {
+      ...referral,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      clickCount: 0,
+      conversionCount: 0,
+      status: referral.status || "active",
+      couponId: referral.couponId || null
+    };
+    this.affiliateReferrals.set(id, newReferral);
+    return newReferral;
+  }
+
+  async updateAffiliateReferral(id: number, updates: Partial<AffiliateReferral>): Promise<AffiliateReferral | undefined> {
+    const referral = this.affiliateReferrals.get(id);
+    if (referral) {
+      const updatedReferral = {
+        ...referral,
+        ...updates,
+        updatedAt: new Date()
+      };
+      this.affiliateReferrals.set(id, updatedReferral);
+      return updatedReferral;
+    }
+    return undefined;
+  }
+
+  async incrementReferralClick(id: number): Promise<AffiliateReferral | undefined> {
+    const referral = this.affiliateReferrals.get(id);
+    if (referral) {
+      const updatedReferral = {
+        ...referral,
+        clickCount: referral.clickCount + 1,
+        updatedAt: new Date()
+      };
+      this.affiliateReferrals.set(id, updatedReferral);
+      return updatedReferral;
+    }
+    return undefined;
+  }
+
+  async incrementReferralConversion(id: number): Promise<AffiliateReferral | undefined> {
+    const referral = this.affiliateReferrals.get(id);
+    if (referral) {
+      const updatedReferral = {
+        ...referral,
+        conversionCount: referral.conversionCount + 1,
+        updatedAt: new Date()
+      };
+      this.affiliateReferrals.set(id, updatedReferral);
+      return updatedReferral;
+    }
+    return undefined;
+  }
+
+  // Affiliate Transaction Methods
+  async getAffiliateTransactions(partnerId: number): Promise<AffiliateTransaction[]> {
+    return Array.from(this.affiliateTransactions.values())
+      .filter(transaction => transaction.partnerId === partnerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getAffiliateTransaction(id: number): Promise<AffiliateTransaction | undefined> {
+    return this.affiliateTransactions.get(id);
+  }
+
+  async getAffiliateTransactionsByUser(userId: number): Promise<AffiliateTransaction[]> {
+    return Array.from(this.affiliateTransactions.values())
+      .filter(transaction => transaction.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createAffiliateTransaction(transaction: InsertAffiliateTransaction): Promise<AffiliateTransaction> {
+    const id = this.affiliateTransactionId++;
+    const newTransaction: AffiliateTransaction = {
+      ...transaction,
+      id,
+      createdAt: new Date(),
+      paymentDate: transaction.paymentDate || null,
+      notes: transaction.notes || null,
+      referralId: transaction.referralId || null,
+      couponId: transaction.couponId || null
+    };
+    this.affiliateTransactions.set(id, newTransaction);
+    return newTransaction;
+  }
+
+  async updateAffiliateTransactionStatus(id: number, status: string): Promise<AffiliateTransaction | undefined> {
+    const transaction = this.affiliateTransactions.get(id);
+    if (transaction) {
+      const updatedTransaction = {
+        ...transaction,
+        status,
+        paymentDate: status === 'paid' ? new Date() : transaction.paymentDate
+      };
+      this.affiliateTransactions.set(id, updatedTransaction);
+      return updatedTransaction;
+    }
+    return undefined;
+  }
+
+  // Affiliate Payment Methods
+  async getAffiliatePayments(partnerId: number): Promise<AffiliatePayment[]> {
+    return Array.from(this.affiliatePayments.values())
+      .filter(payment => payment.partnerId === partnerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getAffiliatePayment(id: number): Promise<AffiliatePayment | undefined> {
+    return this.affiliatePayments.get(id);
+  }
+
+  async createAffiliatePayment(payment: InsertAffiliatePayment): Promise<AffiliatePayment> {
+    const id = this.affiliatePaymentId++;
+    const newPayment: AffiliatePayment = {
+      ...payment,
+      id,
+      createdAt: new Date(),
+      paymentDate: payment.paymentDate || null,
+      reference: payment.reference || null,
+      notes: payment.notes || null,
+      transactions: payment.transactions || []
+    };
+    this.affiliatePayments.set(id, newPayment);
+    return newPayment;
+  }
+
+  async updateAffiliatePaymentStatus(id: number, status: string, reference?: string): Promise<AffiliatePayment | undefined> {
+    const payment = this.affiliatePayments.get(id);
+    if (payment) {
+      const updatedPayment = {
+        ...payment,
+        status,
+        reference: reference || payment.reference,
+        paymentDate: status === 'completed' ? new Date() : payment.paymentDate
+      };
+      this.affiliatePayments.set(id, updatedPayment);
+      return updatedPayment;
+    }
+    return undefined;
+  }
+
   private initializeSampleData() {
     // Sample Quizzes
     const triviaQuiz: Quiz = {
