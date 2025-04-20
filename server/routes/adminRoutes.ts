@@ -149,42 +149,10 @@ router.patch('/subscriptions/:id', isAdmin, async (req, res) => {
 // Reward management endpoints
 router.get('/rewards', isAdmin, async (req, res) => {
   try {
-    // Only select columns that actually exist in the database
-    // Query the database using all available fields (based on actual db inspection)
-    const rewardsData = await db.select()
-      .from(rewards);
-    
-    // Map database fields to client-expected fields
-    const allRewards = rewardsData.map(reward => ({
-      id: reward.id,
-      name: reward.name,
-      description: reward.description,
-      type: reward.type,
-      value: reward.value,
-      code: reward.code,
-      imageUrl: reward.image_url,
-      availableFrom: reward.available_from,
-      availableTo: reward.available_to,
-      quantity: reward.quantity,
-      requiredTier: reward.required_tier,
-      active: reward.active,
-      createdAt: reward.created_at,
-      updatedAt: reward.updated_at
-    }));
-    
-    // Add missing fields with default values for client compatibility
-    const enhancedRewards = allRewards.map(reward => ({
-      ...reward,
-      locationRestricted: false,
-      eligibleLocations: [],
-      redemptionPeriodDays: 30,
-      redemptionInstructions: null,
-      provider: null,
-      shippingDetails: null,
-      terms: null
-    }));
-    
-    res.json(enhancedRewards);
+    // Use our rewards service to get all rewards
+    const { getAllRewards } = require('../services/db/rewards');
+    const rewards = await getAllRewards();
+    res.json(rewards);
   } catch (error) {
     console.error('Error fetching rewards:', error);
     res.status(500).json({ message: 'Failed to fetch rewards' });
@@ -193,25 +161,28 @@ router.get('/rewards', isAdmin, async (req, res) => {
 
 router.post('/rewards', isAdmin, async (req, res) => {
   try {
-    // Only include fields that exist in the database
-    const validFields = {
+    // Use our rewards service to create a new reward
+    const { createReward } = require('../services/db/rewards');
+    const rewardData = {
       name: req.body.name,
       description: req.body.description,
       type: req.body.type,
       value: req.body.value,
       code: req.body.code || null,
-      image_url: req.body.imageUrl || null,
-      available_from: req.body.availableFrom,
-      available_to: req.body.availableTo,
+      imageUrl: req.body.imageUrl || null,
+      availableFrom: req.body.availableFrom,
+      availableTo: req.body.availableTo,
       quantity: req.body.quantity,
-      required_tier: req.body.requiredTier || null,
+      requiredTier: req.body.requiredTier || null,
       active: req.body.active
     };
     
-    // Insert directly into database
-    const [newReward] = await db.insert(rewards)
-      .values([validFields])
-      .returning();
+    const newReward = await createReward(rewardData);
+    
+    if (!newReward) {
+      return res.status(500).json({ message: 'Failed to create reward' });
+    }
+    
     res.status(201).json(newReward);
   } catch (error) {
     console.error('Error creating reward:', error);
@@ -226,61 +197,28 @@ router.patch('/rewards/:id', isAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Invalid reward ID' });
     }
     
-    // Only include fields that exist in the database
-    const validFields: Record<string, any> = {};
+    // Use our rewards service to update an existing reward
+    const { updateReward } = require('../services/db/rewards');
     
-    if (req.body.name !== undefined) validFields.name = req.body.name;
-    if (req.body.description !== undefined) validFields.description = req.body.description;
-    if (req.body.type !== undefined) validFields.type = req.body.type;
-    if (req.body.value !== undefined) validFields.value = req.body.value;
-    if (req.body.code !== undefined) validFields.code = req.body.code;
-    if (req.body.imageUrl !== undefined) validFields.image_url = req.body.imageUrl;
-    if (req.body.availableFrom !== undefined) validFields.available_from = req.body.availableFrom;
-    if (req.body.availableTo !== undefined) validFields.available_to = req.body.availableTo;
-    if (req.body.quantity !== undefined) validFields.quantity = req.body.quantity;
-    if (req.body.requiredTier !== undefined) validFields.required_tier = req.body.requiredTier;
-    if (req.body.active !== undefined) validFields.active = req.body.active;
-    // Add updated_at field
-    validFields.updated_at = new Date();
+    // Pass only fields that exist in the client model
+    const updateData: Record<string, any> = {};
     
-    // Update reward directly in database
-    await db.update(rewards)
-      .set(validFields)
-      .where(eq(rewards.id, rewardId));
+    if (req.body.name !== undefined) updateData.name = req.body.name;
+    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.type !== undefined) updateData.type = req.body.type;
+    if (req.body.value !== undefined) updateData.value = req.body.value;
+    if (req.body.code !== undefined) updateData.code = req.body.code;
+    if (req.body.imageUrl !== undefined) updateData.imageUrl = req.body.imageUrl;
+    if (req.body.availableFrom !== undefined) updateData.availableFrom = req.body.availableFrom;
+    if (req.body.availableTo !== undefined) updateData.availableTo = req.body.availableTo;
+    if (req.body.quantity !== undefined) updateData.quantity = req.body.quantity;
+    if (req.body.requiredTier !== undefined) updateData.requiredTier = req.body.requiredTier;
+    if (req.body.active !== undefined) updateData.active = req.body.active;
     
-    // Fetch the updated reward
-    const [rewardData] = await db.select()
-      .from(rewards)
-      .where(eq(rewards.id, rewardId));
-    
-    // Format it for client compatibility
-    const updatedReward = {
-      id: rewardData.id,
-      name: rewardData.name,
-      description: rewardData.description,
-      type: rewardData.type,
-      value: rewardData.value,
-      code: rewardData.code,
-      imageUrl: rewardData.image_url,
-      availableFrom: rewardData.available_from,
-      availableTo: rewardData.available_to,
-      quantity: rewardData.quantity,
-      requiredTier: rewardData.required_tier,
-      active: rewardData.active,
-      createdAt: rewardData.created_at,
-      updatedAt: rewardData.updated_at,
-      // Add missing fields for client compatibility
-      locationRestricted: false,
-      eligibleLocations: [],
-      redemptionPeriodDays: 30,
-      redemptionInstructions: null,
-      provider: null,
-      shippingDetails: null,
-      terms: null
-    };
+    const updatedReward = await updateReward(rewardId, updateData);
     
     if (!updatedReward) {
-      return res.status(404).json({ message: 'Reward not found' });
+      return res.status(404).json({ message: 'Reward not found or could not be updated' });
     }
     
     res.json(updatedReward);
