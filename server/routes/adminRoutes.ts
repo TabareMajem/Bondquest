@@ -149,8 +149,42 @@ router.patch('/subscriptions/:id', isAdmin, async (req, res) => {
 // Reward management endpoints
 router.get('/rewards', isAdmin, async (req, res) => {
   try {
-    const allRewards = await db.select().from(rewards);
-    res.json(allRewards);
+    // Only select columns that actually exist in the database
+    // Query the database using all available fields (based on actual db inspection)
+    const rewardsData = await db.select()
+      .from(rewards);
+    
+    // Map database fields to client-expected fields
+    const allRewards = rewardsData.map(reward => ({
+      id: reward.id,
+      name: reward.name,
+      description: reward.description,
+      type: reward.type,
+      value: reward.value,
+      code: reward.code,
+      imageUrl: reward.image_url,
+      availableFrom: reward.available_from,
+      availableTo: reward.available_to,
+      quantity: reward.quantity,
+      requiredTier: reward.required_tier,
+      active: reward.active,
+      createdAt: reward.created_at,
+      updatedAt: reward.updated_at
+    }));
+    
+    // Add missing fields with default values for client compatibility
+    const enhancedRewards = allRewards.map(reward => ({
+      ...reward,
+      locationRestricted: false,
+      eligibleLocations: [],
+      redemptionPeriodDays: 30,
+      redemptionInstructions: null,
+      provider: null,
+      shippingDetails: null,
+      terms: null
+    }));
+    
+    res.json(enhancedRewards);
   } catch (error) {
     console.error('Error fetching rewards:', error);
     res.status(500).json({ message: 'Failed to fetch rewards' });
@@ -215,9 +249,35 @@ router.patch('/rewards/:id', isAdmin, async (req, res) => {
       .where(eq(rewards.id, rewardId));
     
     // Fetch the updated reward
-    const [updatedReward] = await db.select()
+    const [rewardData] = await db.select()
       .from(rewards)
       .where(eq(rewards.id, rewardId));
+    
+    // Format it for client compatibility
+    const updatedReward = {
+      id: rewardData.id,
+      name: rewardData.name,
+      description: rewardData.description,
+      type: rewardData.type,
+      value: rewardData.value,
+      code: rewardData.code,
+      imageUrl: rewardData.image_url,
+      availableFrom: rewardData.available_from,
+      availableTo: rewardData.available_to,
+      quantity: rewardData.quantity,
+      requiredTier: rewardData.required_tier,
+      active: rewardData.active,
+      createdAt: rewardData.created_at,
+      updatedAt: rewardData.updated_at,
+      // Add missing fields for client compatibility
+      locationRestricted: false,
+      eligibleLocations: [],
+      redemptionPeriodDays: 30,
+      redemptionInstructions: null,
+      provider: null,
+      shippingDetails: null,
+      terms: null
+    };
     
     if (!updatedReward) {
       return res.status(404).json({ message: 'Reward not found' });
