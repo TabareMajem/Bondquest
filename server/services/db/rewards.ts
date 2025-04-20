@@ -78,31 +78,48 @@ export function mapDatabaseToClientReward(reward: DatabaseReward): ClientReward 
  * Get all rewards from the database
  */
 export async function getAllRewards(): Promise<ClientReward[]> {
-  // Get raw database data
-  const rewardsData = await db.execute(`
-    SELECT * FROM "rewards"
-  `);
-  
-  // Map each record to our DatabaseReward type with proper type casting
-  const typedRewards = rewardsData.rows.map(row => ({
-    id: Number(row.id),
-    name: String(row.name),
-    description: String(row.description),
-    type: String(row.type),
-    value: Number(row.value),
-    code: row.code === null ? null : String(row.code),
-    image_url: row.image_url === null ? null : String(row.image_url),
-    available_from: new Date(row.available_from),
-    available_to: new Date(row.available_to), 
-    quantity: Number(row.quantity),
-    required_tier: row.required_tier === null ? null : Number(row.required_tier),
-    active: Boolean(row.active),
-    created_at: new Date(row.created_at),
-    updated_at: new Date(row.updated_at)
-  })) as DatabaseReward[];
-  
-  // Map to client format
-  return typedRewards.map(mapDatabaseToClientReward);
+  try {
+    // Get raw database data directly using SQL
+    const result = await db.execute(`SELECT * FROM rewards`);
+    
+    if (!result || !result.rows) {
+      return [];
+    }
+    
+    const rewards: ClientReward[] = [];
+    
+    // Process each row manually
+    for (const row of result.rows) {
+      try {
+        const dbReward: DatabaseReward = {
+          id: Number(row.id),
+          name: String(row.name || ''),
+          description: String(row.description || ''),
+          type: String(row.type || ''),
+          value: Number(row.value || 0),
+          code: row.code === null ? null : String(row.code),
+          image_url: row.image_url === null ? null : String(row.image_url),
+          available_from: row.available_from ? new Date(row.available_from) : new Date(),
+          available_to: row.available_to ? new Date(row.available_to) : new Date(),
+          quantity: Number(row.quantity || 0),
+          required_tier: row.required_tier === null ? null : Number(row.required_tier),
+          active: Boolean(row.active),
+          created_at: row.created_at ? new Date(row.created_at) : new Date(),
+          updated_at: row.updated_at ? new Date(row.updated_at) : new Date()
+        };
+        
+        rewards.push(mapDatabaseToClientReward(dbReward));
+      } catch (error) {
+        console.error('Error processing reward row:', error);
+        // Continue with next row
+      }
+    }
+    
+    return rewards;
+  } catch (error) {
+    console.error('Error getting all rewards:', error);
+    return [];
+  }
 }
 
 /**
@@ -110,37 +127,35 @@ export async function getAllRewards(): Promise<ClientReward[]> {
  */
 export async function getRewardById(id: number): Promise<ClientReward | null> {
   try {
-    // Get raw database data
-    const result = await db.execute(`
-      SELECT * FROM "rewards" WHERE id = $1
-    `, [id]);
+    // Get raw database data using parameterized query
+    const result = await db.execute('SELECT * FROM rewards WHERE id = $1', [id]);
     
-    if (result.rowCount === 0) {
+    if (!result || !result.rows || result.rows.length === 0) {
       return null;
     }
     
     const row = result.rows[0];
     
-    // Map to DatabaseReward type
-    const rewardData: DatabaseReward = {
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      type: row.type,
-      value: row.value,
-      code: row.code,
-      image_url: row.image_url,
-      available_from: row.available_from,
-      available_to: row.available_to, 
-      quantity: row.quantity,
-      required_tier: row.required_tier,
-      active: row.active,
-      created_at: row.created_at,
-      updated_at: row.updated_at
+    // Map to DatabaseReward type with proper type casting
+    const dbReward: DatabaseReward = {
+      id: Number(row.id),
+      name: String(row.name || ''),
+      description: String(row.description || ''),
+      type: String(row.type || ''),
+      value: Number(row.value || 0),
+      code: row.code === null ? null : String(row.code),
+      image_url: row.image_url === null ? null : String(row.image_url),
+      available_from: row.available_from ? new Date(row.available_from) : new Date(),
+      available_to: row.available_to ? new Date(row.available_to) : new Date(),
+      quantity: Number(row.quantity || 0),
+      required_tier: row.required_tier === null ? null : Number(row.required_tier),
+      active: Boolean(row.active),
+      created_at: row.created_at ? new Date(row.created_at) : new Date(),
+      updated_at: row.updated_at ? new Date(row.updated_at) : new Date()
     };
     
     // Map to client format
-    return mapDatabaseToClientReward(rewardData);
+    return mapDatabaseToClientReward(dbReward);
   } catch (error) {
     console.error('Error getting reward by ID:', error);
     return null;
@@ -165,8 +180,8 @@ export async function createReward(data: {
 }): Promise<ClientReward | null> {
   try {
     // Use raw SQL to avoid schema mismatch issues
-    const result = await db.execute(`
-      INSERT INTO rewards (
+    const result = await db.execute(
+      `INSERT INTO rewards (
         name, 
         description, 
         type, 
@@ -182,49 +197,30 @@ export async function createReward(data: {
         updated_at
       ) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      RETURNING *
-    `, [
-      data.name,
-      data.description,
-      data.type,
-      data.value,
-      data.code || null,
-      data.imageUrl || null,
-      data.availableFrom,
-      data.availableTo,
-      data.quantity,
-      data.requiredTier || null,
-      data.active === undefined ? true : data.active,
-      new Date(),
-      new Date()
-    ]);
+      RETURNING *`,
+      [
+        data.name,
+        data.description,
+        data.type,
+        data.value,
+        data.code || null,
+        data.imageUrl || null,
+        data.availableFrom,
+        data.availableTo,
+        data.quantity,
+        data.requiredTier || null,
+        data.active === undefined ? true : data.active,
+        new Date(),
+        new Date()
+      ]
+    );
     
-    if (result.rowCount === 0) {
+    if (!result || !result.rows || result.rows.length === 0) {
       return null;
     }
     
-    const row = result.rows[0];
-    
-    // Map to DatabaseReward type
-    const rewardData: DatabaseReward = {
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      type: row.type,
-      value: row.value,
-      code: row.code,
-      image_url: row.image_url,
-      available_from: row.available_from,
-      available_to: row.available_to, 
-      quantity: row.quantity,
-      required_tier: row.required_tier,
-      active: row.active,
-      created_at: row.created_at,
-      updated_at: row.updated_at
-    };
-    
-    // Map to client format
-    return mapDatabaseToClientReward(rewardData);
+    // Get the created reward using our function
+    return await getRewardById(Number(result.rows[0].id));
   } catch (error) {
     console.error('Error creating reward:', error);
     return null;
@@ -320,18 +316,19 @@ export async function updateReward(
     }
     
     // Execute update query
-    const result = await db.execute(`
-      UPDATE rewards 
+    const result = await db.execute(
+      `UPDATE rewards 
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING *
-    `, values);
+      RETURNING *`,
+      values
+    );
     
-    if (result.rowCount === 0) {
+    if (!result || !result.rows || result.rows.length === 0) {
       return null;
     }
     
-    // Get the updated reward using our function that correctly maps fields
+    // Get the updated reward using our function
     return await getRewardById(id);
   } catch (error) {
     console.error('Error updating reward:', error);
@@ -344,11 +341,12 @@ export async function updateReward(
  */
 export async function deleteReward(id: number): Promise<boolean> {
   try {
-    const result = await db.delete(rewards)
-      .where(eq(rewards.id, id))
-      .returning({ id: rewards.id });
-      
-    return result.length > 0;
+    const result = await db.execute(
+      'DELETE FROM rewards WHERE id = $1 RETURNING id',
+      [id]
+    );
+    
+    return result && result.rows && result.rows.length > 0;
   } catch (error) {
     console.error('Error deleting reward:', error);
     return false;
