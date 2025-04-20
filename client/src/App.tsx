@@ -38,6 +38,8 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminQuizzes from "./pages/AdminQuizzes";
 import AdminRewards from "./pages/AdminRewards";
 import AdminRewardForm from "./pages/AdminRewardForm";
+import AdminAwardReward from "./pages/AdminAwardReward";
+import AdminCoupleRewardDetails from "./pages/AdminCoupleRewardDetails";
 import AdminCompetitions from "./pages/AdminCompetitions";
 import AdminCompetitionForm from "./pages/AdminCompetitionForm";
 import AdminSubscriptions from "./pages/AdminSubscriptions";
@@ -114,6 +116,8 @@ function Router() {
       <Route path="/admin/rewards" component={AdminRewards} />
       <Route path="/admin/rewards/new" component={AdminRewardForm} />
       <Route path="/admin/rewards/:id/edit" component={AdminRewardForm} />
+      <Route path="/admin/rewards/award" component={AdminAwardReward} />
+      <Route path="/admin/rewards/couple/:id" component={AdminCoupleRewardDetails} />
       
       {/* Admin Competition Management */}
       <Route path="/admin/competitions" component={AdminCompetitions} />
