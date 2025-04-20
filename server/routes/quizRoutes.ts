@@ -18,6 +18,10 @@ import { generateQuiz } from '../openai';
 
 const router = express.Router();
 
+// Import password utils for hashing - using ES modules syntax
+import { hashPassword } from '../auth/passwordUtils';
+import { sql } from 'drizzle-orm';
+
 // Authentication middleware with test user fallback
 async function isAuthenticated(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (req.isAuthenticated()) {
@@ -36,11 +40,10 @@ async function isAuthenticated(req: express.Request, res: express.Response, next
         // Create a test user if it doesn't exist
         console.log('Creating test user for development...');
         
-        // Import password utils for hashing
-        const { hashPassword } = require('../auth/passwordUtils');
+        // Hash password using imported function
         const hashedPassword = await hashPassword('password123');
         
-        // Insert test user
+        // Insert test user - ensure field names match schema
         [testUser] = await db.insert(users)
           .values({
             username: 'testuser',
@@ -57,6 +60,7 @@ async function isAuthenticated(req: express.Request, res: express.Response, next
       }
       
       // Check if test user is in a couple
+      // Use SQL instead of separate where clauses
       let [testCouple] = await db.select()
         .from(couples)
         .where(
@@ -70,11 +74,10 @@ async function isAuthenticated(req: express.Request, res: express.Response, next
           .where(eq(users.username, 'partner'));
         
         if (!partner) {
-          // Import password utils for hashing
-          const { hashPassword } = require('../auth/passwordUtils');
+          // Hash password using imported function
           const hashedPassword = await hashPassword('password123');
           
-          // Insert test partner
+          // Insert test partner - ensure field names match schema
           [partner] = await db.insert(users)
             .values({
               username: 'partner',

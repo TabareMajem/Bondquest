@@ -1,392 +1,245 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Question } from '@shared/schema';
 import { motion } from 'framer-motion';
-
-// Define shape types
-type ShapeType = 'heart' | 'star' | 'circle' | 'square';
-
-interface TapTarget {
-  id: string;
-  shape: ShapeType;
-  color: string;
-  position: { x: number; y: number };
-  size: number;
-  isActive: boolean;
-  timeToTap: number; // milliseconds
-}
 
 interface ReflexTapProps {
   question: Question;
   onAnswer: (answer: string, points: number) => void;
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard';
 }
 
 /**
- * ReflexTap is a reaction-time based game where users must quickly tap on
- * shapes that appear randomly on the screen.
+ * ReflexTap game where players must quickly tap targets as they appear.
+ * After tapping enough targets, they can choose their answer.
  */
 export default function ReflexTap({ 
   question, 
   onAnswer, 
-  difficulty = 'medium'
+  difficulty 
 }: ReflexTapProps) {
-  const [gameStarted, setGameStarted] = useState(false);
-  const [gameCompleted, setGameCompleted] = useState(false);
-  const [targets, setTargets] = useState<TapTarget[]>([]);
   const [score, setScore] = useState(0);
-  const [hitCount, setHitCount] = useState(0);
-  const [missCount, setMissCount] = useState(0);
-  const [totalTargets, setTotalTargets] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(15); // 15 second game
-  const [readyCountdown, setReadyCountdown] = useState(3); // countdown before game starts
-  const [averageReactionTime, setAverageReactionTime] = useState<number>(0);
-  const [reactionTimes, setReactionTimes] = useState<number[]>([]);
+  const [targets, setTargets] = useState<{ id: number, x: number, y: number, size: number }[]>([]);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameComplete, setGameComplete] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
   
-  // Determine game parameters based on difficulty
-  const getGameParams = () => {
+  // Parse options from question
+  const options = question.options || [];
+  
+  // Calculate target parameters based on difficulty
+  const getTargetParams = () => {
     switch (difficulty) {
       case 'easy':
-        return {
-          targetCount: 10,
-          minSize: 60,
-          maxSize: 80,
-          minTime: 1500, // milliseconds
-          maxTime: 2500
-        };
+        return { spawnRate: 1200, maxTargets: 3, targetSizeRange: [50, 70], scoreGoal: 5 };
       case 'hard':
-        return {
-          targetCount: 15,
-          minSize: 40,
-          maxSize: 60,
-          minTime: 800,
-          maxTime: 1500
-        };
-      default: // medium
-        return {
-          targetCount: 12,
-          minSize: 50,
-          maxSize: 70,
-          minTime: 1000,
-          maxTime: 2000
-        };
+        return { spawnRate: 700, maxTargets: 5, targetSizeRange: [30, 50], scoreGoal: 12 };
+      default: // 'medium'
+        return { spawnRate: 1000, maxTargets: 4, targetSizeRange: [40, 60], scoreGoal: 8 };
     }
   };
   
-  const { targetCount, minSize, maxSize, minTime, maxTime } = getGameParams();
+  const { spawnRate, maxTargets, targetSizeRange, scoreGoal } = getTargetParams();
   
-  // Initialize game on mount
-  useEffect(() => {
-    setTotalTargets(targetCount);
-  }, [targetCount]);
+  // Start game
+  const startGame = () => {
+    setGameStarted(true);
+    setScore(0);
+    setTargets([]);
+    setGameComplete(false);
+    setSelectedOption(null);
+  };
   
-  // Countdown before game starts
+  // Target spawning effect
   useEffect(() => {
-    if (readyCountdown > 0 && !gameStarted) {
-      const timer = setTimeout(() => {
-        setReadyCountdown(readyCountdown - 1);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    } else if (readyCountdown === 0 && !gameStarted) {
-      setGameStarted(true);
-    }
-  }, [readyCountdown, gameStarted]);
-  
-  // Game timer
-  useEffect(() => {
-    if (gameStarted && !gameCompleted && timeLeft > 0) {
-      const timer = setTimeout(() => {
-        setTimeLeft(prevTime => prevTime - 1);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !gameCompleted) {
-      endGame();
-    }
-  }, [gameStarted, gameCompleted, timeLeft]);
-  
-  // Create random targets throughout the game
-  useEffect(() => {
-    if (!gameStarted || gameCompleted) return;
+    if (!gameStarted || gameComplete) return;
     
-    // Generate a random shape
-    const generateTarget = () => {
-      const shapes: ShapeType[] = ['heart', 'star', 'circle', 'square'];
-      const colors = [
-        'rgb(239, 68, 68)', // red-500
-        'rgb(249, 115, 22)', // orange-500
-        'rgb(59, 130, 246)', // blue-500
-        'rgb(139, 92, 246)', // purple-500
-        'rgb(236, 72, 153)'  // pink-500
-      ];
+    const spawnTarget = () => {
+      if (targets.length >= maxTargets || gameComplete) return;
       
-      // Choose random properties
-      const shape = shapes[Math.floor(Math.random() * shapes.length)];
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const size = Math.floor(Math.random() * (maxSize - minSize)) + minSize;
-      const timeToTap = Math.floor(Math.random() * (maxTime - minTime)) + minTime;
+      const id = Date.now();
+      const x = Math.random() * 90; // % from left
+      const y = Math.random() * 70; // % from top
+      const sizeRange = targetSizeRange;
+      const size = Math.floor(Math.random() * (sizeRange[1] - sizeRange[0]) + sizeRange[0]);
       
-      // Calculate a random position that doesn't go off screen
-      // (taking into account the container size and shape size)
-      const maxX = 280 - size; // container width - shape size
-      const maxY = 280 - size; // container height - shape size
-      
-      const position = {
-        x: Math.floor(Math.random() * maxX),
-        y: Math.floor(Math.random() * maxY)
-      };
-      
-      return {
-        id: `target-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-        shape,
-        color,
-        position,
-        size,
-        isActive: true,
-        timeToTap
-      };
+      setTargets(prev => [...prev, { id, x, y, size }]);
     };
     
-    // Add a new target if we haven't reached the total and there are no active targets
-    if (targets.length === 0 && hitCount + missCount < totalTargets) {
-      setTargets([generateTarget()]);
-    }
-    
-    // Auto-remove targets that aren't tapped within their time limit
-    targets.forEach(target => {
-      if (target.isActive) {
-        const timer = setTimeout(() => {
-          setTargets(prevTargets => prevTargets.filter(t => t.id !== target.id));
-          setMissCount(prevCount => prevCount + 1);
-          
-          // Check if the game should end
-          if (hitCount + missCount + 1 >= totalTargets) {
-            endGame();
-          } else if (hitCount + missCount + 1 < totalTargets) {
-            // Add a new target after a short delay
-            setTimeout(() => {
-              setTargets([generateTarget()]);
-            }, 300);
-          }
-        }, target.timeToTap);
-        
-        return () => clearTimeout(timer);
-      }
-    });
-    
-  }, [targets, hitCount, missCount, totalTargets, gameStarted, gameCompleted, minSize, maxSize, minTime, maxTime]);
+    const interval = setInterval(spawnTarget, spawnRate);
+    return () => clearInterval(interval);
+  }, [gameStarted, targets, maxTargets, gameComplete, targetSizeRange, spawnRate]);
   
-  // Handle when a target is tapped
-  const handleTargetTap = useCallback((target: TapTarget) => {
-    // Calculate reaction time (max time to tap - time left)
-    const reactionTime = target.timeToTap / 1000; // convert to seconds
-    
-    // Add to reaction times array
-    setReactionTimes(prev => [...prev, reactionTime]);
-    
-    // Calculate new average
-    const newAverage = [...reactionTimes, reactionTime].reduce((a, b) => a + b, 0) / 
-                      ([...reactionTimes, reactionTime].length);
-    setAverageReactionTime(newAverage);
-    
-    // Calculate points inversely proportional to reaction time
-    // Faster reactions = more points (up to 10 points per target)
-    const maxPoints = 10;
-    const pointsEarned = Math.max(1, Math.floor(maxPoints * (1 - reactionTime / (target.timeToTap / 1000))));
-    
-    setScore(prev => prev + pointsEarned);
-    setHitCount(prev => prev + 1);
-    setTargets(prev => prev.filter(t => t.id !== target.id));
-    
-    // Check if the game should end
-    if (hitCount + 1 >= totalTargets) {
-      endGame();
-    } else {
-      // Add a new target after a short delay
-      setTimeout(() => {
-        const shapes: ShapeType[] = ['heart', 'star', 'circle', 'square'];
-        const colors = [
-          'rgb(239, 68, 68)', // red-500
-          'rgb(249, 115, 22)', // orange-500
-          'rgb(59, 130, 246)', // blue-500
-          'rgb(139, 92, 246)', // purple-500
-          'rgb(236, 72, 153)'  // pink-500
-        ];
-        
-        // Choose random properties
-        const shape = shapes[Math.floor(Math.random() * shapes.length)];
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const size = Math.floor(Math.random() * (maxSize - minSize)) + minSize;
-        const timeToTap = Math.floor(Math.random() * (maxTime - minTime)) + minTime;
-        
-        // Calculate a random position
-        const maxX = 280 - size; // container width - shape size
-        const maxY = 280 - size; // container height - shape size
-        
-        const position = {
-          x: Math.floor(Math.random() * maxX),
-          y: Math.floor(Math.random() * maxY)
-        };
-        
-        setTargets([{
-          id: `target-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-          shape,
-          color,
-          position,
-          size,
-          isActive: true,
-          timeToTap
-        }]);
-      }, 300);
+  // Check game completion
+  useEffect(() => {
+    if (score >= scoreGoal && !gameComplete) {
+      setGameComplete(true);
     }
-  }, [hitCount, totalTargets, minSize, maxSize, minTime, maxTime, reactionTimes]);
+  }, [score, scoreGoal, gameComplete]);
   
-  // End the game and submit results
-  const endGame = () => {
-    if (gameCompleted) return;
+  // Handle target tap
+  const handleTargetTap = (id: number) => {
+    if (gameComplete) return;
     
-    setGameCompleted(true);
+    // Remove target and add score
+    setTargets(prev => prev.filter(t => t.id !== id));
+    setScore(prev => prev + 1);
+  };
+  
+  // Handle answer selection
+  const handleOptionSelect = (option: string) => {
+    if (selectedOption) return;
     
-    // Calculate accuracy
-    const accuracy = hitCount / (hitCount + missCount);
-    const accuracyBonus = Math.floor(accuracy * 10); // Up to 10 points for accuracy
+    setSelectedOption(option);
+    setShowFeedback(true);
     
-    // Calculate final score
-    const finalScore = score + accuracyBonus;
+    // Calculate points based on score
+    const points = Math.min(150, 50 + score * 10);
     
-    // Wait a moment before showing results and passing back to parent
+    // Submit after showing feedback
     setTimeout(() => {
-      onAnswer(`reflex_tap: ${hitCount}/${totalTargets} hits, ${averageReactionTime.toFixed(2)}s avg`, finalScore);
-    }, 1000);
+      onAnswer(option, points);
+    }, 1500);
   };
-  
-  // Render different shape types
-  const renderShape = (type: ShapeType, color: string, size: number) => {
-    switch (type) {
-      case 'heart':
-        return (
-          <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-          </svg>
-        );
-      case 'star':
-        return (
-          <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-        );
-      case 'circle':
-        return (
-          <svg width={size} height={size} viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" fill={color} />
-          </svg>
-        );
-      case 'square':
-        return (
-          <svg width={size} height={size} viewBox="0 0 24 24">
-            <rect x="2" y="2" width="20" height="20" fill={color} />
-          </svg>
-        );
-    }
-  };
-  
-  // Render the countdown or game interface
-  if (!gameStarted) {
-    return (
-      <div className="quiz-game reflex-tap flex flex-col items-center justify-center">
-        <div className="mb-6 text-center">
-          <h2 className="text-xl font-bold mb-2">{question.text || "Reflex Tap Challenge"}</h2>
-          <p className="text-gray-500 text-sm">Tap shapes as they appear!</p>
-        </div>
-        
-        <div className="w-60 h-60 bg-gray-100 rounded-xl flex items-center justify-center">
-          <div className="text-6xl font-bold text-primary-600">
-            {readyCountdown > 0 ? readyCountdown : "GO!"}
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  if (gameCompleted) {
-    return (
-      <div className="quiz-game reflex-tap flex flex-col items-center justify-center">
-        <div className="mb-6 text-center">
-          <h2 className="text-xl font-bold mb-2">Challenge Complete!</h2>
-          <p className="text-gray-500 text-sm">You tapped {hitCount} of {totalTargets} targets</p>
-        </div>
-        
-        <div className="w-60 bg-white rounded-xl shadow-md p-4 mb-4">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-primary-600 mb-2">{score}</div>
-            <div className="text-sm text-gray-500">Points</div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="text-center">
-              <div className="text-lg font-semibold text-gray-700">
-                {averageReactionTime ? averageReactionTime.toFixed(2) : "0.00"}s
-              </div>
-              <div className="text-xs text-gray-500">Avg. Reaction</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold text-gray-700">
-                {hitCount && (hitCount + missCount) > 0 ? Math.round((hitCount / (hitCount + missCount)) * 100) : 0}%
-              </div>
-              <div className="text-xs text-gray-500">Accuracy</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
   
   return (
-    <div className="quiz-game reflex-tap">
-      <div className="mb-4 text-center">
-        <h2 className="text-xl font-bold mb-2">{question.text || "Reflex Tap Challenge"}</h2>
-        <p className="text-gray-500 text-sm">Tap shapes quickly for more points!</p>
-      </div>
-      
-      {/* Game stats */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-sm font-medium">
-          <span className="text-primary-600">{hitCount}</span>
-          <span className="text-gray-400"> / {totalTargets}</span>
-        </div>
-        <div className="text-sm font-medium">
-          <span className="text-gray-700">Time: {timeLeft}s</span>
-        </div>
-        <div className="text-sm font-medium">
-          <span className="text-primary-600">Score: {score}</span>
-        </div>
-      </div>
-      
-      {/* Game area */}
-      <div className="relative w-[300px] h-[300px] mx-auto bg-gray-50 rounded-xl border-2 border-gray-200 overflow-hidden">
-        {targets.map((target) => (
-          <motion.div
-            key={target.id}
-            className="absolute cursor-pointer"
-            style={{
-              left: target.position.x,
-              top: target.position.y,
-            }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => handleTargetTap(target)}
+    <div className="p-4 bg-white rounded-lg shadow-md">
+      {!gameStarted ? (
+        // Game instructions
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">{question.text}</h3>
+          <p className="text-gray-600 mb-6">
+            Quickly tap the targets as they appear! You need to hit {scoreGoal} targets to unlock the answers.
+          </p>
+          <button
+            className="px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+            onClick={startGame}
           >
-            {renderShape(target.shape, target.color, target.size)}
-          </motion.div>
-        ))}
-      </div>
+            Start Game
+          </button>
+        </div>
+      ) : gameComplete && !selectedOption ? (
+        // Answer selection
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">{question.text}</h3>
+          <div className="bg-green-100 rounded-lg p-3 mb-4 text-center">
+            <p className="text-green-700 font-medium">Great job! You hit {score} targets!</p>
+            <p className="text-green-700 text-sm">Now choose your answer:</p>
+          </div>
+          <div className="grid gap-3">
+            {options.map((option, index) => (
+              <motion.button
+                key={index}
+                className="p-3 rounded-lg text-left border border-gray-200 hover:bg-primary-50"
+                onClick={() => handleOptionSelect(option)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="font-medium">{option}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        // Game in progress
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center">
+              <span className="text-sm font-medium text-gray-700 mr-2">Score:</span>
+              <span className="bg-primary-100 text-primary-800 font-bold px-2 py-1 rounded">{score}/{scoreGoal}</span>
+            </div>
+            {!gameComplete && (
+              <button 
+                className="text-xs text-gray-500 hover:underline"
+                onClick={() => {
+                  setGameComplete(true);
+                  setScore(Math.max(0, scoreGoal - 5));
+                }}
+              >
+                Skip ({Math.max(0, scoreGoal - score)} more)
+              </button>
+            )}
+          </div>
+          
+          {/* Game area */}
+          <div className="relative h-64 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 mb-4">
+            {/* Targets */}
+            {targets.map(target => (
+              <motion.div
+                key={target.id}
+                className="absolute bg-primary-500 rounded-full flex items-center justify-center text-white font-bold cursor-pointer shadow-md"
+                style={{ 
+                  left: `${target.x}%`, 
+                  top: `${target.y}%`, 
+                  width: `${target.size}px`,
+                  height: `${target.size}px`,
+                }}
+                animate={{ 
+                  scale: [0.5, 1, 0.9, 1] 
+                }}
+                transition={{ duration: 0.5 }}
+                onClick={() => handleTargetTap(target.id)}
+                whileTap={{ scale: 0.8 }}
+              >
+                <span className="text-xs">+1</span>
+              </motion.div>
+            ))}
+            
+            {/* Completion message */}
+            {gameComplete && (
+              <motion.div 
+                className="absolute inset-0 flex items-center justify-center bg-primary-100 bg-opacity-80"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <div className="text-center p-4 rounded-lg bg-white shadow-lg">
+                  <p className="text-lg font-bold text-primary-700">Level Complete!</p>
+                  <p className="text-primary-600">Score: {score} targets</p>
+                  <p className="text-sm text-gray-600 mt-2">Now choose your answer</p>
+                </div>
+              </motion.div>
+            )}
+          </div>
+          
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">{question.text}</h3>
+          <p className="text-gray-500 text-sm mb-2">
+            Hit {scoreGoal - score > 0 ? scoreGoal - score : 0} more targets to unlock answers
+          </p>
+          
+          {/* Disabled options when game in progress */}
+          <div className="grid gap-2 opacity-50">
+            {options.map((option, index) => (
+              <div
+                key={index}
+                className="p-3 rounded-lg text-left border border-gray-200 bg-gray-50"
+              >
+                <span className="font-medium">{option}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
-      {/* Tips */}
-      <div className="mt-4 text-center text-xs text-gray-500">
-        <p>Faster taps = More points!</p>
-      </div>
+      {/* Feedback overlay */}
+      {showFeedback && (
+        <motion.div 
+          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <motion.div 
+            className="p-6 rounded-xl bg-green-100 border-2 border-green-500"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+          >
+            <div className="text-center">
+              <div className="text-3xl mb-2">🎯</div>
+              <p className="text-lg font-bold text-green-700">Nice Reflexes!</p>
+              <p className="text-green-700">Score: {score} | Answer: {selectedOption}</p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }
