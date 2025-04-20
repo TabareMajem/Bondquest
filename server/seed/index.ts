@@ -1,4 +1,5 @@
 import { seedQuizzes } from './quizSeed';
+import { seedMicroGameQuiz } from './microGameQuizSeed';
 
 /**
  * Main seed function that runs all seed operations
@@ -9,6 +10,9 @@ export async function runSeed() {
     
     // Run quiz seeding
     await seedQuizzes();
+    
+    // Run micro-game quiz seeding
+    await seedMicroGameQuiz();
     
     console.log('All seed operations completed successfully!');
     return true;

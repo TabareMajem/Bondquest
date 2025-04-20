@@ -56,7 +56,7 @@ export default function QuizSelector() {
   });
 
   const handleQuizSelect = (quizId: number) => {
-    navigate(`/quizzes/${quizId}`);
+    navigate(`/quiz-game/${quizId}`);
   };
   
   const handleRetry = () => {

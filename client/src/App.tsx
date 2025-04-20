@@ -94,6 +94,7 @@ function Router() {
       {/* Regular routes */}
       <Route path="/quizzes" component={QuizSelector} />
       <Route path="/quizzes/:id" component={QuizGame} />
+      <Route path="/quiz-game/:id" component={QuizGame} />
       <Route path="/ai-assistant" component={AIAssistant} />
       <Route path="/insights" component={Insights} />
       <Route path="/profile" component={Profile} />
