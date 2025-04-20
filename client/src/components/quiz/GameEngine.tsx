@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Question } from '@shared/schema';
-import SpeedQuiz from './games/SpeedQuiz';
-import DragAndDrop from './games/DragAndDrop';
-import MemoryMatch from './games/MemoryMatch';
-import ReflexTap from './games/ReflexTap';
+
+// Lazy load game components
+const SpeedQuiz = lazy(() => import('./games/SpeedQuiz'));
+const DragAndDrop = lazy(() => import('./games/DragAndDrop'));
+const MemoryMatch = lazy(() => import('./games/MemoryMatch'));
+const ReflexTap = lazy(() => import('./games/ReflexTap'));
 
 export type GameFormat = 'speed' | 'memory' | 'reflex' | 'drag' | 'standard';
 
@@ -143,7 +145,14 @@ export default function GameEngine({
       )}
       
       {/* Render the selected game */}
-      {renderGame()}
+      <Suspense fallback={
+        <div className="p-6 text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading game...</p>
+        </div>
+      }>
+        {renderGame()}
+      </Suspense>
     </div>
   );
 }

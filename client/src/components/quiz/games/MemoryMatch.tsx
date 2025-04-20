@@ -258,7 +258,7 @@ export default function MemoryMatch({
       </div>
       
       {/* CSS for card flip animations */}
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .card-flip {
           perspective: 1000px;
           transform-style: preserve-3d;
@@ -281,7 +281,7 @@ export default function MemoryMatch({
         .card-front {
           transform: rotateY(180deg);
         }
-      `}</style>
+      `}} />
     </div>
   );
 }
