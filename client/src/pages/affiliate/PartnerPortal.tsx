@@ -832,7 +832,7 @@ const PartnerPortal: React.FC = () => {
                                   onClick={() => handleCopyUrl(referral.referralUrl)}
                                   className="h-8 flex items-center gap-1"
                                 >
-                                  <Link size={14} />
+                                  <LinkIcon size={14} />
                                   Copy Link
                                 </Button>
                               </TableCell>

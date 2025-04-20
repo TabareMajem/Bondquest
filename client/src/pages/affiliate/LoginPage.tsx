@@ -1,116 +1,180 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { 
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
 import { useAffiliateAuth } from '@/hooks/use-affiliate-auth';
-import { Loader2, Mail, Key, LogIn } from 'lucide-react';
 
-const AffiliateLogin: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [, setLocation] = useLocation();
+// Form schema
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters')
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+const LoginPage = () => {
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const { partner, loginMutation } = useAffiliateAuth();
   
-  const { partner, isLoading, loginMutation } = useAffiliateAuth();
-
   // Redirect if already logged in
-  useEffect(() => {
-    if (partner) {
-      setLocation('/affiliate/portal');
-    }
-  }, [partner, setLocation]);
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    loginMutation.mutate({ email, password });
-  };
-  
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[80vh]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+  if (partner) {
+    navigate('/affiliate/portal');
+    return null;
   }
-  
+
+  // Form with validation
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: ''
+    }
+  });
+
+  // Form submission handler
+  const onSubmit = async (data: LoginFormValues) => {
+    loginMutation.mutate(data, {
+      onSuccess: () => {
+        toast({
+          title: 'Login successful',
+          description: 'Welcome to your affiliate partner dashboard',
+        });
+        navigate('/affiliate/portal');
+      }
+    });
+  };
+
   return (
-    <div className="container mx-auto flex justify-center items-center py-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Affiliate Partner Login</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your affiliate dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="partner@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
+    <div className="container flex items-center justify-center min-h-[80vh]">
+      <div className="w-full max-w-5xl grid md:grid-cols-2 gap-8">
+        {/* Form Column */}
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="text-2xl">Affiliate Partner Login</CardTitle>
+            <CardDescription>
+              Access your affiliate dashboard to manage promotions and track earnings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="you@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password">Password</Label>
-                <a href="#" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </a>
-              </div>
-              <div className="relative">
-                <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </div>
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={loginMutation.isPending}
-            >
-              {loginMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
-                </>
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
-                </>
-              )}
+                
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? 'Logging in...' : 'Log In'}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter className="flex flex-col items-start">
+            <p className="text-sm text-muted-foreground mb-2">
+              Not a partner yet? Contact us to join our affiliate program.
+            </p>
+            <Button variant="link" className="p-0" onClick={() => navigate('/')}>
+              Back to Home
             </Button>
-          </form>
-        </CardContent>
-        <CardFooter>
-          <div className="text-sm text-muted-foreground text-center w-full">
-            Not a partner yet?{" "}
-            <a href="#" className="text-primary hover:underline">
-              Apply for the affiliate program
-            </a>
+          </CardFooter>
+        </Card>
+        
+        {/* Hero Column */}
+        <div className="hidden md:flex flex-col justify-center p-6 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg text-white">
+          <h2 className="text-3xl font-bold mb-6">Grow with BondQuest</h2>
+          <div className="space-y-4">
+            <div className="flex items-start">
+              <div className="mr-4 text-2xl">💰</div>
+              <div>
+                <h3 className="font-semibold mb-1">Earn Commission</h3>
+                <p className="text-sm opacity-90">
+                  Get up to 30% commission on every subscription you refer
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="mr-4 text-2xl">🔍</div>
+              <div>
+                <h3 className="font-semibold mb-1">Track Performance</h3>
+                <p className="text-sm opacity-90">
+                  Get detailed analytics on clicks, conversions, and earnings
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="mr-4 text-2xl">🎯</div>
+              <div>
+                <h3 className="font-semibold mb-1">Custom Coupons</h3>
+                <p className="text-sm opacity-90">
+                  Create unique discount codes to increase conversion rates
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="mr-4 text-2xl">🔗</div>
+              <div>
+                <h3 className="font-semibold mb-1">Easy Sharing</h3>
+                <p className="text-sm opacity-90">
+                  Generate trackable links for your website, social media, or email campaigns
+                </p>
+              </div>
+            </div>
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default AffiliateLogin;
+export default LoginPage;

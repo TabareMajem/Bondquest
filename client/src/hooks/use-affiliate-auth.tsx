@@ -3,12 +3,11 @@ import {
   useQuery,
   useMutation,
   UseMutationResult,
-  useQueryClient
 } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// Types
+// AffiliatePartner type definition
 interface AffiliatePartner {
   id: number;
   name: string;
@@ -20,11 +19,13 @@ interface AffiliatePartner {
   website: string | null;
 }
 
+// Login credentials type
 type LoginData = {
   email: string;
   password: string;
 };
 
+// Auth context type definition
 type AffiliateAuthContextType = {
   partner: AffiliatePartner | null;
   isLoading: boolean;
@@ -33,55 +34,40 @@ type AffiliateAuthContextType = {
   logoutMutation: UseMutationResult<void, Error, void>;
 };
 
-const AffiliateAuthContext = createContext<AffiliateAuthContextType | null>(null);
+// Create context
+export const AffiliateAuthContext = createContext<AffiliateAuthContextType | null>(null);
 
+// Provider component
 export function AffiliateAuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Query current affiliate partner
+  
+  // Get current user data
   const {
     data: partner,
     error,
     isLoading,
-  } = useQuery<AffiliatePartner | null, Error>({
+  } = useQuery<AffiliatePartner | null>({
     queryKey: ['/api/affiliate/me'],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest('GET', '/api/affiliate/me');
-        
-        if (response.status === 401) {
-          return null;
-        }
-        
-        return await response.json();
-      } catch (error) {
-        return null;
-      }
-    },
+    queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest('POST', '/api/affiliate/login', credentials);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
+      const res = await apiRequest("POST", "/api/affiliate/login", credentials);
       return await res.json();
     },
     onSuccess: (data: AffiliatePartner) => {
       queryClient.setQueryData(['/api/affiliate/me'], data);
       toast({
-        title: "Success",
-        description: `Welcome back, ${data.name}!`,
+        title: "Login successful",
+        description: `Welcome back, ${data.name}`,
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Login failed",
-        description: error.message,
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     },
@@ -90,13 +76,13 @@ export function AffiliateAuthProvider({ children }: { children: ReactNode }) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('POST', '/api/affiliate/logout');
+      await apiRequest("POST", "/api/affiliate/logout");
     },
     onSuccess: () => {
       queryClient.setQueryData(['/api/affiliate/me'], null);
       toast({
         title: "Logged out",
-        description: "You have been successfully logged out.",
+        description: "You have been successfully logged out",
       });
     },
     onError: (error: Error) => {
@@ -111,7 +97,7 @@ export function AffiliateAuthProvider({ children }: { children: ReactNode }) {
   return (
     <AffiliateAuthContext.Provider
       value={{
-        partner,
+        partner: partner || null,
         isLoading,
         error,
         loginMutation,
@@ -123,6 +109,7 @@ export function AffiliateAuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Custom hook to use the auth context
 export function useAffiliateAuth() {
   const context = useContext(AffiliateAuthContext);
   if (!context) {
