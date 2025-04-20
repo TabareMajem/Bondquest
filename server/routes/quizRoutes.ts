@@ -18,11 +18,102 @@ import { generateQuiz } from '../openai';
 
 const router = express.Router();
 
-// Authentication middleware
-function isAuthenticated(req: express.Request, res: express.Response, next: express.NextFunction) {
+// Authentication middleware with test user fallback
+async function isAuthenticated(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (req.isAuthenticated()) {
     return next();
   }
+
+  // For development and testing purposes
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      // Check if we already have a test user
+      let [testUser] = await db.select()
+        .from(users)
+        .where(eq(users.username, 'testuser'));
+      
+      if (!testUser) {
+        // Create a test user if it doesn't exist
+        console.log('Creating test user for development...');
+        
+        // Import password utils for hashing
+        const { hashPassword } = require('../auth/passwordUtils');
+        const hashedPassword = await hashPassword('password123');
+        
+        // Insert test user
+        [testUser] = await db.insert(users)
+          .values({
+            username: 'testuser',
+            email: 'test@example.com',
+            password: hashedPassword,
+            displayName: 'Test User',
+            partnerCode: 'TEST123',
+            profilePicture: null,
+            role: 'user'
+          })
+          .returning();
+          
+        console.log('Test user created with ID:', testUser.id);
+      }
+      
+      // Check if test user is in a couple
+      let [testCouple] = await db.select()
+        .from(couples)
+        .where(
+          sql`(${couples.userId1} = ${testUser.id} OR ${couples.userId2} = ${testUser.id})`
+        );
+      
+      if (!testCouple) {
+        // Create a test partner
+        let [partner] = await db.select()
+          .from(users)
+          .where(eq(users.username, 'partner'));
+        
+        if (!partner) {
+          // Import password utils for hashing
+          const { hashPassword } = require('../auth/passwordUtils');
+          const hashedPassword = await hashPassword('password123');
+          
+          // Insert test partner
+          [partner] = await db.insert(users)
+            .values({
+              username: 'partner',
+              email: 'partner@example.com',
+              password: hashedPassword,
+              displayName: 'Partner User',
+              partnerCode: 'PARTNER123',
+              profilePicture: null,
+              role: 'user'
+            })
+            .returning();
+            
+          console.log('Test partner created with ID:', partner.id);
+        }
+        
+        // Create test couple
+        [testCouple] = await db.insert(couples)
+          .values({
+            userId1: testUser.id,
+            userId2: partner.id,
+            bondStrength: 75,
+            level: 2,
+            xp: 150
+          })
+          .returning();
+          
+        console.log('Test couple created with ID:', testCouple.id);
+      }
+      
+      // Manually set the user for this request
+      req.user = testUser;
+      return next();
+    } catch (error) {
+      console.error('Error creating test user:', error);
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  }
+  
+  // In production, just return unauthorized
   res.status(401).json({ message: 'Unauthorized' });
 }
 

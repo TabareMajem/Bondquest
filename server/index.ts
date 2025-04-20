@@ -8,6 +8,7 @@ import { nanoid } from "nanoid";
 import MemoryStore from "memorystore";
 import ConnectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
+import { runSeed } from "./seed";
 
 // Initialize Gemini API with environment variable if available
 if (process.env.GEMINI_API_KEY) {
@@ -89,6 +90,14 @@ app.use((req, res, next) => {
     console.log("Email service initialized successfully");
   } catch (error) {
     console.error("Failed to initialize email service:", error);
+  }
+  
+  // Run database seed operations
+  try {
+    await runSeed();
+    console.log("Database seed operations completed");
+  } catch (error) {
+    console.error("Failed to run seed operations:", error);
   }
   
   const server = await registerRoutes(app);
