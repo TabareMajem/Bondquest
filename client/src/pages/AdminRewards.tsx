@@ -79,58 +79,36 @@ export default function AdminRewards() {
     }
   }, [isAdmin, navigate]);
 
-  // Use direct API methods from client lib
-  // We'll import the API methods directly from our file
-  const { 
-    fetchRewards,
-    fetchCoupleRewards,
-    runRewardMaintenance
-  } = require('@/api/rewardsApi');
+  // Get hooks from useRewards
+  const {
+    useRewardsQuery,
+    useCoupleRewardsQuery,
+    useRunRewardMaintenanceMutation
+  } = useRewards();
 
-  // Fetch all rewards
+  // Use our custom hooks with proper typing
   const { 
-    data: rewards, 
+    data: rewards = [], 
     isLoading: isRewardsLoading, 
     isError: isRewardsError 
-  } = useQuery({
-    queryKey: ['/api/admin/rewards'],
-    queryFn: fetchRewards
-  });
+  } = useRewardsQuery();
 
-  // Fetch couple rewards with filters
+  // Use the custom hook with filters and proper typing
   const { 
-    data: coupleRewards, 
+    data: coupleRewards = [], 
     isLoading: isCoupleRewardsLoading, 
     isError: isCoupleRewardsError 
-  } = useQuery({
-    queryKey: ['/api/admin/couple-rewards', { status: statusFilter, location: locationFilter }],
-    queryFn: () => fetchCoupleRewards(
-      statusFilter || locationFilter 
-        ? { 
-            status: statusFilter || undefined, 
-            location: locationFilter || undefined 
-          } 
-        : undefined
-    )
-  });
+  } = useCoupleRewardsQuery(
+    statusFilter || locationFilter 
+      ? { 
+          status: statusFilter || undefined, 
+          location: locationFilter || undefined 
+        } 
+      : undefined
+  );
 
-  // Run maintenance mutation
-  const maintenanceMutation = useMutation({
-    mutationFn: runRewardMaintenance,
-    onSuccess: (data: any) => {
-      toast({
-        title: 'Maintenance Complete',
-        description: data.message || "Maintenance completed successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: `Failed to run maintenance: ${error.message || "Unknown error"}`,
-        variant: 'destructive',
-      });
-    }
-  });
+  // Use the maintenance mutation hook
+  const maintenanceMutation = useRunRewardMaintenanceMutation();
   
   const handleRunMaintenance = () => {
     if (window.confirm("Are you sure you want to run reward maintenance tasks? This will process expired rewards and send reminders.")) {
@@ -263,7 +241,15 @@ export default function AdminRewards() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rewards.map((reward) => (
+                    {rewards.map((reward: {
+                      id: number;
+                      name: string;
+                      type: string;
+                      quantity: number;
+                      active: boolean | null;
+                      locationRestricted: boolean | null;
+                      eligibleLocations?: string[];
+                    }) => (
                       <TableRow key={reward.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center">
@@ -425,7 +411,34 @@ export default function AdminRewards() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {coupleRewards.map((cr) => (
+                    {coupleRewards.map((cr: {
+                      id: number;
+                      status: string;
+                      awardedAt?: string;
+                      expiresAt?: string;
+                      reward?: {
+                        id: number;
+                        name: string;
+                        type: string;
+                      };
+                      couple?: {
+                        id: number;
+                        userId1: number;
+                        userId2: number;
+                        user1?: {
+                          id: number;
+                          username: string;
+                          email?: string;
+                          displayName?: string;
+                        };
+                        user2?: {
+                          id: number;
+                          username: string;
+                          email?: string;
+                          displayName?: string;
+                        };
+                      };
+                    }) => (
                       <TableRow key={cr.id}>
                         <TableCell className="font-medium">
                           {cr.reward ? (

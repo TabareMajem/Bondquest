@@ -22,6 +22,22 @@ import {
   runRewardMaintenance
 } from '@/api/rewardsApi';
 
+// Re-export the API functions for direct use
+export {
+  fetchRewards,
+  fetchRewardById,
+  createReward,
+  updateReward,
+  fetchCoupleRewards,
+  fetchCoupleRewardById,
+  awardReward,
+  sendRewardNotification,
+  markRewardAsShipped,
+  markRewardAsDelivered,
+  cancelReward,
+  runRewardMaintenance
+};
+
 // Types for enhanced reward with additional data
 interface EnhancedCoupleReward extends CoupleReward {
   reward?: Reward;
