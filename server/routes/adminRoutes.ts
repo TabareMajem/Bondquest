@@ -2,8 +2,9 @@ import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
 import { users, subscriptionTiers, rewards, quizSessions, userSubscriptions, couples as couplesTable, coupleRewards, competitions as competitionsTable } from '@shared/schema';
-import { eq, sql, desc } from 'drizzle-orm';
+import { eq, sql, desc, and, not, inArray } from 'drizzle-orm';
 import { db } from '../db';
+import * as rewardService from '../services/rewardService';
 
 const router = express.Router();
 

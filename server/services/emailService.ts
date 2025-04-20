@@ -201,3 +201,276 @@ export const getPartnerInvitationEmailTemplate = (
     </html>
   `;
 };
+
+/**
+ * Generate HTML email template for reward notification
+ */
+export const getRewardWinnerEmailTemplate = (
+  coupleNames: string,
+  rewardName: string,
+  rewardDescription: string,
+  rewardImageUrl: string,
+  redemptionCode: string,
+  redemptionUrl: string,
+  expirationDate: string,
+  competitionName?: string,
+  locationRestrictions?: string[]
+): string => {
+  const competitionSection = competitionName ? `
+    <p>Congratulations on your performance in the <strong>${competitionName}</strong> competition!</p>
+  ` : '';
+
+  const locationSection = locationRestrictions && locationRestrictions.length > 0 ? `
+    <div style="background-color: #fffde7; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffd600;">
+      <p style="margin-top: 0;"><strong>Location Restrictions:</strong> This reward is only available in the following locations:</p>
+      <ul style="margin-bottom: 0;">
+        ${locationRestrictions.map(location => `<li>${location}</li>`).join('')}
+      </ul>
+    </div>
+  ` : '';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>You've Won a Reward! - BondQuest</title>
+      <style>
+        body {
+          font-family: 'Arial', sans-serif;
+          line-height: 1.6;
+          color: #333;
+          background-color: #f9f9f9;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #9333ea, #7c3aed);
+          color: white;
+          padding: 25px;
+          text-align: center;
+          border-radius: 8px 8px 0 0;
+        }
+        .content {
+          background: white;
+          padding: 30px;
+          border-radius: 0 0 8px 8px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .button {
+          display: inline-block;
+          background: linear-gradient(135deg, #ec4899, #db2777);
+          color: white;
+          text-decoration: none;
+          padding: 14px 28px;
+          border-radius: 50px;
+          font-weight: bold;
+          margin: 20px 0;
+          font-size: 16px;
+        }
+        .reward-image {
+          width: 100%;
+          max-height: 250px;
+          object-fit: cover;
+          border-radius: 8px;
+          margin: 20px 0;
+        }
+        .code {
+          background-color: #f0f0f0;
+          padding: 12px;
+          border-radius: 5px;
+          font-family: monospace;
+          font-size: 18px;
+          letter-spacing: 1px;
+          text-align: center;
+          margin: 20px 0;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 20px;
+          color: #888;
+          font-size: 12px;
+        }
+        .reward-card {
+          border: 1px solid #e0e0e0;
+          border-radius: 10px;
+          overflow: hidden;
+          margin: 25px 0;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .reward-header {
+          background: linear-gradient(135deg, #4a148c, #7b1fa2);
+          padding: 15px;
+          color: white;
+        }
+        .reward-content {
+          padding: 20px;
+        }
+        .expiration {
+          background-color: #f8f9fa;
+          padding: 12px;
+          border-radius: 5px;
+          font-size: 14px;
+          text-align: center;
+          margin: 20px 0 0;
+          border-top: 1px solid #e0e0e0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Congratulations! 🎉</h1>
+        </div>
+        <div class="content">
+          <h2>You've Won a Reward!</h2>
+          <p>Hello <strong>${coupleNames}</strong>!</p>
+          
+          ${competitionSection}
+          
+          <p>We're excited to inform you that you've earned the following reward:</p>
+          
+          <div class="reward-card">
+            <div class="reward-header">
+              <h3 style="margin: 0;">${rewardName}</h3>
+            </div>
+            <div class="reward-content">
+              ${rewardImageUrl ? `<img src="${rewardImageUrl}" alt="${rewardName}" class="reward-image" />` : ''}
+              <p>${rewardDescription}</p>
+              
+              ${redemptionCode ? `
+                <p><strong>Your Redemption Code:</strong></p>
+                <div class="code">${redemptionCode}</div>
+              ` : ''}
+              
+              <div style="text-align: center; margin-top: 15px;">
+                <a href="${redemptionUrl}" class="button">Claim Your Reward</a>
+              </div>
+              
+              <div class="expiration">
+                <p style="margin: 0;"><strong>Expires:</strong> ${expirationDate}</p>
+              </div>
+            </div>
+          </div>
+          
+          ${locationSection}
+          
+          <p>Don't forget to claim your reward before it expires! Visit the Rewards section in your BondQuest app for more details.</p>
+          
+          <p>Thank you for being part of the BondQuest community!</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} BondQuest. All rights reserved.</p>
+          <p>This email was sent to you because you won a reward on BondQuest. If you think this was a mistake, please contact support.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+/**
+ * Generate HTML email template for reward reminder
+ */
+export const getRewardReminderEmailTemplate = (
+  coupleNames: string,
+  rewardName: string,
+  expirationDate: string,
+  daysLeft: number,
+  redemptionUrl: string
+): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Reminder: Your Reward Expires Soon - BondQuest</title>
+      <style>
+        body {
+          font-family: 'Arial', sans-serif;
+          line-height: 1.6;
+          color: #333;
+          background-color: #f9f9f9;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #9333ea, #7c3aed);
+          color: white;
+          padding: 20px;
+          text-align: center;
+          border-radius: 8px 8px 0 0;
+        }
+        .content {
+          background: white;
+          padding: 30px;
+          border-radius: 0 0 8px 8px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .button {
+          display: inline-block;
+          background: linear-gradient(135deg, #ec4899, #db2777);
+          color: white;
+          text-decoration: none;
+          padding: 12px 25px;
+          border-radius: 50px;
+          font-weight: bold;
+          margin: 20px 0;
+        }
+        .warning {
+          background-color: #fef9c3;
+          border-left: 4px solid #eab308;
+          padding: 15px;
+          margin: 20px 0;
+          border-radius: 4px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 20px;
+          color: #888;
+          font-size: 12px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Reminder: Your Reward</h1>
+        </div>
+        <div class="content">
+          <h2>Don't Miss Out!</h2>
+          <p>Hello <strong>${coupleNames}</strong>,</p>
+          
+          <div class="warning">
+            <p><strong>Time is running out!</strong> Your reward "${rewardName}" expires in <strong>${daysLeft} day${daysLeft !== 1 ? 's' : ''}</strong> (${expirationDate}).</p>
+          </div>
+          
+          <p>We noticed you haven't claimed your reward yet. Don't miss this opportunity!</p>
+          
+          <div style="text-align: center;">
+            <a href="${redemptionUrl}" class="button">Claim Now</a>
+          </div>
+          
+          <p>If you have any questions about redeeming your reward, please contact our support team.</p>
+          
+          <p>Thanks for being part of BondQuest!</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} BondQuest. All rights reserved.</p>
+          <p>This email was sent to you because you have an unclaimed reward. If you've already claimed your reward, please disregard this message.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
