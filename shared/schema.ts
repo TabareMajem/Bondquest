@@ -635,3 +635,151 @@ export type InsertBondInsight = z.infer<typeof insertBondInsightSchema>;
 
 export type BondQuestion = typeof bondQuestions.$inferSelect;
 export type InsertBondQuestion = z.infer<typeof insertBondQuestionSchema>;
+
+// ==== Affiliate Program Models ====
+
+// Affiliate Partner Model
+export const affiliatePartners = pgTable("affiliate_partners", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  companyName: text("company_name").notNull(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  status: text("status").notNull().default("pending"), // "pending", "active", "suspended", "terminated"
+  website: text("website"),
+  logoUrl: text("logo_url"),
+  description: text("description"),
+  commissionRate: decimal("commission_rate", { precision: 10, scale: 2 }).notNull().default("10.00"),
+  paymentDetails: json("payment_details").$type<{
+    paymentMethod: string;
+    accountName?: string;
+    accountNumber?: string;
+    bankName?: string;
+    paypalEmail?: string;
+    taxId?: string;
+  }>(),
+  termsAccepted: boolean("terms_accepted").notNull().default(false),
+  notes: text("notes"),
+  approvedBy: integer("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Affiliate Coupon Model
+export const affiliateCoupons = pgTable("affiliate_coupons", {
+  id: serial("id").primaryKey(),
+  partnerId: integer("partner_id").notNull().references(() => affiliatePartners.id),
+  code: text("code").notNull().unique(),
+  type: text("type").notNull(), // "percentage", "fixed", "free_trial"
+  value: decimal("value", { precision: 10, scale: 2 }).notNull(),
+  tierId: integer("tier_id").references(() => subscriptionTiers.id),
+  description: text("description"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  maxUses: integer("max_uses"),
+  currentUses: integer("current_uses").notNull().default(0),
+  maxUsesPerUser: integer("max_uses_per_user").default(1),
+  minPurchaseAmount: decimal("min_purchase_amount", { precision: 10, scale: 2 }),
+  isActive: boolean("is_active").notNull().default(true),
+  termsAndConditions: text("terms_and_conditions"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Affiliate Referral Model
+export const affiliateReferrals = pgTable("affiliate_referrals", {
+  id: serial("id").primaryKey(),
+  partnerId: integer("partner_id").notNull().references(() => affiliatePartners.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  couponId: integer("coupon_id").references(() => affiliateCoupons.id),
+  referralCode: text("referral_code").notNull(),
+  referralUrl: text("referral_url").notNull(),
+  clickCount: integer("click_count").notNull().default(0),
+  conversionCount: integer("conversion_count").notNull().default(0),
+  status: text("status").notNull().default("active"), // "active", "inactive"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Affiliate Transaction Model
+export const affiliateTransactions = pgTable("affiliate_transactions", {
+  id: serial("id").primaryKey(),
+  partnerId: integer("partner_id").notNull().references(() => affiliatePartners.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  referralId: integer("referral_id").references(() => affiliateReferrals.id),
+  couponId: integer("coupon_id").references(() => affiliateCoupons.id),
+  subscriptionId: integer("subscription_id").notNull().references(() => userSubscriptions.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USD"),
+  status: text("status").notNull(), // "pending", "approved", "paid", "rejected", "refunded"
+  paymentDate: timestamp("payment_date"),
+  notes: text("notes"),
+  transactionType: text("transaction_type").notNull(), // "new_subscription", "renewal", "upgrade", "refund"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Affiliate Payment Model
+export const affiliatePayments = pgTable("affiliate_payments", {
+  id: serial("id").primaryKey(),
+  partnerId: integer("partner_id").notNull().references(() => affiliatePartners.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USD"),
+  paymentMethod: text("payment_method").notNull(), // "bank_transfer", "paypal", "check"
+  status: text("status").notNull(), // "pending", "processing", "completed", "failed"
+  paymentDate: timestamp("payment_date"),
+  reference: text("reference"), // Payment reference number
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  transactions: json("transactions").$type<number[]>(), // IDs of transactions included in this payment
+});
+
+// Insert schemas for Affiliate program
+export const insertAffiliatePartnerSchema = createInsertSchema(affiliatePartners).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true, 
+  approvedAt: true 
+});
+
+export const insertAffiliateCouponSchema = createInsertSchema(affiliateCoupons).omit({ 
+  id: true, 
+  currentUses: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const insertAffiliateReferralSchema = createInsertSchema(affiliateReferrals).omit({ 
+  id: true, 
+  clickCount: true, 
+  conversionCount: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const insertAffiliateTransactionSchema = createInsertSchema(affiliateTransactions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertAffiliatePaymentSchema = createInsertSchema(affiliatePayments).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+// Types for Affiliate Program
+export type AffiliatePartner = typeof affiliatePartners.$inferSelect;
+export type InsertAffiliatePartner = z.infer<typeof insertAffiliatePartnerSchema>;
+
+export type AffiliateCoupon = typeof affiliateCoupons.$inferSelect;
+export type InsertAffiliateCoupon = z.infer<typeof insertAffiliateCouponSchema>;
+
+export type AffiliateReferral = typeof affiliateReferrals.$inferSelect;
+export type InsertAffiliateReferral = z.infer<typeof insertAffiliateReferralSchema>;
+
+export type AffiliateTransaction = typeof affiliateTransactions.$inferSelect;
+export type InsertAffiliateTransaction = z.infer<typeof insertAffiliateTransactionSchema>;
+
+export type AffiliatePayment = typeof affiliatePayments.$inferSelect;
+export type InsertAffiliatePayment = z.infer<typeof insertAffiliatePaymentSchema>;

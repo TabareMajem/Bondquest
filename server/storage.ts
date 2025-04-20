@@ -3,6 +3,7 @@ import {
   subscriptionTiers, userSubscriptions, rewards, competitions, competitionRewards, competitionEntries, coupleRewards,
   userProfiles, profileQuestions, userResponses, partnerQuizQuestions, partnerQuizResponses,
   bondAssessments, bondInsights, bondQuestions, userPreferences,
+  affiliatePartners, affiliateCoupons, affiliateReferrals, affiliateTransactions, affiliatePayments,
   type User, type InsertUser, type Couple, type InsertCouple, type Quiz, type InsertQuiz, 
   type Question, type InsertQuestion, type QuizSession, type InsertQuizSession, 
   type DailyCheckIn, type InsertDailyCheckIn, type Achievement, type InsertAchievement,
@@ -15,7 +16,10 @@ import {
   type UserResponse, type InsertUserResponse, type PartnerQuizQuestion, type InsertPartnerQuizQuestion,
   type PartnerQuizResponse, type InsertPartnerQuizResponse,
   type BondAssessment, type InsertBondAssessment, type BondInsight, type InsertBondInsight,
-  type BondQuestion, type InsertBondQuestion, type UserPreferences, type InsertUserPreferences
+  type BondQuestion, type InsertBondQuestion, type UserPreferences, type InsertUserPreferences,
+  type AffiliatePartner, type InsertAffiliatePartner, type AffiliateCoupon, type InsertAffiliateCoupon,
+  type AffiliateReferral, type InsertAffiliateReferral, type AffiliateTransaction, type InsertAffiliateTransaction,
+  type AffiliatePayment, type InsertAffiliatePayment
 } from "@shared/schema";
 import { bondDimensions } from "@shared/bondDimensions";
 import { nanoid } from "nanoid";
@@ -150,6 +154,44 @@ export interface IStorage {
   createBondInsight(insight: InsertBondInsight): Promise<BondInsight>;
   updateBondInsightViewed(id: number, viewed: boolean): Promise<BondInsight | undefined>;
   updateBondInsightCompleted(id: number, completed: boolean): Promise<BondInsight | undefined>;
+  
+  // Affiliate Partner Methods
+  getAffiliatePartners(status?: string): Promise<AffiliatePartner[]>;
+  getAffiliatePartner(id: number): Promise<AffiliatePartner | undefined>;
+  getAffiliatePartnerByEmail(email: string): Promise<AffiliatePartner | undefined>;
+  createAffiliatePartner(partner: InsertAffiliatePartner): Promise<AffiliatePartner>;
+  updateAffiliatePartner(id: number, updates: Partial<AffiliatePartner>): Promise<AffiliatePartner | undefined>;
+  approveAffiliatePartner(id: number, approvedBy: number): Promise<AffiliatePartner | undefined>;
+  
+  // Affiliate Coupon Methods
+  getAffiliateCoupons(partnerId?: number, isActive?: boolean): Promise<AffiliateCoupon[]>;
+  getAffiliateCoupon(id: number): Promise<AffiliateCoupon | undefined>;
+  getAffiliateCouponByCode(code: string): Promise<AffiliateCoupon | undefined>;
+  createAffiliateCoupon(coupon: InsertAffiliateCoupon): Promise<AffiliateCoupon>;
+  updateAffiliateCoupon(id: number, updates: Partial<AffiliateCoupon>): Promise<AffiliateCoupon | undefined>;
+  incrementCouponUses(id: number): Promise<AffiliateCoupon | undefined>;
+  
+  // Affiliate Referral Methods
+  getAffiliateReferrals(partnerId: number): Promise<AffiliateReferral[]>;
+  getAffiliateReferral(id: number): Promise<AffiliateReferral | undefined>;
+  getAffiliateReferralByCode(code: string): Promise<AffiliateReferral | undefined>;
+  createAffiliateReferral(referral: InsertAffiliateReferral): Promise<AffiliateReferral>;
+  updateAffiliateReferral(id: number, updates: Partial<AffiliateReferral>): Promise<AffiliateReferral | undefined>;
+  incrementReferralClick(id: number): Promise<AffiliateReferral | undefined>;
+  incrementReferralConversion(id: number): Promise<AffiliateReferral | undefined>;
+  
+  // Affiliate Transaction Methods
+  getAffiliateTransactions(partnerId: number): Promise<AffiliateTransaction[]>;
+  getAffiliateTransaction(id: number): Promise<AffiliateTransaction | undefined>;
+  getAffiliateTransactionsByUser(userId: number): Promise<AffiliateTransaction[]>;
+  createAffiliateTransaction(transaction: InsertAffiliateTransaction): Promise<AffiliateTransaction>;
+  updateAffiliateTransactionStatus(id: number, status: string): Promise<AffiliateTransaction | undefined>;
+  
+  // Affiliate Payment Methods
+  getAffiliatePayments(partnerId: number): Promise<AffiliatePayment[]>;
+  getAffiliatePayment(id: number): Promise<AffiliatePayment | undefined>;
+  createAffiliatePayment(payment: InsertAffiliatePayment): Promise<AffiliatePayment>;
+  updateAffiliatePaymentStatus(id: number, status: string, reference?: string): Promise<AffiliatePayment | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -178,6 +220,11 @@ export class MemStorage implements IStorage {
   private bondAssessments: Map<number, BondAssessment>;
   private bondInsights: Map<number, BondInsight>;
   private userPreferences: Map<number, UserPreferences>;
+  private affiliatePartners: Map<number, AffiliatePartner>;
+  private affiliateCoupons: Map<number, AffiliateCoupon>;
+  private affiliateReferrals: Map<number, AffiliateReferral>;
+  private affiliateTransactions: Map<number, AffiliateTransaction>;
+  private affiliatePayments: Map<number, AffiliatePayment>;
   
   private userId: number = 1;
   private coupleId: number = 1;
@@ -204,6 +251,11 @@ export class MemStorage implements IStorage {
   private bondAssessmentId: number = 1;
   private bondInsightId: number = 1;
   private userPreferencesId: number = 1;
+  private affiliatePartnerId: number = 1;
+  private affiliateCouponId: number = 1;
+  private affiliateReferralId: number = 1;
+  private affiliateTransactionId: number = 1;
+  private affiliatePaymentId: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -231,6 +283,11 @@ export class MemStorage implements IStorage {
     this.bondAssessments = new Map();
     this.bondInsights = new Map();
     this.userPreferences = new Map();
+    this.affiliatePartners = new Map();
+    this.affiliateCoupons = new Map();
+    this.affiliateReferrals = new Map();
+    this.affiliateTransactions = new Map();
+    this.affiliatePayments = new Map();
     
     // Initialize with sample quizzes and questions
     this.initializeSampleData();
