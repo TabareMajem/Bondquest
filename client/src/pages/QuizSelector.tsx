@@ -6,6 +6,9 @@ import QuizCard from "../components/quiz/QuizCard";
 import { useAuth } from "../contexts/AuthContext";
 import { Quiz } from "@shared/schema";
 import PageLayout from "../components/layout/PageLayout";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { getQueryFn } from "@/lib/queryClient";
 
 const CATEGORIES = [
   { id: "couple_vs_couple", name: "Couple vs. Couple" },
@@ -16,8 +19,9 @@ const CATEGORIES = [
 
 export default function QuizSelector() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const { user, couple, createMockCouple } = useAuth();
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0].id);
+  const [authError, setAuthError] = useState(false);
 
   // Redirect to onboarding if no user is logged in
   useEffect(() => {
@@ -26,12 +30,38 @@ export default function QuizSelector() {
     }
   }, [user, navigate]);
 
-  const { data: quizzes, isLoading, error } = useQuery<Quiz[]>({
+  // Handle case where user is logged in but doesn't have a couple
+  useEffect(() => {
+    if (user && !couple && !authError) {
+      // Create a mock couple for testing if needed
+      console.log("No couple found, creating mock couple for testing");
+      createMockCouple();
+    }
+  }, [user, couple, createMockCouple, authError]);
+
+  // Use a more permissive query pattern that won't throw on 401
+  const { data: quizzes, isLoading, error, refetch } = useQuery<Quiz[]>({
     queryKey: [activeCategory ? `/api/quizzes/category/${activeCategory}` : "/api/quizzes"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!user && !!couple,
+    retry: 1,
+    onSuccess: () => {
+      setAuthError(false);
+    },
+    onSettled: (_, error) => {
+      if (error) {
+        setAuthError(true);
+      }
+    }
   });
 
   const handleQuizSelect = (quizId: number) => {
     navigate(`/quizzes/${quizId}`);
+  };
+  
+  const handleRetry = () => {
+    setAuthError(false);
+    refetch();
   };
 
   return (
@@ -69,10 +99,27 @@ export default function QuizSelector() {
               <div key={i} className="rounded-2xl p-5 shadow-lg bg-purple-300/40 animate-pulse h-32 mb-4 lg:mb-0"></div>
             ))}
           </>
-        ) : error ? (
-          // Error state
-          <div className="bg-red-50 text-red-500 p-4 rounded-lg col-span-full">
-            Failed to load quizzes
+        ) : error || authError ? (
+          // Error state with retry option
+          <div className="bg-red-50 text-red-500 p-6 rounded-lg col-span-full flex flex-col items-center">
+            <AlertCircle className="h-12 w-12 mb-3 text-red-500" />
+            <h3 className="text-lg font-semibold mb-2">Failed to load quizzes</h3>
+            <p className="text-sm text-red-700 mb-4 text-center">
+              There was a problem loading the quizzes. This could be due to an authentication issue.
+            </p>
+            <Button 
+              onClick={handleRetry} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Retrying...
+                </>
+              ) : (
+                'Try Again'
+              )}
+            </Button>
           </div>
         ) : (
           // Quiz cards - Grid layout adapts to screen size
