@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Question } from '@shared/schema';
 import { motion } from 'framer-motion';
+import { Timer, Zap, Flame } from 'lucide-react';
 
 interface ReflexTapProps {
   question: Question;
@@ -9,107 +10,209 @@ interface ReflexTapProps {
 }
 
 /**
- * ReflexTap game where players must quickly tap targets as they appear.
- * After tapping enough targets, they can choose their answer.
+ * ReflexTap game where players must tap targets as they appear
+ * Points are awarded based on reaction speed
  */
 export default function ReflexTap({ 
   question, 
   onAnswer, 
   difficulty 
 }: ReflexTapProps) {
-  const [score, setScore] = useState(0);
-  const [targets, setTargets] = useState<{ id: number, x: number, y: number, size: number }[]>([]);
-  const [gameStarted, setGameStarted] = useState(false);
+  const [gameActive, setGameActive] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [targets, setTargets] = useState<{id: number, x: number, y: number, size: number, hit: boolean}[]>([]);
+  const [score, setScore] = useState(0);
+  const [targetsHit, setTargetsHit] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const targetGeneratorRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Parse options from question
-  const options = question.options || [];
-  
-  // Calculate target parameters based on difficulty
-  const getTargetParams = () => {
-    switch (difficulty) {
+  // Configure game based on difficulty
+  const getGameConfig = () => {
+    switch(difficulty) {
       case 'easy':
-        return { spawnRate: 1200, maxTargets: 3, targetSizeRange: [50, 70], scoreGoal: 5 };
+        return { 
+          gameDuration: 15, 
+          targetCount: 8,
+          minSize: 60,
+          maxSize: 100,
+          minInterval: 1000,
+          maxInterval: 2000,
+          basePoints: 150
+        };
       case 'hard':
-        return { spawnRate: 700, maxTargets: 5, targetSizeRange: [30, 50], scoreGoal: 12 };
-      default: // 'medium'
-        return { spawnRate: 1000, maxTargets: 4, targetSizeRange: [40, 60], scoreGoal: 8 };
+        return { 
+          gameDuration: 10, 
+          targetCount: 12,
+          minSize: 40,
+          maxSize: 70,
+          minInterval: 500,
+          maxInterval: 1200,
+          basePoints: 200
+        };
+      default: // medium
+        return { 
+          gameDuration: 12, 
+          targetCount: 10,
+          minSize: 50,
+          maxSize: 80,
+          minInterval: 700,
+          maxInterval: 1500,
+          basePoints: 175
+        };
     }
   };
   
-  const { spawnRate, maxTargets, targetSizeRange, scoreGoal } = getTargetParams();
+  const config = getGameConfig();
   
-  // Start game
+  // Start the game
   const startGame = () => {
-    setGameStarted(true);
-    setScore(0);
-    setTargets([]);
+    setGameActive(true);
     setGameComplete(false);
     setSelectedOption(null);
+    setShowFeedback(false);
+    setTargets([]);
+    setScore(0);
+    setTargetsHit(0);
+    setTimeRemaining(config.gameDuration);
+    
+    // Start the countdown timer
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          // Time's up, end the game
+          endGame();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Generate targets at random intervals
+    scheduleNextTarget();
   };
   
-  // Target spawning effect
-  useEffect(() => {
-    if (!gameStarted || gameComplete) return;
+  // Schedule the next target to appear
+  const scheduleNextTarget = () => {
+    const { minInterval, maxInterval } = config;
+    const randomDelay = Math.floor(Math.random() * (maxInterval - minInterval) + minInterval);
     
-    const spawnTarget = () => {
-      if (targets.length >= maxTargets || gameComplete) return;
-      
-      const id = Date.now();
-      const x = Math.random() * 90; // % from left
-      const y = Math.random() * 70; // % from top
-      const sizeRange = targetSizeRange;
-      const size = Math.floor(Math.random() * (sizeRange[1] - sizeRange[0]) + sizeRange[0]);
-      
-      setTargets(prev => [...prev, { id, x, y, size }]);
-    };
-    
-    const interval = setInterval(spawnTarget, spawnRate);
-    return () => clearInterval(interval);
-  }, [gameStarted, targets, maxTargets, gameComplete, targetSizeRange, spawnRate]);
+    targetGeneratorRef.current = setTimeout(() => {
+      if (targetsHit < config.targetCount) {
+        generateTarget();
+        scheduleNextTarget();
+      }
+    }, randomDelay);
+  };
   
-  // Check game completion
-  useEffect(() => {
-    if (score >= scoreGoal && !gameComplete) {
-      setGameComplete(true);
+  // Generate a random target
+  const generateTarget = () => {
+    if (!containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const { minSize, maxSize } = config;
+    
+    // Random size within the range
+    const size = Math.floor(Math.random() * (maxSize - minSize) + minSize);
+    
+    // Random position (ensuring the target is fully visible)
+    const x = Math.floor(Math.random() * (containerRect.width - size));
+    const y = Math.floor(Math.random() * (containerRect.height - size));
+    
+    // Add the new target
+    setTargets(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        x,
+        y,
+        size,
+        hit: false
+      }
+    ]);
+  };
+  
+  // Handle target hit
+  const hitTarget = (id: number) => {
+    // Mark the target as hit
+    setTargets(prev => 
+      prev.map(target => 
+        target.id === id ? { ...target, hit: true } : target
+      )
+    );
+    
+    // Increment hit counter
+    setTargetsHit(prev => {
+      const newCount = prev + 1;
+      
+      // Complete the game if all targets hit
+      if (newCount >= config.targetCount) {
+        endGame();
+      }
+      
+      return newCount;
+    });
+    
+    // Add to score - quicker hits earn more points
+    setScore(prev => prev + 10);
+  };
+  
+  // End the game
+  const endGame = () => {
+    // Clear all timers
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
-  }, [score, scoreGoal, gameComplete]);
-  
-  // Handle target tap
-  const handleTargetTap = (id: number) => {
-    if (gameComplete) return;
     
-    // Remove target and add score
-    setTargets(prev => prev.filter(t => t.id !== id));
-    setScore(prev => prev + 1);
+    if (targetGeneratorRef.current) {
+      clearTimeout(targetGeneratorRef.current);
+      targetGeneratorRef.current = null;
+    }
+    
+    // Mark game as complete
+    setGameActive(false);
+    setGameComplete(true);
   };
   
-  // Handle answer selection
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (targetGeneratorRef.current) clearTimeout(targetGeneratorRef.current);
+    };
+  }, []);
+  
+  // Handle final answer selection
   const handleOptionSelect = (option: string) => {
     if (selectedOption) return;
     
     setSelectedOption(option);
     setShowFeedback(true);
     
-    // Calculate points based on score
-    const points = Math.min(150, 50 + score * 10);
+    // Calculate points based on targets hit and speed
+    const accuracy = targetsHit / config.targetCount;
+    const speedBonus = score;
+    const finalPoints = Math.round(config.basePoints * accuracy + speedBonus);
     
     // Submit after showing feedback
     setTimeout(() => {
-      onAnswer(option, points);
+      onAnswer(option, finalPoints);
     }, 1500);
   };
   
   return (
     <div className="p-4 bg-white rounded-lg shadow-md">
-      {!gameStarted ? (
+      <h3 className="text-lg font-semibold text-gray-800 mb-2">{question.text}</h3>
+      
+      {!gameActive && !gameComplete ? (
         // Game instructions
         <div className="text-center">
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">{question.text}</h3>
           <p className="text-gray-600 mb-6">
-            Quickly tap the targets as they appear! You need to hit {scoreGoal} targets to unlock the answers.
+            Tap all targets as quickly as possible. You'll have {config.gameDuration} seconds to hit {config.targetCount} targets.
           </p>
           <button
             className="px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
@@ -118,16 +221,74 @@ export default function ReflexTap({
             Start Game
           </button>
         </div>
-      ) : gameComplete && !selectedOption ? (
-        // Answer selection
+      ) : gameActive ? (
+        // Active game
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">{question.text}</h3>
-          <div className="bg-green-100 rounded-lg p-3 mb-4 text-center">
-            <p className="text-green-700 font-medium">Great job! You hit {score} targets!</p>
-            <p className="text-green-700 text-sm">Now choose your answer:</p>
+          {/* Game stats bar */}
+          <div className="flex justify-between items-center mb-4 text-sm">
+            <div className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded">
+              <Zap className="h-4 w-4 text-blue-600" />
+              <span className="font-medium">{targetsHit}/{config.targetCount}</span>
+            </div>
+            
+            <div className="flex items-center gap-1 bg-amber-100 px-2 py-1 rounded">
+              <Timer className="h-4 w-4 text-amber-600" />
+              <span className="font-medium">{timeRemaining}s</span>
+            </div>
+            
+            <div className="flex items-center gap-1 bg-purple-100 px-2 py-1 rounded">
+              <Flame className="h-4 w-4 text-purple-600" />
+              <span className="font-medium">{score}</span>
+            </div>
           </div>
+          
+          {/* Game area */}
+          <div 
+            ref={containerRef}
+            className="relative w-full h-64 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 mb-4 overflow-hidden"
+          >
+            {targets.map(target => (
+              <motion.div
+                key={target.id}
+                className={`absolute rounded-full cursor-pointer ${
+                  target.hit ? 'bg-green-400' : 'bg-primary-500'
+                }`}
+                style={{ 
+                  left: target.x,
+                  top: target.y,
+                  width: target.size,
+                  height: target.size
+                }}
+                onClick={() => !target.hit && hitTarget(target.id)}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ 
+                  scale: target.hit ? 0 : 1, 
+                  opacity: target.hit ? 0 : 1 
+                }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              />
+            ))}
+          </div>
+          
+          <p className="text-gray-500 text-sm text-center mb-2">
+            Tap the colored circles as quickly as you can!
+          </p>
+        </div>
+      ) : (
+        // Game completed, show answer options
+        <div>
+          <div className="bg-green-100 rounded-lg p-3 mb-4 text-center">
+            <p className="text-green-700 font-medium">
+              {targetsHit === config.targetCount 
+                ? 'Perfect! You hit all targets!' 
+                : `You hit ${targetsHit} out of ${config.targetCount} targets!`}
+            </p>
+            <p className="text-green-700 text-sm">Score: {score} • Now choose your answer:</p>
+          </div>
+          
           <div className="grid gap-3">
-            {options.map((option, index) => (
+            {question.options?.map((option, index) => (
               <motion.button
                 key={index}
                 className="p-3 rounded-lg text-left border border-gray-200 hover:bg-primary-50"
@@ -137,84 +298,6 @@ export default function ReflexTap({
               >
                 <span className="font-medium">{option}</span>
               </motion.button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        // Game in progress
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center">
-              <span className="text-sm font-medium text-gray-700 mr-2">Score:</span>
-              <span className="bg-primary-100 text-primary-800 font-bold px-2 py-1 rounded">{score}/{scoreGoal}</span>
-            </div>
-            {!gameComplete && (
-              <button 
-                className="text-xs text-gray-500 hover:underline"
-                onClick={() => {
-                  setGameComplete(true);
-                  setScore(Math.max(0, scoreGoal - 5));
-                }}
-              >
-                Skip ({Math.max(0, scoreGoal - score)} more)
-              </button>
-            )}
-          </div>
-          
-          {/* Game area */}
-          <div className="relative h-64 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 mb-4">
-            {/* Targets */}
-            {targets.map(target => (
-              <motion.div
-                key={target.id}
-                className="absolute bg-primary-500 rounded-full flex items-center justify-center text-white font-bold cursor-pointer shadow-md"
-                style={{ 
-                  left: `${target.x}%`, 
-                  top: `${target.y}%`, 
-                  width: `${target.size}px`,
-                  height: `${target.size}px`,
-                }}
-                animate={{ 
-                  scale: [0.5, 1, 0.9, 1] 
-                }}
-                transition={{ duration: 0.5 }}
-                onClick={() => handleTargetTap(target.id)}
-                whileTap={{ scale: 0.8 }}
-              >
-                <span className="text-xs">+1</span>
-              </motion.div>
-            ))}
-            
-            {/* Completion message */}
-            {gameComplete && (
-              <motion.div 
-                className="absolute inset-0 flex items-center justify-center bg-primary-100 bg-opacity-80"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <div className="text-center p-4 rounded-lg bg-white shadow-lg">
-                  <p className="text-lg font-bold text-primary-700">Level Complete!</p>
-                  <p className="text-primary-600">Score: {score} targets</p>
-                  <p className="text-sm text-gray-600 mt-2">Now choose your answer</p>
-                </div>
-              </motion.div>
-            )}
-          </div>
-          
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">{question.text}</h3>
-          <p className="text-gray-500 text-sm mb-2">
-            Hit {scoreGoal - score > 0 ? scoreGoal - score : 0} more targets to unlock answers
-          </p>
-          
-          {/* Disabled options when game in progress */}
-          <div className="grid gap-2 opacity-50">
-            {options.map((option, index) => (
-              <div
-                key={index}
-                className="p-3 rounded-lg text-left border border-gray-200 bg-gray-50"
-              >
-                <span className="font-medium">{option}</span>
-              </div>
             ))}
           </div>
         </div>
@@ -233,9 +316,13 @@ export default function ReflexTap({
             animate={{ scale: 1 }}
           >
             <div className="text-center">
-              <div className="text-3xl mb-2">🎯</div>
-              <p className="text-lg font-bold text-green-700">Nice Reflexes!</p>
-              <p className="text-green-700">Score: {score} | Answer: {selectedOption}</p>
+              <div className="text-3xl mb-2">⚡️</div>
+              <p className="text-lg font-bold text-green-700">
+                Quick Reflexes!
+              </p>
+              <p className="text-green-700">
+                {targetsHit}/{config.targetCount} Targets • Score: {score}
+              </p>
             </div>
           </motion.div>
         </motion.div>

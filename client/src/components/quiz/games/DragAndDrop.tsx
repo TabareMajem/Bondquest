@@ -1,155 +1,225 @@
 import React, { useState, useEffect } from 'react';
 import { Question } from '@shared/schema';
-import { motion } from 'framer-motion';
+import { motion, Reorder } from 'framer-motion';
+import { Check, X } from 'lucide-react';
 
 interface DragAndDropProps {
   question: Question;
   onAnswer: (answer: string, points: number) => void;
-  timeLimit: number; // in seconds
+  difficulty: 'easy' | 'medium' | 'hard';
 }
 
 /**
- * DragAndDrop game where players drag options to match the question.
- * Options must be dragged to a specific drop zone to answer the question.
+ * DragAndDrop game where players must arrange items in the correct order
+ * Difficulty determines time limit and how scrambled the items are
  */
 export default function DragAndDrop({ 
   question, 
   onAnswer, 
-  timeLimit 
+  difficulty 
 }: DragAndDropProps) {
-  const [timeLeft, setTimeLeft] = useState(timeLimit);
+  const [items, setItems] = useState<string[]>([]);
+  const [originalOrder, setOriginalOrder] = useState<string[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [draggedOption, setDraggedOption] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [isCheckingOrder, setIsCheckingOrder] = useState(false);
+  const [orderCorrect, setOrderCorrect] = useState<boolean | null>(null);
+  const [attemptCount, setAttemptCount] = useState(0);
   
-  // Parse options from question
-  const options = question.options || [];
+  // Configure game based on difficulty
+  const getGameConfig = () => {
+    switch(difficulty) {
+      case 'easy':
+        return { maxAttempts: 3, pointsPerAttempt: [150, 100, 50] };
+      case 'hard':
+        return { maxAttempts: 1, pointsPerAttempt: [200] };
+      default: // medium
+        return { maxAttempts: 2, pointsPerAttempt: [175, 75] };
+    }
+  };
   
-  // Shuffle options to make it more challenging
-  const shuffledOptions = [...options].sort(() => Math.random() - 0.5);
+  const { maxAttempts, pointsPerAttempt } = getGameConfig();
   
-  // Timer effect
+  // Initialize game with scrambled options
   useEffect(() => {
-    if (timeLeft <= 0 || selectedOption) return;
+    if (!question.options?.length) return;
     
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => Math.max(prev - 0.1, 0));
-    }, 100);
+    // Store original order (treating the options array as the correct order)
+    const originalItems = [...question.options];
+    setOriginalOrder(originalItems);
     
-    return () => clearInterval(timer);
-  }, [timeLeft, selectedOption]);
+    // Create scrambled order for drag and drop
+    const scrambledItems = [...originalItems];
+    
+    // Fisher-Yates shuffle
+    for (let i = scrambledItems.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [scrambledItems[i], scrambledItems[j]] = [scrambledItems[j], scrambledItems[i]];
+    }
+    
+    setItems(scrambledItems);
+    setAttemptCount(0);
+    setOrderCorrect(null);
+    setSelectedOption(null);
+  }, [question]);
   
-  // Time's up effect
-  useEffect(() => {
-    if (timeLeft <= 0 && !selectedOption) {
-      setSelectedOption('Time expired');
+  // Handle checking the order
+  const checkOrder = () => {
+    setIsCheckingOrder(true);
+    
+    // Check if current order matches original order
+    const isCorrect = items.every((item, index) => item === originalOrder[index]);
+    setOrderCorrect(isCorrect);
+    
+    if (isCorrect) {
+      // Order is correct, show success feedback
       setShowFeedback(true);
+      
+      // Calculate points based on number of attempts
+      const points = pointsPerAttempt[Math.min(attemptCount, pointsPerAttempt.length - 1)];
       
       // Submit after showing feedback
       setTimeout(() => {
-        onAnswer('Time expired', 0);
+        // Use the first option as the answer when correct
+        onAnswer(originalOrder[0], points);
+      }, 1500);
+    } else {
+      // Order is incorrect, increment attempt count
+      setAttemptCount(prev => prev + 1);
+      
+      // Reset checking status after showing feedback
+      setTimeout(() => {
+        setIsCheckingOrder(false);
+        setOrderCorrect(null);
+        
+        // If max attempts reached, auto-submit with 0 points
+        if (attemptCount + 1 >= maxAttempts) {
+          setShowFeedback(true);
+          setTimeout(() => {
+            onAnswer('', 0);
+          }, 1500);
+        }
       }, 1500);
     }
-  }, [timeLeft, selectedOption, onAnswer]);
+  };
   
-  // Handle dropping an option
-  const handleDrop = (option: string) => {
-    if (selectedOption || timeLeft <= 0) return;
-    
-    // Calculate points based on time remaining
-    const timeRatio = timeLeft / timeLimit;
-    const points = Math.max(Math.round(150 * timeRatio), 50);
+  // Handle selecting a specific answer if order check fails
+  const handleOptionSelect = (option: string) => {
+    if (selectedOption) return;
     
     setSelectedOption(option);
     setShowFeedback(true);
     
-    // Submit after showing feedback
+    // Submit with minimum points
     setTimeout(() => {
-      onAnswer(option, points);
+      onAnswer(option, 25);
     }, 1500);
   };
   
   return (
     <div className="p-4 bg-white rounded-lg shadow-md">
-      {/* Timer display */}
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-sm font-medium text-gray-700">Time Remaining</span>
-          <span className="text-sm font-bold">{Math.ceil(timeLeft)}s</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <motion.div 
-            className="h-2.5 rounded-full bg-primary-600"
-            initial={{ width: '100%' }}
-            animate={{ width: `${(timeLeft / timeLimit) * 100}%` }}
-            transition={{ ease: "linear" }}
-          />
-        </div>
+      <h3 className="text-lg font-semibold text-gray-800 mb-3">{question.text}</h3>
+      
+      {/* Instructions */}
+      <p className="text-gray-600 text-sm mb-4">
+        Drag and drop the items into the correct order, then click "Check Order".
+        {maxAttempts > 1 && ` You have ${maxAttempts} attempts.`}
+      </p>
+      
+      {/* Drag and drop items */}
+      <div className="border rounded-lg bg-gray-50 p-3 mb-4">
+        <Reorder.Group 
+          axis="y" 
+          values={items} 
+          onReorder={setItems}
+          className="space-y-2"
+        >
+          {items.map((item) => (
+            <Reorder.Item 
+              key={item} 
+              value={item}
+              className="cursor-grab active:cursor-grabbing"
+            >
+              <motion.div 
+                className="bg-white p-3 rounded border border-gray-200 flex items-center"
+                whileDrag={{ scale: 1.03, boxShadow: "0 5px 15px rgba(0,0,0,0.1)" }}
+                layoutId={item}
+              >
+                <div className="flex-1">{item}</div>
+                <div className="flex-shrink-0 text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="9" cy="7" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="9" cy="17" r="1" />
+                    <circle cx="15" cy="7" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="17" r="1" />
+                  </svg>
+                </div>
+              </motion.div>
+            </Reorder.Item>
+          ))}
+        </Reorder.Group>
       </div>
       
-      {/* Question */}
-      <div className="text-center mb-8">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">{question.text}</h3>
-        <p className="text-gray-600 text-sm">Drag your answer to the drop zone</p>
-      </div>
+      {/* Check order button */}
+      {!isCheckingOrder && orderCorrect === null && attemptCount < maxAttempts && (
+        <button
+          className="w-full mb-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+          onClick={checkOrder}
+        >
+          Check Order
+        </button>
+      )}
       
-      {/* Drop Zone */}
-      <motion.div 
-        className={`border-2 border-dashed rounded-lg p-6 mb-6 min-h-[100px] flex items-center justify-center ${
-          draggedOption 
-            ? 'border-primary-500 bg-primary-50' 
-            : selectedOption 
-              ? 'border-green-500 bg-green-50' 
-              : 'border-gray-300'
-        }`}
-        animate={{ 
-          scale: draggedOption ? 1.02 : 1,
-          borderWidth: draggedOption ? '3px' : '2px'
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          if (draggedOption) {
-            handleDrop(draggedOption);
-          }
-          setDraggedOption(null);
-        }}
-      >
-        {selectedOption ? (
-          <div className="text-center">
-            <div className="font-semibold text-lg text-green-700">{selectedOption}</div>
-            <div className="text-sm text-green-600">Answer submitted</div>
+      {/* Feedback for order checking */}
+      {isCheckingOrder && orderCorrect !== null && (
+        <motion.div 
+          className={`mb-4 p-3 rounded-lg text-center ${
+            orderCorrect 
+              ? 'bg-green-100 text-green-700' 
+              : 'bg-red-100 text-red-700'
+          }`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          {orderCorrect ? (
+            <div className="flex items-center justify-center">
+              <Check className="h-5 w-5 mr-2" />
+              <p className="font-medium">Perfect! The order is correct.</p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <X className="h-5 w-5 mr-2" />
+              <p className="font-medium">
+                Sorry, that's not right. 
+                {attemptCount < maxAttempts - 1 
+                  ? ` Try again. ${maxAttempts - attemptCount - 1} attempts left.`
+                  : ' No attempts left.'}
+              </p>
+            </div>
+          )}
+        </motion.div>
+      )}
+      
+      {/* Answer selection after max attempts */}
+      {attemptCount >= maxAttempts && !orderCorrect && !showFeedback && (
+        <div>
+          <div className="bg-amber-100 rounded-lg p-3 mb-4 text-center">
+            <p className="text-amber-700 font-medium">You've used all your attempts!</p>
+            <p className="text-amber-700 text-sm">Now choose your answer:</p>
           </div>
-        ) : (
-          <div className="text-gray-500 text-center">
-            Drop your answer here
+          <div className="grid gap-3">
+            {question.options?.map((option, index) => (
+              <motion.button
+                key={index}
+                className="p-3 rounded-lg text-left border border-gray-200 hover:bg-primary-50"
+                onClick={() => handleOptionSelect(option)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="font-medium">{option}</span>
+              </motion.button>
+            ))}
           </div>
-        )}
-      </motion.div>
-      
-      {/* Draggable Options */}
-      <div className="grid grid-cols-2 gap-3">
-        {shuffledOptions.map((option, index) => (
-          <motion.div
-            key={index}
-            className={`p-3 rounded-lg border text-center cursor-grab ${
-              draggedOption === option 
-                ? 'opacity-30 border-primary-300' 
-                : selectedOption 
-                  ? 'opacity-50 border-gray-200' 
-                  : 'border-gray-200 hover:border-primary-300 hover:bg-primary-50'
-            }`}
-            draggable={!selectedOption}
-            whileHover={{ scale: selectedOption ? 1 : 1.02 }}
-            onDragStart={() => setDraggedOption(option)}
-            onDragEnd={() => setDraggedOption(null)}
-          >
-            <span className="font-medium">{option}</span>
-          </motion.div>
-        ))}
-      </div>
+        </div>
+      )}
       
       {/* Feedback overlay */}
       {showFeedback && (
@@ -159,27 +229,18 @@ export default function DragAndDrop({
           animate={{ opacity: 1 }}
         >
           <motion.div 
-            className={`p-6 rounded-xl ${
-              selectedOption === 'Time expired' 
-                ? 'bg-yellow-100 border-2 border-yellow-500' 
-                : 'bg-green-100 border-2 border-green-500'
-            }`}
+            className={`p-6 rounded-xl ${orderCorrect ? 'bg-green-100 border-2 border-green-500' : 'bg-amber-100 border-2 border-amber-500'}`}
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
           >
-            {selectedOption === 'Time expired' ? (
-              <div className="text-center">
-                <div className="text-3xl mb-2">⏰</div>
-                <p className="text-lg font-bold text-yellow-700">Time's Up!</p>
-                <p className="text-yellow-700">You didn't answer in time.</p>
-              </div>
-            ) : (
-              <div className="text-center">
-                <div className="text-3xl mb-2">✓</div>
-                <p className="text-lg font-bold text-green-700">Answer Submitted!</p>
-                <p className="text-green-700">Your answer: {selectedOption}</p>
-              </div>
-            )}
+            <div className="text-center">
+              <div className="text-3xl mb-2">{orderCorrect ? '🎯' : '🤔'}</div>
+              <p className="text-lg font-bold text-green-700">
+                {orderCorrect 
+                  ? `Perfect Order! +${pointsPerAttempt[Math.min(attemptCount, pointsPerAttempt.length - 1)]} points` 
+                  : `Time to move on! +25 points`}
+              </p>
+            </div>
           </motion.div>
         </motion.div>
       )}
