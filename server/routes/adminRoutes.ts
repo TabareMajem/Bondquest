@@ -5,6 +5,7 @@ import { users, subscriptionTiers, rewards, quizSessions, userSubscriptions, cou
 import { eq, sql, desc, and, not, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import * as rewardService from '../services/rewardService';
+import { getAllRewards, createReward, updateReward } from '../services/db/rewards';
 
 const router = express.Router();
 
@@ -150,7 +151,6 @@ router.patch('/subscriptions/:id', isAdmin, async (req, res) => {
 router.get('/rewards', isAdmin, async (req, res) => {
   try {
     // Use our rewards service to get all rewards
-    const { getAllRewards } = require('../services/db/rewards');
     const rewards = await getAllRewards();
     res.json(rewards);
   } catch (error) {
@@ -162,7 +162,6 @@ router.get('/rewards', isAdmin, async (req, res) => {
 router.post('/rewards', isAdmin, async (req, res) => {
   try {
     // Use our rewards service to create a new reward
-    const { createReward } = require('../services/db/rewards');
     const rewardData = {
       name: req.body.name,
       description: req.body.description,
@@ -196,9 +195,6 @@ router.patch('/rewards/:id', isAdmin, async (req, res) => {
     if (isNaN(rewardId)) {
       return res.status(400).json({ message: 'Invalid reward ID' });
     }
-    
-    // Use our rewards service to update an existing reward
-    const { updateReward } = require('../services/db/rewards');
     
     // Pass only fields that exist in the client model
     const updateData: Record<string, any> = {};
@@ -244,7 +240,7 @@ router.post('/setup', async (req, res) => {
     const password = req.body.password || 'admin123';
     
     // Import password utils for hashing
-    const { hashPassword } = require('../auth/passwordUtils');
+    const { hashPassword } = await import('../auth/passwordUtils');
     const hashedPassword = await hashPassword(password);
     
     // Create admin user with direct database query
