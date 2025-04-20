@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
-import { users, subscriptionTiers, rewards, quizSessions, userSubscriptions, couples as couplesTable, coupleRewards, competitions as competitionsTable } from '@shared/schema';
+import { users, subscriptionTiers, rewards, quizSessions, userSubscriptions, couples, coupleRewards, competitions as competitionsTable } from '@shared/schema';
 import { eq, sql, desc, and, not, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import * as rewardService from '../services/rewardService';
@@ -36,7 +36,7 @@ router.get('/stats', isAdmin, async (req, res) => {
     const activeSubscriptions = subscriptions.filter(sub => sub.status === 'active');
     
     // Get total couples count
-    const couplesList = await db.select().from(couplesTable);
+    const couplesList = await db.select().from(couples);
     
     // Get recent quiz sessions (latest 10)
     const recentSessions = await db.select()
@@ -264,63 +264,249 @@ router.post('/competitions', isAdmin, async (req, res) => {
   }
 });
 
-// Reward fulfillment
-router.get('/fulfillment', isAdmin, async (req, res) => {
+// Enhanced reward management
+router.get('/couple-rewards', isAdmin, async (req, res) => {
   try {
-    // Get all couple rewards that are pending fulfillment
-    // Query directly from database for pending rewards
-    const pendingRewards = await db.select().from(coupleRewards)
-      .where(eq(coupleRewards.status, 'pending'));
-    res.json(pendingRewards);
+    // Get query parameters for filtering
+    const status = req.query.status as string;
+    const locationQuery = req.query.location as string;
+    
+    // Get all couple rewards with their associated reward info
+    const allCoupleRewards = await db.select()
+      .from(coupleRewards)
+      .orderBy(desc(coupleRewards.id));
+    
+    // Fetch reward details for each couple reward
+    const results = await Promise.all(
+      allCoupleRewards.map(async (cr) => {
+        // Get reward
+        const [reward] = await db.select()
+          .from(rewards)
+          .where(eq(rewards.id, cr.rewardId));
+          
+        // Get couple
+        const [couple] = await db.select()
+          .from(couples)
+          .where(eq(couples.id, cr.coupleId));
+          
+        return {
+          ...cr,
+          reward,
+          couple
+        };
+      })
+    );
+    
+    // Apply filters
+    let filteredResults = results;
+    
+    // Filter by status if provided
+    if (status) {
+      filteredResults = filteredResults.filter(r => r.status === status);
+    }
+    
+    // Filter by location if provided
+    if (locationQuery) {
+      filteredResults = filteredResults.filter(r => {
+        if (!r.reward?.locationRestricted) return true;
+        return r.reward?.eligibleLocations?.includes(locationQuery);
+      });
+    }
+    
+    res.json(filteredResults);
   } catch (error) {
-    console.error('Error fetching pending rewards:', error);
-    res.status(500).json({ message: 'Failed to fetch pending rewards' });
+    console.error('Error fetching couple rewards:', error);
+    res.status(500).json({ message: 'Failed to fetch couple rewards' });
   }
 });
 
-router.patch('/fulfillment/:id', isAdmin, async (req, res) => {
+// Get a specific couple reward
+router.get('/couple-rewards/:id', isAdmin, async (req, res) => {
   try {
     const rewardId = parseInt(req.params.id);
     if (isNaN(rewardId)) {
       return res.status(400).json({ message: 'Invalid reward ID' });
     }
     
-    const { status, trackingNumber, shippingAddress } = req.body;
-    
-    // Create an object to hold all updates
-    const updates: any = {};
-    if (status) {
-      updates.status = status;
-    }
-    
-    if (trackingNumber) {
-      updates.trackingNumber = trackingNumber;
-    }
-    
-    if (shippingAddress) {
-      updates.shippingAddress = shippingAddress;
-    }
-    
-    // Update reward directly in database
-    if (Object.keys(updates).length > 0) {
-      await db.update(coupleRewards)
-        .set(updates)
-        .where(eq(coupleRewards.id, rewardId));
-    }
-    
-    // Fetch updated reward
-    const [updatedReward] = await db.select()
+    // Get the couple reward
+    const [coupleReward] = await db.select()
       .from(coupleRewards)
       .where(eq(coupleRewards.id, rewardId));
       
+    if (!coupleReward) {
+      return res.status(404).json({ message: 'Couple reward not found' });
+    }
+    
+    // Get the reward
+    const [reward] = await db.select()
+      .from(rewards)
+      .where(eq(rewards.id, coupleReward.rewardId));
+      
+    // Get couple 
+    const [couple] = await db.select()
+      .from(couples)
+      .where(eq(couples.id, coupleReward.coupleId));
+    
+    // Get user details for the couple
+    let user1 = null;
+    let user2 = null;
+    
+    if (couple) {
+      [user1] = await db.select().from(users).where(eq(users.id, couple.userId1));
+      [user2] = await db.select().from(users).where(eq(users.id, couple.userId2));
+    }
+    
+    // Build the response data
+    const responseData = {
+      ...coupleReward,
+      reward,
+      couple: couple ? {
+        ...couple,
+        user1,
+        user2
+      } : null
+    };
+    
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error fetching couple reward details:', error);
+    res.status(500).json({ message: 'Failed to fetch couple reward details' });
+  }
+});
+
+// Award a reward to a couple
+router.post('/couple-rewards', isAdmin, async (req, res) => {
+  try {
+    const { coupleId, rewardId, competitionId } = req.body;
+    
+    if (!coupleId || !rewardId) {
+      return res.status(400).json({ message: 'Missing required fields: coupleId and rewardId are required' });
+    }
+    
+    const coupleReward = await rewardService.awardRewardToCouple(coupleId, rewardId, competitionId);
+    
+    if (!coupleReward) {
+      return res.status(400).json({ message: 'Failed to award reward to couple. Check logs for details.' });
+    }
+    
+    res.status(201).json(coupleReward);
+  } catch (error) {
+    console.error('Error awarding reward to couple:', error);
+    res.status(500).json({ message: 'Failed to award reward to couple' });
+  }
+});
+
+// Send notification email for a reward
+router.post('/couple-rewards/:id/notify', isAdmin, async (req, res) => {
+  try {
+    const rewardId = parseInt(req.params.id);
+    if (isNaN(rewardId)) {
+      return res.status(400).json({ message: 'Invalid reward ID' });
+    }
+    
+    const success = await rewardService.sendRewardNotification(rewardId);
+    
+    if (!success) {
+      return res.status(400).json({ message: 'Failed to send reward notification. Check logs for details.' });
+    }
+    
+    res.json({ success: true, message: 'Reward notification sent successfully' });
+  } catch (error) {
+    console.error('Error sending reward notification:', error);
+    res.status(500).json({ message: 'Failed to send reward notification' });
+  }
+});
+
+// Mark reward as shipped
+router.post('/couple-rewards/:id/ship', isAdmin, async (req, res) => {
+  try {
+    const rewardId = parseInt(req.params.id);
+    if (isNaN(rewardId)) {
+      return res.status(400).json({ message: 'Invalid reward ID' });
+    }
+    
+    const { trackingNumber, adminNotes } = req.body;
+    
+    if (!trackingNumber) {
+      return res.status(400).json({ message: 'Tracking number is required for shipping' });
+    }
+    
+    const updatedReward = await rewardService.markRewardAsShipped(rewardId, trackingNumber, adminNotes);
+    
     if (!updatedReward) {
-      return res.status(404).json({ message: 'Reward not found' });
+      return res.status(400).json({ message: 'Failed to mark reward as shipped. Check logs for details.' });
     }
     
     res.json(updatedReward);
   } catch (error) {
-    console.error('Error updating reward fulfillment:', error);
-    res.status(500).json({ message: 'Failed to update reward fulfillment' });
+    console.error('Error marking reward as shipped:', error);
+    res.status(500).json({ message: 'Failed to mark reward as shipped' });
+  }
+});
+
+// Mark reward as delivered
+router.post('/couple-rewards/:id/deliver', isAdmin, async (req, res) => {
+  try {
+    const rewardId = parseInt(req.params.id);
+    if (isNaN(rewardId)) {
+      return res.status(400).json({ message: 'Invalid reward ID' });
+    }
+    
+    const updatedReward = await rewardService.markRewardAsDelivered(rewardId);
+    
+    if (!updatedReward) {
+      return res.status(400).json({ message: 'Failed to mark reward as delivered. Check logs for details.' });
+    }
+    
+    res.json(updatedReward);
+  } catch (error) {
+    console.error('Error marking reward as delivered:', error);
+    res.status(500).json({ message: 'Failed to mark reward as delivered' });
+  }
+});
+
+// Cancel a reward
+router.post('/couple-rewards/:id/cancel', isAdmin, async (req, res) => {
+  try {
+    const rewardId = parseInt(req.params.id);
+    if (isNaN(rewardId)) {
+      return res.status(400).json({ message: 'Invalid reward ID' });
+    }
+    
+    const { reason } = req.body;
+    
+    if (!reason) {
+      return res.status(400).json({ message: 'Reason is required for cancellation' });
+    }
+    
+    const updatedReward = await rewardService.cancelReward(rewardId, reason);
+    
+    if (!updatedReward) {
+      return res.status(400).json({ message: 'Failed to cancel reward. Check logs for details.' });
+    }
+    
+    res.json(updatedReward);
+  } catch (error) {
+    console.error('Error canceling reward:', error);
+    res.status(500).json({ message: 'Failed to cancel reward' });
+  }
+});
+
+// Run reward maintenance tasks (process expired rewards)
+router.post('/rewards/maintenance', isAdmin, async (req, res) => {
+  try {
+    const expiredCount = await rewardService.processExpiredRewards();
+    const remindersSent = await rewardService.sendRewardReminders();
+    
+    res.json({ 
+      success: true, 
+      expiredCount,
+      remindersSent,
+      message: `Maintenance completed: ${expiredCount} rewards marked as expired, ${remindersSent} reminders sent`
+    });
+  } catch (error) {
+    console.error('Error running reward maintenance:', error);
+    res.status(500).json({ message: 'Failed to run reward maintenance' });
   }
 });
 

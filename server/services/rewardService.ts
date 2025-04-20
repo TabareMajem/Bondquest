@@ -354,7 +354,7 @@ export const sendRewardReminders = async (): Promise<number> => {
     
     for (const reward of unclaimedRewards) {
       // Avoid sending too many reminders (max 2 reminders per reward)
-      if (reward.remindersSentCount >= 2) {
+      if ((reward.remindersSentCount || 0) >= 2) {
         continue;
       }
       
