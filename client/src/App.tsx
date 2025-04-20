@@ -4,7 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "@/components/ui/toaster";
 import AffiliateManagement from './pages/admin/AffiliateManagement';
 import PartnerPortal from './pages/affiliate/PartnerPortal';
+import LoginPage from './pages/affiliate/LoginPage';
 import { AuthProvider } from './hooks/use-auth';
+import { AffiliateAuthProvider } from './hooks/use-affiliate-auth';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -32,6 +34,9 @@ function Navigation() {
           </Link>
           <Link href="/affiliate/portal">
             <a className={`${location === '/affiliate/portal' ? 'underline' : ''}`}>Partner Portal</a>
+          </Link>
+          <Link href="/affiliate/login">
+            <a className={`${location === '/affiliate/login' ? 'underline' : ''}`}>Affiliate Login</a>
           </Link>
         </div>
       </div>
@@ -75,28 +80,31 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="min-h-screen bg-background">
-          <Navigation />
-          <main className="py-8">
-            <Switch>
-              <Route path="/" component={HomePage} />
-              <Route path="/admin/affiliate" component={AffiliateManagement} />
-              <Route path="/affiliate/portal" component={PartnerPortal} />
-              <Route>
-                <div className="container mx-auto p-4">
-                  <h1 className="text-3xl font-bold">404 - Page Not Found</h1>
-                  <p className="mt-4">The page you are looking for does not exist.</p>
-                  <Link href="/">
-                    <a className="text-primary hover:underline mt-4 inline-block">
-                      Go back to home
-                    </a>
-                  </Link>
-                </div>
-              </Route>
-            </Switch>
-          </main>
-          <Toaster />
-        </div>
+        <AffiliateAuthProvider>
+          <div className="min-h-screen bg-background">
+            <Navigation />
+            <main className="py-8">
+              <Switch>
+                <Route path="/" component={HomePage} />
+                <Route path="/admin/affiliate" component={AffiliateManagement} />
+                <Route path="/affiliate/portal" component={PartnerPortal} />
+                <Route path="/affiliate/login" component={LoginPage} />
+                <Route>
+                  <div className="container mx-auto p-4">
+                    <h1 className="text-3xl font-bold">404 - Page Not Found</h1>
+                    <p className="mt-4">The page you are looking for does not exist.</p>
+                    <Link href="/">
+                      <a className="text-primary hover:underline mt-4 inline-block">
+                        Go back to home
+                      </a>
+                    </Link>
+                  </div>
+                </Route>
+              </Switch>
+            </main>
+            <Toaster />
+          </div>
+        </AffiliateAuthProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

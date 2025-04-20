@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'wouter';
 import { 
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
 } from "@/components/ui/card";
@@ -23,9 +24,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { 
   ChevronDown, ChevronUp, Search, Plus, Copy, Check, X, DollarSign,
-  Tag, LineChart, RefreshCw, FileText, Send, Download, Link, Globe, Calendar
+  Tag, LineChart, RefreshCw, FileText, Send, Download, Link as LinkIcon, Globe, Calendar
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useAffiliateAuth } from '@/hooks/use-affiliate-auth';
 
 // Types
 interface AffiliatePartner {
@@ -144,13 +146,7 @@ const PartnerPortal: React.FC = () => {
   const queryClient = useQueryClient();
   
   // Queries
-  const { data: partner, isLoading: partnerLoading } = useQuery({
-    queryKey: ['/api/affiliate/me'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/affiliate/me');
-      return await response.json();
-    }
-  });
+  const { partner, isLoading: partnerLoading } = useAffiliateAuth();
 
   const { data: coupons = [], isLoading: couponsLoading } = useQuery({
     queryKey: ['/api/affiliate/partners', partner?.id, 'coupons'],
@@ -336,7 +332,9 @@ const PartnerPortal: React.FC = () => {
           <div className="flex flex-col items-center justify-center h-64 gap-4">
             <h3 className="text-xl font-semibold">Not logged in</h3>
             <p className="text-muted-foreground">Please log in to access your affiliate dashboard</p>
-            <Button variant="default">Log In</Button>
+            <Link href="/affiliate/login">
+              <Button variant="default">Log In</Button>
+            </Link>
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -350,7 +348,7 @@ const PartnerPortal: React.FC = () => {
                 Coupons
               </TabsTrigger>
               <TabsTrigger value="referrals" className="flex items-center gap-2">
-                <Link size={16} />
+                <LinkIcon size={16} />
                 Referrals
               </TabsTrigger>
               <TabsTrigger value="earnings" className="flex items-center gap-2">
@@ -513,7 +511,7 @@ const PartnerPortal: React.FC = () => {
                           onClick={() => setIsAddReferralOpen(true)}
                           className="flex items-center gap-1"
                         >
-                          <Link size={14} />
+                          <LinkIcon size={14} />
                           Create Referral Link
                         </Button>
                         <Button 
