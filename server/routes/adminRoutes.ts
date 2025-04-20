@@ -159,9 +159,24 @@ router.get('/rewards', isAdmin, async (req, res) => {
 
 router.post('/rewards', isAdmin, async (req, res) => {
   try {
+    // Only include fields that exist in the database
+    const validFields = {
+      name: req.body.name,
+      description: req.body.description,
+      type: req.body.type,
+      value: req.body.value,
+      code: req.body.code || null,
+      image_url: req.body.imageUrl || null,
+      available_from: req.body.availableFrom,
+      available_to: req.body.availableTo,
+      quantity: req.body.quantity,
+      required_tier: req.body.requiredTier || null,
+      active: req.body.active
+    };
+    
     // Insert directly into database
     const [newReward] = await db.insert(rewards)
-      .values(req.body)
+      .values([validFields])
       .returning();
     res.status(201).json(newReward);
   } catch (error) {
@@ -177,9 +192,26 @@ router.patch('/rewards/:id', isAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Invalid reward ID' });
     }
     
+    // Only include fields that exist in the database
+    const validFields: Record<string, any> = {};
+    
+    if (req.body.name !== undefined) validFields.name = req.body.name;
+    if (req.body.description !== undefined) validFields.description = req.body.description;
+    if (req.body.type !== undefined) validFields.type = req.body.type;
+    if (req.body.value !== undefined) validFields.value = req.body.value;
+    if (req.body.code !== undefined) validFields.code = req.body.code;
+    if (req.body.imageUrl !== undefined) validFields.image_url = req.body.imageUrl;
+    if (req.body.availableFrom !== undefined) validFields.available_from = req.body.availableFrom;
+    if (req.body.availableTo !== undefined) validFields.available_to = req.body.availableTo;
+    if (req.body.quantity !== undefined) validFields.quantity = req.body.quantity;
+    if (req.body.requiredTier !== undefined) validFields.required_tier = req.body.requiredTier;
+    if (req.body.active !== undefined) validFields.active = req.body.active;
+    // Add updated_at field
+    validFields.updated_at = new Date();
+    
     // Update reward directly in database
     await db.update(rewards)
-      .set(req.body)
+      .set(validFields)
       .where(eq(rewards.id, rewardId));
     
     // Fetch the updated reward

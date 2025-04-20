@@ -267,14 +267,8 @@ export default function AdminRewards() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {reward.locationRestricted ? (
-                            <div className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-1 text-blue-500" />
-                              <span>{reward.eligibleLocations ? reward.eligibleLocations.join(", ") : "Restricted"}</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500">Worldwide</span>
-                          )}
+                          {/* Temporarily show Worldwide for all rewards until location columns are available */}
+                          <span className="text-gray-500">Worldwide</span>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
