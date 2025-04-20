@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -68,13 +69,6 @@ export default function AdminRewards() {
   const [statusFilter, setStatusFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   
-  // Get all reward-related hooks
-  const { 
-    useRewardsQuery, 
-    useCoupleRewardsQuery,
-    useRunRewardMaintenanceMutation 
-  } = useRewards();
-  
   // Check if user has admin access - in a real app, you would check user.role or similar
   const isAdmin = user?.username === "admin";
   
@@ -85,29 +79,58 @@ export default function AdminRewards() {
     }
   }, [isAdmin, navigate]);
 
-  // Fetch rewards
+  // Use direct API methods from client lib
+  // We'll import the API methods directly from our file
+  const { 
+    fetchRewards,
+    fetchCoupleRewards,
+    runRewardMaintenance
+  } = require('@/api/rewardsApi');
+
+  // Fetch all rewards
   const { 
     data: rewards, 
     isLoading: isRewardsLoading, 
     isError: isRewardsError 
-  } = useRewardsQuery();
+  } = useQuery({
+    queryKey: ['/api/admin/rewards'],
+    queryFn: fetchRewards
+  });
 
   // Fetch couple rewards with filters
   const { 
     data: coupleRewards, 
     isLoading: isCoupleRewardsLoading, 
     isError: isCoupleRewardsError 
-  } = useCoupleRewardsQuery(
-    statusFilter || locationFilter 
-      ? { 
-          status: statusFilter || undefined, 
-          location: locationFilter || undefined 
-        } 
-      : undefined
-  );
+  } = useQuery({
+    queryKey: ['/api/admin/couple-rewards', { status: statusFilter, location: locationFilter }],
+    queryFn: () => fetchCoupleRewards(
+      statusFilter || locationFilter 
+        ? { 
+            status: statusFilter || undefined, 
+            location: locationFilter || undefined 
+          } 
+        : undefined
+    )
+  });
 
   // Run maintenance mutation
-  const maintenanceMutation = useRunRewardMaintenanceMutation();
+  const maintenanceMutation = useMutation({
+    mutationFn: runRewardMaintenance,
+    onSuccess: (data: any) => {
+      toast({
+        title: 'Maintenance Complete',
+        description: data.message || "Maintenance completed successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: `Failed to run maintenance: ${error.message || "Unknown error"}`,
+        variant: 'destructive',
+      });
+    }
+  });
   
   const handleRunMaintenance = () => {
     if (window.confirm("Are you sure you want to run reward maintenance tasks? This will process expired rewards and send reminders.")) {
