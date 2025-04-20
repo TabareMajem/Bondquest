@@ -160,7 +160,7 @@ export const rewards = pgTable("rewards", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  type: text("type").notNull(), // "digital", "physical", "discount", "points"
+  type: text("type").notNull(), // "digital", "physical", "discount", "points", "experience"
   value: integer("value").notNull(), // monetary or point value
   imageUrl: text("image_url"),
   code: text("code"), // for digital rewards like discount codes
@@ -169,6 +169,19 @@ export const rewards = pgTable("rewards", {
   quantity: integer("quantity").notNull(),
   requiredTier: integer("required_tier").references(() => subscriptionTiers.id),
   active: boolean("active").default(true),
+  // New fields for location and timeline
+  locationRestricted: boolean("location_restricted").default(false),
+  eligibleLocations: json("eligible_locations").$type<string[]>(), // Array of country/region codes
+  redemptionPeriodDays: integer("redemption_period_days").default(30), // Days to redeem after winning
+  redemptionInstructions: text("redemption_instructions"),
+  provider: text("provider"), // Entity providing the reward (sponsor, partner, etc.)
+  shippingDetails: json("shipping_details").$type<{
+    requiresShipping: boolean;
+    estimatedDeliveryDays?: number;
+    trackingRequired?: boolean;
+    specialInstructions?: string;
+  }>(),
+  terms: text("terms"), // Terms and conditions
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -216,7 +229,7 @@ export const coupleRewards = pgTable("couple_rewards", {
   coupleId: integer("couple_id").notNull().references(() => couples.id),
   rewardId: integer("reward_id").notNull().references(() => rewards.id),
   competitionId: integer("competition_id").references(() => competitions.id),
-  status: text("status").notNull(), // "awarded", "claimed", "shipped", "delivered", "expired"
+  status: text("status").notNull(), // "awarded", "notified", "viewed", "claimed", "redeemed", "shipped", "delivered", "expired", "canceled"
   trackingNumber: text("tracking_number"),
   shippingAddress: json("shipping_address").$type<{
     name: string;
@@ -228,11 +241,30 @@ export const coupleRewards = pgTable("couple_rewards", {
     country: string;
     phone?: string;
   }>(),
+  // New fields for improved tracking
+  redemptionCode: text("redemption_code"), // Unique code for redemption
+  redemptionUrl: text("redemption_url"), // Custom URL for redemption
+  notificationSent: boolean("notification_sent").default(false),
+  notificationEmailId: text("notification_email_id"), // Email tracking ID
+  winnerNotes: text("winner_notes"), // Notes from the winning couple
+  adminNotes: text("admin_notes"), // Admin notes about this reward
+  viewedAt: timestamp("viewed_at"), // When the winner viewed the reward notification
+  notifiedAt: timestamp("notified_at"), // When notification was sent
+  remindersSentCount: integer("reminders_sent_count").default(0), // Number of reminders sent
+  lastReminderAt: timestamp("last_reminder_at"), // Timestamp of last reminder
+  locationRedeemed: json("location_redeemed").$type<{
+    latitude?: number;
+    longitude?: number;
+    city?: string;
+    country?: string;
+  }>(), // Optional location data where reward was redeemed
   awardedAt: timestamp("awarded_at").defaultNow().notNull(),
   claimedAt: timestamp("claimed_at"),
+  redeemedAt: timestamp("redeemed_at"), // When the reward was actually redeemed/used
   shippedAt: timestamp("shipped_at"),
   deliveredAt: timestamp("delivered_at"),
   expiresAt: timestamp("expires_at"),
+  canceledAt: timestamp("canceled_at"), // If canceled or invalidated
 });
 
 // Insert Schemas
