@@ -28,6 +28,7 @@ export const users = pgTable("users", {
   instagramId: text("instagram_id").unique(),
   lastLogin: timestamp("last_login"),
   profilePictureUrl: text("profile_picture_url"),
+  isAdmin: boolean("is_admin").default(false).notNull(),
 });
 
 // Couple Model

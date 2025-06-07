@@ -5,6 +5,9 @@ export interface BondDimension {
   description: string;
   icon: string;
   color: string;
+  category: 'emotional' | 'physical' | 'intellectual' | 'spiritual' | 'social';
+  weight: number; // Importance weight for overall bond score calculation
+  exampleQuestions: string[]; // Sample questions for this dimension
   questions: {
     text: string;
     type: 'likert' | 'frequency' | 'qualitative';
@@ -18,6 +21,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'The degree of openness, clarity, and effectiveness in how couples share thoughts, feelings, and information.',
     icon: 'message-square',
     color: '#4F46E5', // indigo
+    category: 'intellectual',
+    weight: 0.15,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'How often do you feel heard and understood by your partner?',
@@ -35,6 +41,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'The level of confidence each partner has in the other\'s honesty, reliability, and loyalty.',
     icon: 'shield',
     color: '#10B981', // emerald
+    category: 'emotional',
+    weight: 0.2,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'How secure do you feel in your partner\'s commitment?',
@@ -52,6 +61,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'The closeness and warmth in sharing emotions, vulnerabilities, and supportive behaviors.',
     icon: 'heart',
     color: '#EC4899', // pink
+    category: 'emotional',
+    weight: 0.2,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'How emotionally close do you feel to your partner?',
@@ -69,6 +81,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'The effectiveness with which couples address disagreements and resolve conflicts respectfully.',
     icon: 'puzzle',
     color: '#F59E0B', // amber
+    category: 'emotional',
+    weight: 0.15,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'When conflicts arise, how satisfied are you with the resolution process?',
@@ -86,6 +101,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'Satisfaction with physical affection, closeness, and sexual connection.',
     icon: 'heart-hands',
     color: '#EF4444', // red
+    category: 'physical',
+    weight: 0.1,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'How satisfied are you with the level of physical intimacy in your relationship?',
@@ -103,6 +121,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'How aligned the partners are in their core life values, goals, and future plans.',
     icon: 'target',
     color: '#8B5CF6', // violet
+    category: 'intellectual',
+    weight: 0.1,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'How well do your long-term goals align with your partner\'s?',
@@ -120,6 +141,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'The ability to enjoy light-hearted moments, shared humor, and playfulness together.',
     icon: 'party-popper',
     color: '#F97316', // orange
+    category: 'emotional',
+    weight: 0.1,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'How frequently do you engage in fun activities or playful banter with each other?',
@@ -137,6 +161,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'The extent to which partners provide support, affirmation, and respect for each other\'s individuality and efforts.',
     icon: 'helping-hand',
     color: '#06B6D4', // cyan
+    category: 'emotional',
+    weight: 0.1,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'How valued do you feel by your partner on a daily basis?',
@@ -154,6 +181,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'The balance between healthy individual autonomy and shared couple time, ensuring personal growth alongside relationship nurturing.',
     icon: 'git-merge',
     color: '#14B8A6', // teal
+    category: 'emotional',
+    weight: 0.1,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'How well do you balance personal space and together time in your relationship?',
@@ -171,6 +201,9 @@ export const bondDimensions: BondDimension[] = [
     description: 'A global measure reflecting the couple\'s overall contentment, combining all aspects of their interaction into one score.',
     icon: 'smile',
     color: '#6366F1', // indigo
+    category: 'emotional',
+    weight: 0.1,
+    exampleQuestions: [],
     questions: [
       { 
         text: 'Overall, how satisfied are you with your relationship?',
@@ -271,4 +304,49 @@ export function getDimensionsForRadarChart(scores: Record<string, number>) {
       }
     ]
   };
+}
+
+export function getBondStrengthInterpretation(scores: Record<string, number>): {
+  overall: number;
+  level: 'weak' | 'developing' | 'strong' | 'exceptional';
+  description: string;
+  recommendations: string[];
+} {
+  // Calculate weighted average
+  let totalScore = 0;
+  let totalWeight = 0;
+  
+  for (const [dimensionId, score] of Object.entries(scores)) {
+    const dimension = bondDimensions.find(d => d.id === dimensionId);
+    if (dimension) {
+      totalScore += score * dimension.weight;
+      totalWeight += dimension.weight;
+    }
+  }
+  
+  const overall = totalWeight > 0 ? totalScore / totalWeight : 0;
+  
+  let level: 'weak' | 'developing' | 'strong' | 'exceptional';
+  let description: string;
+  let recommendations: string[];
+  
+  if (overall >= 8.5) {
+    level = 'exceptional';
+    description = 'Your bond is exceptionally strong across all dimensions.';
+    recommendations = ['Continue nurturing your relationship', 'Share your success with other couples'];
+  } else if (overall >= 7) {
+    level = 'strong';
+    description = 'You have a strong, healthy relationship foundation.';
+    recommendations = ['Focus on maintaining your strengths', 'Address any weaker areas'];
+  } else if (overall >= 5) {
+    level = 'developing';
+    description = 'Your relationship is developing well with room for growth.';
+    recommendations = ['Work on communication', 'Spend more quality time together'];
+  } else {
+    level = 'weak';
+    description = 'Your relationship could benefit from focused attention and effort.';
+    recommendations = ['Consider couples counseling', 'Focus on basic communication skills'];
+  }
+  
+  return { overall, level, description, recommendations };
 }

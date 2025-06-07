@@ -4,6 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2, Trophy, ChevronLeft } from 'lucide-react';
 import GameEngine, { GameFormat } from '@/components/quiz/GameEngine';
 import { Button } from '@/components/ui/button';
+import { Quiz, Question } from '@shared/schema';
+
+interface QuizData {
+  quiz: Quiz;
+  questions: Question[];
+}
 
 export default function QuizGame() {
   const { id } = useParams();
@@ -16,8 +22,15 @@ export default function QuizGame() {
   const [gameComplete, setGameComplete] = useState(false);
   
   // Fetch quiz and questions
-  const { data: quizData, isLoading, error } = useQuery({
+  const { data: quizData, isLoading, error } = useQuery<QuizData>({
     queryKey: [`/api/quizzes/${id}`],
+    queryFn: async () => {
+      const response = await fetch(`/api/quizzes/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch quiz');
+      }
+      return response.json();
+    }
   });
   
   // On mount, determine a random game format for each question
@@ -60,12 +73,10 @@ export default function QuizGame() {
         // Change the game format for the next question
         // Ensure it's different from the current format for variety
         const previousFormat = gameFormat;
-        setGameFormat(randomizeFormat => {
-          const formats: GameFormat[] = ['speed', 'memory', 'reflex', 'drag', 'standard'];
-          const availableFormats = formats.filter(f => f !== previousFormat);
-          const randomIndex = Math.floor(Math.random() * availableFormats.length);
-          return availableFormats[randomIndex];
-        });
+        const formats: GameFormat[] = ['speed', 'memory', 'reflex', 'drag', 'standard'];
+        const availableFormats = formats.filter(f => f !== previousFormat);
+        const randomIndex = Math.floor(Math.random() * availableFormats.length);
+        setGameFormat(availableFormats[randomIndex]);
         
         return nextIndex;
       });

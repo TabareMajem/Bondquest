@@ -6,8 +6,7 @@ import { initializeEmailTransporter } from "./services/emailService";
 import session from "express-session";
 import { nanoid } from "nanoid";
 import MemoryStore from "memorystore";
-import ConnectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
+import { db } from "./db";
 import { runSeed } from "./seed";
 
 // Initialize Gemini API with environment variable if available
@@ -25,28 +24,21 @@ app.use(express.urlencoded({ extended: false }));
 
 // Session configuration
 const MemoryStoreSession = MemoryStore(session);
-const PgStore = ConnectPgSimple(session);
 
 // Create a secure session secret if not provided
 const SESSION_SECRET = process.env.SESSION_SECRET || nanoid(32);
 console.log("Session initialized with secret");
 
-// Configure session
+// Configure session (using memory store for development)
 app.use(session({
-  store: process.env.NODE_ENV === 'production' 
-    ? new PgStore({ 
-        pool, 
-        tableName: 'sessions',
-        createTableIfMissing: true 
-      }) 
-    : new MemoryStoreSession({
-        checkPeriod: 86400000 // Clear expired sessions every 24h
-      }),
+  store: new MemoryStoreSession({
+    checkPeriod: 86400000 // Clear expired sessions every 24h
+  }),
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for development
     maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
     httpOnly: true,
     sameSite: 'lax'
@@ -152,6 +144,33 @@ app.use((req, res, next) => {
       reusePort: true,
     }, () => {
       log(`Server successfully started on port ${port}`);
+      console.log(`🚀 Server running on port ${port}`);
+      console.log(`📱 Frontend: http://localhost:${port}`);
+      console.log(`🔗 API: http://localhost:${port}/api`);
+      console.log(`🎤 Voice Onboarding: http://localhost:${port}/voice-onboarding`);
+      console.log(`📊 Dashboard: http://localhost:${port}/dashboard`);
+      
+      // Log available features
+      console.log('\n🎯 Available Features:');
+      console.log('✅ Voice-first onboarding with speech-to-text');
+      console.log('✅ Beautiful purple-themed dashboard');
+      console.log('✅ Interactive quiz games');
+      console.log('✅ Bond strength assessment');
+      console.log('✅ AI-powered relationship insights');
+      console.log('✅ Partner connection system');
+      console.log('✅ Gamification with points and achievements');
+      
+      console.log('\n🧪 Test Users Available:');
+      console.log('👤 Alex (alex@bondquest.demo) - Partner Code: BOND-ALEX123');
+      console.log('👤 James (james@bondquest.demo) - Partner Code: BOND-JAMES456');
+      
+      console.log('\n🎤 Voice Features:');
+      console.log('🗣️  Speech-to-text recognition');
+      console.log('🔊 Text-to-speech responses');
+      console.log('🤖 AI conversation flow');
+      console.log('📱 Works in Chrome, Safari, Edge');
+      
+      console.log('\n🚀 Ready for testing!');
     }).on('error', (err: any) => {
       if (err.code === 'EADDRINUSE') {
         console.error(`Port ${port} is already in use! Unable to start server. Please terminate other processes using port ${port} and try again.`);

@@ -159,6 +159,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       anniversary: new Date(Date.now() - 1000 * 60 * 60 * 24 * 365).toISOString().split('T')[0], // 1 year ago
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30), // 30 days ago
       partnerCode: `MOCK-${Math.floor(Math.random() * 10000)}`,
+      googleId: null,
+      instagramId: null,
+      lastLogin: null,
+      profilePictureUrl: null,
+      isAdmin: false,
     };
     
     // Create a mock couple

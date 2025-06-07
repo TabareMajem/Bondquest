@@ -32,9 +32,29 @@ export default function BondStrengthMeter({
     enabled: !!coupleId,
   });
 
-  // Calculate bond strength and get interpretation
-  const bondStrength = assessments ? calculateBondStrength(assessments) : 0;
-  const interpretation = getBondStrengthInterpretation(bondStrength);
+  // Convert assessments to scores format and calculate bond strength
+  let bondStrength = 0;
+  let interpretation: {
+    overall: number;
+    level: 'weak' | 'developing' | 'strong' | 'exceptional';
+    description: string;
+    recommendations: string[];
+  } = {
+    overall: 0,
+    level: 'weak',
+    description: 'No assessment data available',
+    recommendations: ['Complete your first bond assessment to see insights']
+  };
+
+  if (assessments && assessments.length > 0) {
+    const scores: Record<string, number> = {};
+    assessments.forEach(assessment => {
+      scores[assessment.dimensionId] = assessment.score;
+    });
+    
+    interpretation = getBondStrengthInterpretation(scores);
+    bondStrength = interpretation.overall;
+  }
 
   // Color gradient based on bond strength
   const getColorClass = (strength: number) => {
@@ -173,7 +193,7 @@ export default function BondStrengthMeter({
       
       <div className={`flex ${showDetails ? 'justify-between' : 'justify-center'} items-center`}>
         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-background/50">
-          {interpretation}
+          {interpretation.level}
         </span>
         
         {showDetails && !minimal && (

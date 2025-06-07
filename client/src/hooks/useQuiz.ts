@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "../contexts/AuthContext";
@@ -28,19 +28,16 @@ export function useQuiz({ quizId, autoInitSession = false }: UseQuizProps = {}) 
 
   // Fetch quiz data
   const quizQuery = useQuery<{ quiz: Quiz; questions: Question[] }>({
-    queryKey: [quizId ? `/api/quizzes/${quizId}` : null],
+    queryKey: [`/api/quizzes/${quizId}`],
     enabled: !!quizId,
-    onSuccess: (data) => {
-      setCurrentQuiz(data.quiz);
-      setQuestions(data.questions);
-      resetAnswers();
-      setTimeLeft(30);
-      
-      if (autoInitSession && couple && !quizSessionId) {
-        initSessionMutation.mutate();
-      }
-    },
   });
+
+  // Handle auto-initialization when quiz data is loaded
+  useEffect(() => {
+    if (autoInitSession && quizQuery.data && couple && !quizSessionId) {
+      initSessionMutation.mutate();
+    }
+  }, [autoInitSession, quizQuery.data, couple, quizSessionId]);
 
   // Initialize quiz session
   const initSessionMutation = useMutation({

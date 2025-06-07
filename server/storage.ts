@@ -19,7 +19,12 @@ import {
   type BondQuestion, type InsertBondQuestion, type UserPreferences, type InsertUserPreferences,
   type AffiliatePartner, type InsertAffiliatePartner, type AffiliateCoupon, type InsertAffiliateCoupon,
   type AffiliateReferral, type InsertAffiliateReferral, type AffiliateTransaction, type InsertAffiliateTransaction,
-  type AffiliatePayment, type InsertAffiliatePayment
+  type AffiliatePayment, type InsertAffiliatePayment,
+  type ConversationSession, type InsertConversationSession,
+  type ConversationMessage, type InsertConversationMessage,
+  type VoiceInteraction, type InsertVoiceInteraction,
+  type ProfileInsight, type InsertProfileInsight,
+  type RelationshipContext, type InsertRelationshipContext
 } from "@shared/schema";
 import { bondDimensions } from "@shared/bondDimensions";
 import { nanoid } from "nanoid";
@@ -225,6 +230,11 @@ export class MemStorage implements IStorage {
   private affiliateReferrals: Map<number, AffiliateReferral>;
   private affiliateTransactions: Map<number, AffiliateTransaction>;
   private affiliatePayments: Map<number, AffiliatePayment>;
+  private conversationSessions: Map<number, ConversationSession>;
+  private conversationMessages: Map<number, ConversationMessage>;
+  private voiceInteractions: Map<number, VoiceInteraction>;
+  private profileInsights: Map<number, ProfileInsight>;
+  private relationshipContexts: Map<number, RelationshipContext>;
   
   private userId: number = 1;
   private coupleId: number = 1;
@@ -256,6 +266,11 @@ export class MemStorage implements IStorage {
   private affiliateReferralId: number = 1;
   private affiliateTransactionId: number = 1;
   private affiliatePaymentId: number = 1;
+  private conversationSessionId: number = 1;
+  private conversationMessageId: number = 1;
+  private voiceInteractionId: number = 1;
+  private profileInsightId: number = 1;
+  private relationshipContextId: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -288,6 +303,11 @@ export class MemStorage implements IStorage {
     this.affiliateReferrals = new Map();
     this.affiliateTransactions = new Map();
     this.affiliatePayments = new Map();
+    this.conversationSessions = new Map();
+    this.conversationMessages = new Map();
+    this.voiceInteractions = new Map();
+    this.profileInsights = new Map();
+    this.relationshipContexts = new Map();
     
     // Initialize with sample quizzes and questions
     this.initializeSampleData();
@@ -311,19 +331,25 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const id = this.userId++;
-    const partnerCode = nanoid(8);
-    const newUser: User = { 
-      ...user, 
-      id, 
-      partnerCode, 
-      createdAt: new Date(),
+    const newUser: User = {
+      id: this.userId++,
+      username: user.username,
+      password: user.password || null,
+      email: user.email,
+      displayName: user.displayName,
       avatar: user.avatar || null,
       loveLanguage: user.loveLanguage || null,
       relationshipStatus: user.relationshipStatus || null,
-      anniversary: user.anniversary || null
+      anniversary: user.anniversary || null,
+      createdAt: new Date(),
+      partnerCode: user.partnerCode,
+      googleId: user.googleId || null,
+      instagramId: user.instagramId || null,
+      lastLogin: user.lastLogin || null,
+      profilePictureUrl: user.profilePictureUrl || null,
+      isAdmin: user.isAdmin || false,
     };
-    this.users.set(id, newUser);
+    this.users.set(newUser.id, newUser);
     return newUser;
   }
 
@@ -541,811 +567,6 @@ export class MemStorage implements IStorage {
     return newChat;
   }
 
-  // User Preferences Methods
-  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
-    return Array.from(this.userPreferences.values())
-      .find(prefs => prefs.userId === userId);
-  }
-
-  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
-    const id = this.userPreferencesId++;
-    const now = new Date();
-    const newPreferences: UserPreferences = { 
-      ...preferences, 
-      id, 
-      createdAt: now, 
-      updatedAt: now,
-      dailyReminders: preferences.dailyReminders || null,
-      partnerActivity: preferences.partnerActivity || null,
-      competitionUpdates: preferences.competitionUpdates || null,
-      appUpdates: preferences.appUpdates || null,
-      sessionReminders: preferences.sessionReminders || null,
-      newMessageSound: preferences.newMessageSound || null,
-      achievementSound: preferences.achievementSound || null,
-      fontSizePreference: preferences.fontSizePreference || null,
-      colorMode: preferences.colorMode || null,
-      notificationTime: preferences.notificationTime || null,
-      pushNotificationsEnabled: preferences.pushNotificationsEnabled || null,
-      emailNotificationsEnabled: preferences.emailNotificationsEnabled || null,
-      language: preferences.language || null
-    };
-    this.userPreferences.set(id, newPreferences);
-    return newPreferences;
-  }
-
-  async updateUserPreferences(userId: number, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined> {
-    const preferences = Array.from(this.userPreferences.values())
-      .find(prefs => prefs.userId === userId);
-    
-    if (preferences) {
-      const updatedPreferences = { 
-        ...preferences, 
-        ...updates, 
-        updatedAt: new Date() 
-      };
-      this.userPreferences.set(preferences.id, updatedPreferences);
-      return updatedPreferences;
-    }
-    
-    return undefined;
-  }
-
-  // Bond Question Methods
-  async getBondQuestions(): Promise<BondQuestion[]> {
-    return Array.from(this.bondQuestions.values());
-  }
-
-  async getBondQuestionsByDimension(dimensionId: string): Promise<BondQuestion[]> {
-    return Array.from(this.bondQuestions.values())
-      .filter(question => question.dimensionId === dimensionId);
-  }
-
-  async getBondQuestion(id: number): Promise<BondQuestion | undefined> {
-    return this.bondQuestions.get(id);
-  }
-
-  async createBondQuestion(question: InsertBondQuestion): Promise<BondQuestion> {
-    const id = this.bondQuestionId++;
-    const newQuestion: BondQuestion = { 
-      ...question, 
-      id,
-      createdAt: new Date(),
-      options: question.options || null,
-      weight: question.weight || null
-    };
-    this.bondQuestions.set(id, newQuestion);
-    return newQuestion;
-  }
-
-  // Bond Assessment Methods
-  async getBondAssessmentsByCouple(coupleId: number): Promise<BondAssessment[]> {
-    return Array.from(this.bondAssessments.values())
-      .filter(assessment => assessment.coupleId === coupleId);
-  }
-
-  async getBondAssessment(id: number): Promise<BondAssessment | undefined> {
-    return this.bondAssessments.get(id);
-  }
-
-  async createBondAssessment(assessment: InsertBondAssessment): Promise<BondAssessment> {
-    const id = this.bondAssessmentId++;
-    const now = new Date();
-    const newAssessment: BondAssessment = { 
-      ...assessment, 
-      id, 
-      createdAt: now,
-      updatedAt: now,
-      answeredAt: now,
-      user1Score: assessment.user1Score || null,
-      user2Score: assessment.user2Score || null
-    };
-    this.bondAssessments.set(id, newAssessment);
-
-    // Update overall bond strength on the couple
-    const assessments = await this.getBondAssessmentsByCouple(assessment.coupleId);
-    if (assessments.length > 0) {
-      const dimensions = bondDimensions.length;
-      const completedDimensions = new Set(assessments.map(a => a.dimensionId)).size;
-      
-      // Only update bond strength if we have assessments for at least half of the dimensions
-      if (completedDimensions >= dimensions / 2) {
-        const totalScore = assessments.reduce((sum, a) => sum + a.score, 0);
-        const avgScore = Math.round(totalScore / assessments.length);
-        await this.updateCoupleBondStrength(assessment.coupleId, avgScore);
-      }
-    }
-
-    return newAssessment;
-  }
-
-  // Bond Insight Methods
-  async getBondInsightsByCouple(coupleId: number): Promise<BondInsight[]> {
-    return Array.from(this.bondInsights.values())
-      .filter(insight => insight.coupleId === coupleId)
-      .sort((a, b) => {
-        // Sort first by completion status, then by expiration date
-        if (a.completed !== b.completed) {
-          return a.completed ? 1 : -1;
-        }
-        return a.expiresAt.getTime() - b.expiresAt.getTime();
-      });
-  }
-
-  async getBondInsight(id: number): Promise<BondInsight | undefined> {
-    return this.bondInsights.get(id);
-  }
-
-  async createBondInsight(insight: InsertBondInsight): Promise<BondInsight> {
-    const id = this.bondInsightId++;
-    const now = new Date();
-    const expiresAt = insight.expiresAt || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // Default 30 days expiration
-    
-    // Convert actionItems to a proper string array if needed
-    let actionItems = insight.actionItems;
-    if (actionItems && !Array.isArray(actionItems)) {
-      // Handle case when actionItems is passed as an object with numeric keys
-      actionItems = Object.values(actionItems).map(item => String(item));
-    }
-    
-    const newInsight: BondInsight = { 
-      ...insight, 
-      id, 
-      createdAt: now,
-      expiresAt: expiresAt,
-      completed: insight.completed !== undefined ? insight.completed : false,
-      viewed: insight.viewed !== undefined ? insight.viewed : false,
-      actionItems: actionItems as string[] || []
-    };
-    this.bondInsights.set(id, newInsight);
-    return newInsight;
-  }
-
-  async updateBondInsightViewed(id: number, viewed: boolean): Promise<BondInsight | undefined> {
-    const insight = this.bondInsights.get(id);
-    if (insight) {
-      const updatedInsight = { ...insight, viewed };
-      this.bondInsights.set(id, updatedInsight);
-      return updatedInsight;
-    }
-    return undefined;
-  }
-
-  async updateBondInsightCompleted(id: number, completed: boolean): Promise<BondInsight | undefined> {
-    const insight = this.bondInsights.get(id);
-    if (insight) {
-      const updatedInsight = { ...insight, completed };
-      this.bondInsights.set(id, updatedInsight);
-      return updatedInsight;
-    }
-    return undefined;
-  }
-
-  // Initialize sample data
-  // Affiliate Partner Methods
-  async getAffiliatePartners(status?: string): Promise<AffiliatePartner[]> {
-    const partners = Array.from(this.affiliatePartners.values());
-    if (status) {
-      return partners.filter(partner => partner.status === status);
-    }
-    return partners;
-  }
-
-  async getAffiliatePartner(id: number): Promise<AffiliatePartner | undefined> {
-    return this.affiliatePartners.get(id);
-  }
-
-  async getAffiliatePartnerByEmail(email: string): Promise<AffiliatePartner | undefined> {
-    return Array.from(this.affiliatePartners.values())
-      .find(partner => partner.email === email);
-  }
-
-  async createAffiliatePartner(partner: InsertAffiliatePartner): Promise<AffiliatePartner> {
-    const id = this.affiliatePartnerId++;
-    const now = new Date();
-    const newPartner: AffiliatePartner = {
-      ...partner,
-      id,
-      status: partner.status || "pending",
-      createdAt: now,
-      updatedAt: now,
-      approvedAt: null,
-      termsAccepted: partner.termsAccepted || false,
-      commissionRate: partner.commissionRate || 10.00,
-      website: partner.website || null,
-      logoUrl: partner.logoUrl || null,
-      description: partner.description || null,
-      notes: partner.notes || null,
-      paymentDetails: partner.paymentDetails || null,
-      approvedBy: partner.approvedBy || null
-    };
-    this.affiliatePartners.set(id, newPartner);
-    return newPartner;
-  }
-
-  async updateAffiliatePartner(id: number, updates: Partial<AffiliatePartner>): Promise<AffiliatePartner | undefined> {
-    const partner = this.affiliatePartners.get(id);
-    if (partner) {
-      const updatedPartner = {
-        ...partner,
-        ...updates,
-        updatedAt: new Date()
-      };
-      this.affiliatePartners.set(id, updatedPartner);
-      return updatedPartner;
-    }
-    return undefined;
-  }
-
-  async approveAffiliatePartner(id: number, approvedBy: number): Promise<AffiliatePartner | undefined> {
-    const partner = this.affiliatePartners.get(id);
-    if (partner) {
-      const now = new Date();
-      const updatedPartner = {
-        ...partner,
-        status: "active",
-        approvedBy,
-        approvedAt: now,
-        updatedAt: now
-      };
-      this.affiliatePartners.set(id, updatedPartner);
-      return updatedPartner;
-    }
-    return undefined;
-  }
-
-  // Affiliate Coupon Methods
-  async getAffiliateCoupons(partnerId?: number, isActive?: boolean): Promise<AffiliateCoupon[]> {
-    let coupons = Array.from(this.affiliateCoupons.values());
-    
-    if (partnerId) {
-      coupons = coupons.filter(coupon => coupon.partnerId === partnerId);
-    }
-    
-    if (isActive !== undefined) {
-      coupons = coupons.filter(coupon => coupon.isActive === isActive);
-    }
-    
-    return coupons;
-  }
-
-  async getAffiliateCoupon(id: number): Promise<AffiliateCoupon | undefined> {
-    return this.affiliateCoupons.get(id);
-  }
-
-  async getAffiliateCouponByCode(code: string): Promise<AffiliateCoupon | undefined> {
-    return Array.from(this.affiliateCoupons.values())
-      .find(coupon => coupon.code === code);
-  }
-
-  async createAffiliateCoupon(coupon: InsertAffiliateCoupon): Promise<AffiliateCoupon> {
-    const id = this.affiliateCouponId++;
-    const now = new Date();
-    const newCoupon: AffiliateCoupon = {
-      ...coupon,
-      id,
-      createdAt: now,
-      updatedAt: now,
-      currentUses: 0,
-      isActive: coupon.isActive !== undefined ? coupon.isActive : true,
-      description: coupon.description || null,
-      maxUses: coupon.maxUses || null,
-      maxUsesPerUser: coupon.maxUsesPerUser || 1,
-      minPurchaseAmount: coupon.minPurchaseAmount || null,
-      termsAndConditions: coupon.termsAndConditions || null,
-      tierId: coupon.tierId || null
-    };
-    this.affiliateCoupons.set(id, newCoupon);
-    return newCoupon;
-  }
-
-  async updateAffiliateCoupon(id: number, updates: Partial<AffiliateCoupon>): Promise<AffiliateCoupon | undefined> {
-    const coupon = this.affiliateCoupons.get(id);
-    if (coupon) {
-      const updatedCoupon = {
-        ...coupon,
-        ...updates,
-        updatedAt: new Date()
-      };
-      this.affiliateCoupons.set(id, updatedCoupon);
-      return updatedCoupon;
-    }
-    return undefined;
-  }
-
-  async incrementCouponUses(id: number): Promise<AffiliateCoupon | undefined> {
-    const coupon = this.affiliateCoupons.get(id);
-    if (coupon) {
-      const currentUses = coupon.currentUses + 1;
-      const isActive = coupon.maxUses ? currentUses < coupon.maxUses : coupon.isActive;
-      
-      const updatedCoupon = {
-        ...coupon,
-        currentUses,
-        isActive,
-        updatedAt: new Date()
-      };
-      
-      this.affiliateCoupons.set(id, updatedCoupon);
-      return updatedCoupon;
-    }
-    return undefined;
-  }
-
-  // Affiliate Referral Methods
-  async getAffiliateReferrals(partnerId: number): Promise<AffiliateReferral[]> {
-    return Array.from(this.affiliateReferrals.values())
-      .filter(referral => referral.partnerId === partnerId);
-  }
-
-  async getAffiliateReferral(id: number): Promise<AffiliateReferral | undefined> {
-    return this.affiliateReferrals.get(id);
-  }
-
-  async getAffiliateReferralByCode(code: string): Promise<AffiliateReferral | undefined> {
-    return Array.from(this.affiliateReferrals.values())
-      .find(referral => referral.referralCode === code);
-  }
-
-  async createAffiliateReferral(referral: InsertAffiliateReferral): Promise<AffiliateReferral> {
-    const id = this.affiliateReferralId++;
-    const now = new Date();
-    const newReferral: AffiliateReferral = {
-      ...referral,
-      id,
-      createdAt: now,
-      updatedAt: now,
-      clickCount: 0,
-      conversionCount: 0,
-      status: referral.status || "active",
-      couponId: referral.couponId || null
-    };
-    this.affiliateReferrals.set(id, newReferral);
-    return newReferral;
-  }
-
-  async updateAffiliateReferral(id: number, updates: Partial<AffiliateReferral>): Promise<AffiliateReferral | undefined> {
-    const referral = this.affiliateReferrals.get(id);
-    if (referral) {
-      const updatedReferral = {
-        ...referral,
-        ...updates,
-        updatedAt: new Date()
-      };
-      this.affiliateReferrals.set(id, updatedReferral);
-      return updatedReferral;
-    }
-    return undefined;
-  }
-
-  async incrementReferralClick(id: number): Promise<AffiliateReferral | undefined> {
-    const referral = this.affiliateReferrals.get(id);
-    if (referral) {
-      const updatedReferral = {
-        ...referral,
-        clickCount: referral.clickCount + 1,
-        updatedAt: new Date()
-      };
-      this.affiliateReferrals.set(id, updatedReferral);
-      return updatedReferral;
-    }
-    return undefined;
-  }
-
-  async incrementReferralConversion(id: number): Promise<AffiliateReferral | undefined> {
-    const referral = this.affiliateReferrals.get(id);
-    if (referral) {
-      const updatedReferral = {
-        ...referral,
-        conversionCount: referral.conversionCount + 1,
-        updatedAt: new Date()
-      };
-      this.affiliateReferrals.set(id, updatedReferral);
-      return updatedReferral;
-    }
-    return undefined;
-  }
-
-  // Affiliate Transaction Methods
-  async getAffiliateTransactions(partnerId: number): Promise<AffiliateTransaction[]> {
-    return Array.from(this.affiliateTransactions.values())
-      .filter(transaction => transaction.partnerId === partnerId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  async getAffiliateTransaction(id: number): Promise<AffiliateTransaction | undefined> {
-    return this.affiliateTransactions.get(id);
-  }
-
-  async getAffiliateTransactionsByUser(userId: number): Promise<AffiliateTransaction[]> {
-    return Array.from(this.affiliateTransactions.values())
-      .filter(transaction => transaction.userId === userId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  async createAffiliateTransaction(transaction: InsertAffiliateTransaction): Promise<AffiliateTransaction> {
-    const id = this.affiliateTransactionId++;
-    const newTransaction: AffiliateTransaction = {
-      ...transaction,
-      id,
-      createdAt: new Date(),
-      paymentDate: transaction.paymentDate || null,
-      notes: transaction.notes || null,
-      referralId: transaction.referralId || null,
-      couponId: transaction.couponId || null
-    };
-    this.affiliateTransactions.set(id, newTransaction);
-    return newTransaction;
-  }
-
-  async updateAffiliateTransactionStatus(id: number, status: string): Promise<AffiliateTransaction | undefined> {
-    const transaction = this.affiliateTransactions.get(id);
-    if (transaction) {
-      const updatedTransaction = {
-        ...transaction,
-        status,
-        paymentDate: status === 'paid' ? new Date() : transaction.paymentDate
-      };
-      this.affiliateTransactions.set(id, updatedTransaction);
-      return updatedTransaction;
-    }
-    return undefined;
-  }
-
-  // Affiliate Payment Methods
-  async getAffiliatePayments(partnerId: number): Promise<AffiliatePayment[]> {
-    return Array.from(this.affiliatePayments.values())
-      .filter(payment => payment.partnerId === partnerId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  async getAffiliatePayment(id: number): Promise<AffiliatePayment | undefined> {
-    return this.affiliatePayments.get(id);
-  }
-
-  async createAffiliatePayment(payment: InsertAffiliatePayment): Promise<AffiliatePayment> {
-    const id = this.affiliatePaymentId++;
-    const newPayment: AffiliatePayment = {
-      ...payment,
-      id,
-      createdAt: new Date(),
-      paymentDate: payment.paymentDate || null,
-      reference: payment.reference || null,
-      notes: payment.notes || null,
-      transactions: payment.transactions || []
-    };
-    this.affiliatePayments.set(id, newPayment);
-    return newPayment;
-  }
-
-  async updateAffiliatePaymentStatus(id: number, status: string, reference?: string): Promise<AffiliatePayment | undefined> {
-    const payment = this.affiliatePayments.get(id);
-    if (payment) {
-      const updatedPayment = {
-        ...payment,
-        status,
-        reference: reference || payment.reference,
-        paymentDate: status === 'completed' ? new Date() : payment.paymentDate
-      };
-      this.affiliatePayments.set(id, updatedPayment);
-      return updatedPayment;
-    }
-    return undefined;
-  }
-
-  private initializeSampleData() {
-    // Sample Quizzes
-    const triviaQuiz: Quiz = {
-      id: this.quizId++,
-      title: "Trivia Showdown",
-      description: "Face off against another couple",
-      type: "sync",
-      category: "couple_vs_couple",
-      duration: 5,
-      points: 20,
-      image: "game-controller"
-    };
-    this.quizzes.set(triviaQuiz.id, triviaQuiz);
-
-    const knowEachOtherQuiz: Quiz = {
-      id: this.quizId++,
-      title: "How Well Do You Know Each Other?",
-      description: "Answer questions about your partner",
-      type: "sync",
-      category: "partner_vs_partner",
-      duration: 10,
-      points: 30,
-      image: "heart-question"
-    };
-    this.quizzes.set(knowEachOtherQuiz.id, knowEachOtherQuiz);
-
-    const relationshipRemixQuiz: Quiz = {
-      id: this.quizId++,
-      title: "Relationship Remix",
-      description: "Rediscover moments from your past",
-      type: "async",
-      category: "memory_lane",
-      duration: 5,
-      points: 25,
-      image: "music-note"
-    };
-    this.quizzes.set(relationshipRemixQuiz.id, relationshipRemixQuiz);
-
-    const morningRoutinesQuiz: Quiz = {
-      id: this.quizId++,
-      title: "Morning Routines",
-      description: "Discuss your daily habits and rituals",
-      type: "sync",
-      category: "daily_habits",
-      duration: 5,
-      points: 20,
-      image: "coffee-cup"
-    };
-    this.quizzes.set(morningRoutinesQuiz.id, morningRoutinesQuiz);
-
-    // Sample Questions for "How Well Do You Know Each Other?" quiz
-    const questions = [
-      {
-        id: this.questionId++,
-        quizId: knowEachOtherQuiz.id,
-        text: "What's your partner's biggest fear?",
-        options: ["Heights", "Public speaking", "Spiders", "Being alone"]
-      },
-      {
-        id: this.questionId++,
-        quizId: knowEachOtherQuiz.id,
-        text: "What's your partner's favorite meal?",
-        options: ["Sushi", "Pizza", "Steak", "Pasta"]
-      },
-      {
-        id: this.questionId++,
-        quizId: knowEachOtherQuiz.id,
-        text: "Where would your partner most like to travel next?",
-        options: ["Japan", "Italy", "Australia", "Iceland"]
-      },
-      {
-        id: this.questionId++,
-        quizId: knowEachOtherQuiz.id,
-        text: "What's your partner's dream job?",
-        options: ["Doctor", "Artist", "Tech Entrepreneur", "Travel Blogger"]
-      },
-      {
-        id: this.questionId++,
-        quizId: knowEachOtherQuiz.id,
-        text: "How does your partner prefer to relax after a stressful day?",
-        options: ["Watch a movie", "Take a walk", "Read a book", "Take a bath"]
-      }
-    ];
-
-    for (const question of questions) {
-      this.questions.set(question.id, question);
-    }
-
-    // Sample Bond Questions for each dimension
-    const bondQuestions: BondQuestion[] = [];
-
-    // Communication dimension questions
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'communication',
-      type: 'likert',
-      text: 'We can discuss difficult topics without arguing',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'communication',
-      type: 'likert',
-      text: 'My partner listens attentively when I speak',
-      weight: 1,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'communication',
-      type: 'likert',
-      text: 'We resolve conflicts through open conversation',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    // Trust dimension questions
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'trust',
-      type: 'likert',
-      text: 'I trust my partner completely',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'trust',
-      type: 'likert',
-      text: 'My partner is reliable and keeps their promises',
-      weight: 1,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'trust',
-      type: 'likert',
-      text: 'We are honest with each other even when it\'s difficult',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    // Intimacy dimension questions
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'intimacy',
-      type: 'likert',
-      text: 'I feel emotionally connected to my partner',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'intimacy',
-      type: 'likert',
-      text: 'We are physically affectionate with each other',
-      weight: 1,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'intimacy',
-      type: 'multiple_choice',
-      text: 'How often do you have meaningful intimate moments?',
-      weight: 1,
-      options: ['Daily', 'Several times a week', 'Weekly', 'Monthly', 'Rarely'],
-      createdAt: new Date()
-    });
-
-    // Support dimension questions
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'support',
-      type: 'likert',
-      text: 'My partner encourages me to pursue my goals',
-      weight: 1,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'support',
-      type: 'likert',
-      text: 'We support each other through difficult times',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'support',
-      type: 'text',
-      text: 'Share a recent example of how your partner supported you',
-      weight: 0,
-      options: null,
-      createdAt: new Date()
-    });
-
-    // Growth dimension questions
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'growth',
-      type: 'likert',
-      text: 'We help each other become better people',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'growth',
-      type: 'likert',
-      text: 'Our relationship has grown stronger over time',
-      weight: 1,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'growth',
-      type: 'multiple_choice',
-      text: 'How often do you try new activities together?',
-      weight: 1,
-      options: ['Weekly', 'Monthly', 'Every few months', 'Once a year', 'Rarely'],
-      createdAt: new Date()
-    });
-
-    // Fun dimension questions
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'fun',
-      type: 'likert',
-      text: 'We laugh and have fun together regularly',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'fun',
-      type: 'likert',
-      text: 'We make time for playful activities',
-      weight: 1,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'fun',
-      type: 'multiple_choice',
-      text: 'What\'s your favorite way to have fun together?',
-      weight: 0,
-      options: ['Travel', 'Games', 'Outdoor activities', 'Watching shows', 'Dining out'],
-      createdAt: new Date()
-    });
-
-    // Goals dimension questions
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'goals',
-      type: 'likert',
-      text: 'We have shared goals and visions for our future',
-      weight: 2,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'goals',
-      type: 'likert',
-      text: 'We regularly discuss our future plans together',
-      weight: 1,
-      options: null,
-      createdAt: new Date()
-    });
-
-    bondQuestions.push({
-      id: this.bondQuestionId++,
-      dimensionId: 'goals',
-      type: 'text',
-      text: 'What\'s one goal you hope to achieve together in the next year?',
-      weight: 0,
-      options: null,
-      createdAt: new Date()
-    });
-
-    // Add all bond questions to the map
-    for (const question of bondQuestions) {
-      this.bondQuestions.set(question.id, question);
-    }
-  }
-  
   // Subscription Methods
   async getSubscriptionTiers(): Promise<SubscriptionTier[]> {
     return Array.from(this.subscriptionTiers.values());
@@ -1643,6 +864,849 @@ export class MemStorage implements IStorage {
       return updatedCoupleReward;
     }
     return undefined;
+  }
+
+  // User Profile Methods
+  async getUserProfile(userId: number): Promise<UserProfile | undefined> {
+    return Array.from(this.userProfiles.values()).find(profile => profile.userId === userId);
+  }
+
+  async createUserProfile(profile: InsertUserProfile): Promise<UserProfile> {
+    const newProfile: UserProfile = {
+      id: this.userProfileId++,
+      userId: profile.userId,
+      favoriteColors: profile.favoriteColors || null,
+      favoriteFood: profile.favoriteFood || null,
+      favoriteMovies: profile.favoriteMovies || null,
+      favoriteSongs: profile.favoriteSongs || null,
+      hobbies: profile.hobbies || null,
+      dreamVacation: profile.dreamVacation || null,
+      biggestFear: profile.biggestFear || null,
+      petPeeves: profile.petPeeves || null,
+      childhoodMemories: profile.childhoodMemories || null,
+      loveLanguage: profile.loveLanguage || null,
+      communicationStyle: profile.communicationStyle || null,
+      weekendPreference: profile.weekendPreference || null,
+      stressRelievers: profile.stressRelievers || null,
+      lifeGoals: profile.lifeGoals || null,
+      lastUpdated: new Date(),
+      metadata: profile.metadata || null,
+    };
+    this.userProfiles.set(newProfile.id, newProfile);
+    return newProfile;
+  }
+
+  async updateUserProfile(userId: number, updates: Partial<UserProfile>): Promise<UserProfile | undefined> {
+    const existingProfile = Array.from(this.userProfiles.values()).find(profile => profile.userId === userId);
+    if (!existingProfile) return undefined;
+
+    const updatedProfile = { ...existingProfile, ...updates, lastUpdated: new Date() };
+    this.userProfiles.set(existingProfile.id, updatedProfile);
+    return updatedProfile;
+  }
+
+  // Profile Questions Methods
+  async getProfileQuestions(category?: string): Promise<ProfileQuestion[]> {
+    const questions = Array.from(this.profileQuestions.values());
+    return category ? questions.filter(q => q.category === category) : questions;
+  }
+
+  async getProfileQuestion(id: number): Promise<ProfileQuestion | undefined> {
+    return this.profileQuestions.get(id);
+  }
+
+  async createProfileQuestion(question: InsertProfileQuestion): Promise<ProfileQuestion> {
+    const newQuestion: ProfileQuestion = {
+      id: this.profileQuestionId++,
+      category: question.category,
+      questionText: question.questionText,
+      questionType: question.questionType,
+      options: question.options || null,
+      required: question.required || false,
+      order: question.order || 0,
+      active: question.active !== false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.profileQuestions.set(newQuestion.id, newQuestion);
+    return newQuestion;
+  }
+
+  // User Response Methods
+  async getUserResponses(userId: number): Promise<UserResponse[]> {
+    return Array.from(this.userResponses.values()).filter(response => response.userId === userId);
+  }
+
+  async getUserResponsesByQuestion(userId: number, questionId: number): Promise<UserResponse | undefined> {
+    return Array.from(this.userResponses.values()).find(response => 
+      response.userId === userId && response.questionId === questionId
+    );
+  }
+
+  async createUserResponse(response: InsertUserResponse): Promise<UserResponse> {
+    const newResponse: UserResponse = {
+      id: this.userResponseId++,
+      userId: response.userId,
+      questionId: response.questionId,
+      response: response.response,
+      additionalContext: response.additionalContext || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.userResponses.set(newResponse.id, newResponse);
+    return newResponse;
+  }
+
+  // Partner Quiz Methods
+  async getPartnerQuizQuestions(quizSessionId: number): Promise<PartnerQuizQuestion[]> {
+    return Array.from(this.partnerQuizQuestions.values()).filter(q => q.quizSessionId === quizSessionId);
+  }
+
+  async getPartnerQuizQuestion(id: number): Promise<PartnerQuizQuestion | undefined> {
+    return this.partnerQuizQuestions.get(id);
+  }
+
+  async createPartnerQuizQuestion(question: InsertPartnerQuizQuestion): Promise<PartnerQuizQuestion> {
+    const newQuestion: PartnerQuizQuestion = {
+      id: this.partnerQuizQuestionId++,
+      quizSessionId: question.quizSessionId,
+      authorUserId: question.authorUserId,
+      targetUserId: question.targetUserId,
+      questionText: question.questionText,
+      correctAnswer: question.correctAnswer,
+      options: question.options,
+      difficulty: question.difficulty || "medium",
+      createdAt: new Date(),
+    };
+    this.partnerQuizQuestions.set(newQuestion.id, newQuestion);
+    return newQuestion;
+  }
+
+  async getPartnerQuizResponses(questionId: number): Promise<PartnerQuizResponse[]> {
+    return Array.from(this.partnerQuizResponses.values()).filter(r => r.questionId === questionId);
+  }
+
+  async createPartnerQuizResponse(response: InsertPartnerQuizResponse): Promise<PartnerQuizResponse> {
+    const newResponse: PartnerQuizResponse = {
+      id: this.partnerQuizResponseId++,
+      questionId: response.questionId,
+      userId: response.userId,
+      selectedAnswer: response.selectedAnswer,
+      isCorrect: response.isCorrect || false,
+      timeSpent: response.timeSpent || null,
+      createdAt: new Date(),
+    };
+    this.partnerQuizResponses.set(newResponse.id, newResponse);
+    return newResponse;
+  }
+
+  // User Preferences Methods
+  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
+    return Array.from(this.userPreferences.values()).find(prefs => prefs.userId === userId);
+  }
+
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const newPreferences: UserPreferences = {
+      id: this.userPreferencesId++,
+      userId: preferences.userId,
+      dailyReminders: preferences.dailyReminders || true,
+      partnerActivity: preferences.partnerActivity || true,
+      competitionUpdates: preferences.competitionUpdates || true,
+      appUpdates: preferences.appUpdates || true,
+      publicProfile: preferences.publicProfile || false,
+      activityVisibility: preferences.activityVisibility || true,
+      dataCollection: preferences.dataCollection || true,
+      marketingEmails: preferences.marketingEmails || false,
+      preferredAssistant: preferences.preferredAssistant || "casanova",
+      proactiveAiSuggestions: preferences.proactiveAiSuggestions || true,
+      personalizedInsights: preferences.personalizedInsights || true,
+      contentCustomization: preferences.contentCustomization || true,
+      darkMode: preferences.darkMode || false,
+      accentColor: preferences.accentColor || "purple",
+      language: preferences.language || "en-GB",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.userPreferences.set(newPreferences.id, newPreferences);
+    return newPreferences;
+  }
+
+  async updateUserPreferences(userId: number, updates: Partial<UserPreferences>): Promise<UserPreferences | undefined> {
+    const preferences = Array.from(this.userPreferences.values()).find(prefs => prefs.userId === userId);
+    if (!preferences) return undefined;
+
+    const updatedPreferences = { ...preferences, ...updates, updatedAt: new Date() };
+    this.userPreferences.set(preferences.id, updatedPreferences);
+    return updatedPreferences;
+  }
+
+  // Bond Question Methods
+  async getBondQuestions(): Promise<BondQuestion[]> {
+    return Array.from(this.bondQuestions.values());
+  }
+
+  async getBondQuestionsByDimension(dimensionId: string): Promise<BondQuestion[]> {
+    return Array.from(this.bondQuestions.values()).filter(question => question.dimensionId === dimensionId);
+  }
+
+  async getBondQuestion(id: number): Promise<BondQuestion | undefined> {
+    return this.bondQuestions.get(id);
+  }
+
+  async createBondQuestion(question: InsertBondQuestion): Promise<BondQuestion> {
+    const newQuestion: BondQuestion = {
+      id: this.bondQuestionId++,
+      dimensionId: question.dimensionId,
+      type: question.type,
+      text: question.text,
+      options: Array.isArray(question.options) ? question.options : null,
+      weight: question.weight || null,
+      createdAt: new Date(),
+    };
+    this.bondQuestions.set(newQuestion.id, newQuestion);
+    return newQuestion;
+  }
+
+  // Bond Assessment Methods
+  async getBondAssessmentsByCouple(coupleId: number): Promise<BondAssessment[]> {
+    return Array.from(this.bondAssessments.values()).filter(assessment => assessment.coupleId === coupleId);
+  }
+
+  async getBondAssessment(id: number): Promise<BondAssessment | undefined> {
+    return this.bondAssessments.get(id);
+  }
+
+  async createBondAssessment(assessment: InsertBondAssessment): Promise<BondAssessment> {
+    const newAssessment: BondAssessment = {
+      id: this.bondAssessmentId++,
+      coupleId: assessment.coupleId,
+      dimensionId: assessment.dimensionId,
+      score: assessment.score,
+      user1Score: assessment.user1Score || null,
+      user2Score: assessment.user2Score || null,
+      answeredAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.bondAssessments.set(newAssessment.id, newAssessment);
+    return newAssessment;
+  }
+
+  // Bond Insight Methods
+  async getBondInsightsByCouple(coupleId: number): Promise<BondInsight[]> {
+    return Array.from(this.bondInsights.values())
+      .filter(insight => insight.coupleId === coupleId)
+      .sort((a, b) => {
+        if (a.completed !== b.completed) {
+          return a.completed ? 1 : -1;
+        }
+        if (a.expiresAt && b.expiresAt) {
+          return a.expiresAt.getTime() - b.expiresAt.getTime();
+        }
+        return 0;
+      });
+  }
+
+  async getBondInsight(id: number): Promise<BondInsight | undefined> {
+    return this.bondInsights.get(id);
+  }
+
+  async createBondInsight(insight: InsertBondInsight): Promise<BondInsight> {
+    const now = new Date();
+    const expiresAt = insight.expiresAt || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    const newInsight: BondInsight = {
+      id: this.bondInsightId++,
+      title: insight.title,
+      coupleId: insight.coupleId,
+      dimensionId: insight.dimensionId,
+      content: insight.content,
+      actionItems: Array.isArray(insight.actionItems) ? insight.actionItems : [],
+      targetScoreRange: insight.targetScoreRange,
+      difficulty: insight.difficulty,
+      completed: insight.completed || false,
+      expiresAt: expiresAt,
+      viewed: insight.viewed || false,
+      createdAt: now,
+    };
+    this.bondInsights.set(newInsight.id, newInsight);
+    return newInsight;
+  }
+
+  async updateBondInsightViewed(id: number, viewed: boolean): Promise<BondInsight | undefined> {
+    const insight = this.bondInsights.get(id);
+    if (!insight) return undefined;
+
+    const updatedInsight = { ...insight, viewed };
+    this.bondInsights.set(id, updatedInsight);
+    return updatedInsight;
+  }
+
+  async updateBondInsightCompleted(id: number, completed: boolean): Promise<BondInsight | undefined> {
+    const insight = this.bondInsights.get(id);
+    if (!insight) return undefined;
+
+    const updatedInsight = { ...insight, completed };
+    this.bondInsights.set(id, updatedInsight);
+    return updatedInsight;
+  }
+
+  // Conversation Session Methods
+  async getConversationSessions(userId: number): Promise<ConversationSession[]> {
+    return Array.from(this.conversationSessions.values()).filter(session => session.userId === userId);
+  }
+
+  async getConversationSession(id: number): Promise<ConversationSession | undefined> {
+    return this.conversationSessions.get(id);
+  }
+
+  async createConversationSession(session: InsertConversationSession): Promise<ConversationSession> {
+    const newSession: ConversationSession = {
+      id: this.conversationSessionId++,
+      userId: session.userId,
+      sessionType: session.sessionType,
+      status: session.status,
+      startedAt: new Date(),
+      completedAt: session.completedAt || null,
+      metadata: session.metadata || null,
+    };
+    this.conversationSessions.set(newSession.id, newSession);
+    return newSession;
+  }
+
+  async updateConversationSession(id: number, updates: Partial<ConversationSession>): Promise<ConversationSession | undefined> {
+    const session = this.conversationSessions.get(id);
+    if (!session) return undefined;
+
+    const updatedSession = { ...session, ...updates };
+    this.conversationSessions.set(id, updatedSession);
+    return updatedSession;
+  }
+
+  // Conversation Message Methods
+  async getConversationMessages(sessionId: number): Promise<ConversationMessage[]> {
+    return Array.from(this.conversationMessages.values()).filter(msg => msg.sessionId === sessionId);
+  }
+
+  async createConversationMessage(message: InsertConversationMessage): Promise<ConversationMessage> {
+    const newMessage: ConversationMessage = {
+      id: this.conversationMessageId++,
+      sessionId: message.sessionId,
+      sender: message.sender,
+      message: message.message,
+      timestamp: new Date(),
+      messageType: message.messageType || "text",
+      metadata: message.metadata || null,
+      contentTags: Array.isArray(message.contentTags) ? message.contentTags : null,
+      extractedInsights: Array.isArray(message.extractedInsights) ? message.extractedInsights : null,
+    };
+    this.conversationMessages.set(newMessage.id, newMessage);
+    return newMessage;
+  }
+
+  // Voice Interaction Methods
+  async getVoiceInteractions(sessionId: number): Promise<VoiceInteraction[]> {
+    return Array.from(this.voiceInteractions.values()).filter(interaction => interaction.sessionId === sessionId);
+  }
+
+  async createVoiceInteraction(interaction: InsertVoiceInteraction): Promise<VoiceInteraction> {
+    const newInteraction: VoiceInteraction = {
+      id: this.voiceInteractionId++,
+      sessionId: interaction.sessionId,
+      audioUrl: interaction.audioUrl,
+      transcription: interaction.transcription || null,
+      duration: interaction.duration || null,
+      confidence: interaction.confidence || null,
+      language: interaction.language || "en",
+      createdAt: new Date(),
+    };
+    this.voiceInteractions.set(newInteraction.id, newInteraction);
+    return newInteraction;
+  }
+
+  // Profile Insight Methods
+  async getProfileInsights(userId: number): Promise<ProfileInsight[]> {
+    return Array.from(this.profileInsights.values()).filter(insight => insight.userId === userId);
+  }
+
+  async createProfileInsight(insight: InsertProfileInsight): Promise<ProfileInsight> {
+    const newInsight: ProfileInsight = {
+      id: this.profileInsightId++,
+      userId: insight.userId,
+      sessionId: insight.sessionId,
+      insightType: insight.insightType,
+      title: insight.title,
+      content: insight.content,
+      confidence: insight.confidence || 0.8,
+      tags: Array.isArray(insight.tags) ? insight.tags : null,
+      actionable: insight.actionable || false,
+      createdAt: new Date(),
+    };
+    this.profileInsights.set(newInsight.id, newInsight);
+    return newInsight;
+  }
+
+  // Relationship Context Methods
+  async getRelationshipContexts(coupleId: number): Promise<RelationshipContext[]> {
+    return Array.from(this.relationshipContexts.values()).filter(context => context.coupleId === coupleId);
+  }
+
+  async createRelationshipContext(context: InsertRelationshipContext): Promise<RelationshipContext> {
+    const newContext: RelationshipContext = {
+      id: this.relationshipContextId++,
+      coupleId: context.coupleId,
+      contextType: context.contextType,
+      data: context.data,
+      source: context.source || "user_input",
+      confidence: context.confidence || 1.0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.relationshipContexts.set(newContext.id, newContext);
+    return newContext;
+  }
+
+  // Affiliate Partner Methods
+  async getAffiliatePartners(status?: string): Promise<AffiliatePartner[]> {
+    const partners = Array.from(this.affiliatePartners.values());
+    return status ? partners.filter(partner => partner.status === status) : partners;
+  }
+
+  async getAffiliatePartner(id: number): Promise<AffiliatePartner | undefined> {
+    return this.affiliatePartners.get(id);
+  }
+
+  async getAffiliatePartnerByEmail(email: string): Promise<AffiliatePartner | undefined> {
+    return Array.from(this.affiliatePartners.values()).find(partner => partner.email === email);
+  }
+
+  async createAffiliatePartner(partner: InsertAffiliatePartner): Promise<AffiliatePartner> {
+    const newPartner: AffiliatePartner = {
+      id: this.affiliatePartnerId++,
+      name: partner.name,
+      email: partner.email,
+      password: partner.password,
+      companyName: partner.companyName,
+      status: partner.status || "pending",
+      description: partner.description || null,
+      commissionRate: typeof partner.commissionRate === 'number' ? partner.commissionRate.toString() : (partner.commissionRate || "10.00"),
+      website: partner.website || null,
+      logoUrl: partner.logoUrl || null,
+      notes: partner.notes || null,
+      paymentDetails: partner.paymentDetails || null,
+      termsAccepted: partner.termsAccepted || false,
+      approvedBy: partner.approvedBy || null,
+      approvedAt: partner.approvedAt || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.affiliatePartners.set(newPartner.id, newPartner);
+    return newPartner;
+  }
+
+  async updateAffiliatePartner(id: number, updates: Partial<AffiliatePartner>): Promise<AffiliatePartner | undefined> {
+    const partner = this.affiliatePartners.get(id);
+    if (!partner) return undefined;
+
+    const updatedPartner = { ...partner, ...updates, updatedAt: new Date() };
+    this.affiliatePartners.set(id, updatedPartner);
+    return updatedPartner;
+  }
+
+  async approveAffiliatePartner(id: number, approvedBy: number): Promise<AffiliatePartner | undefined> {
+    const partner = this.affiliatePartners.get(id);
+    if (!partner) return undefined;
+
+    const updatedPartner = {
+      ...partner,
+      status: "active",
+      approvedBy,
+      approvedAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.affiliatePartners.set(id, updatedPartner);
+    return updatedPartner;
+  }
+
+  // Affiliate Coupon Methods
+  async getAffiliateCoupons(partnerId?: number, isActive?: boolean): Promise<AffiliateCoupon[]> {
+    let coupons = Array.from(this.affiliateCoupons.values());
+    
+    if (partnerId) {
+      coupons = coupons.filter(coupon => coupon.partnerId === partnerId);
+    }
+    
+    if (isActive !== undefined) {
+      coupons = coupons.filter(coupon => coupon.isActive === isActive);
+    }
+    
+    return coupons;
+  }
+
+  async getAffiliateCoupon(id: number): Promise<AffiliateCoupon | undefined> {
+    return this.affiliateCoupons.get(id);
+  }
+
+  async getAffiliateCouponByCode(code: string): Promise<AffiliateCoupon | undefined> {
+    return Array.from(this.affiliateCoupons.values()).find(coupon => coupon.code === code);
+  }
+
+  async createAffiliateCoupon(coupon: InsertAffiliateCoupon): Promise<AffiliateCoupon> {
+    const newCoupon: AffiliateCoupon = {
+      id: this.affiliateCouponId++,
+      partnerId: coupon.partnerId,
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value,
+      description: coupon.description || null,
+      isActive: coupon.isActive !== undefined ? coupon.isActive : true,
+      maxUses: coupon.maxUses || null,
+      currentUses: 0,
+      maxUsesPerUser: coupon.maxUsesPerUser || 1,
+      minPurchaseAmount: coupon.minPurchaseAmount || null,
+      startDate: coupon.startDate,
+      endDate: coupon.endDate,
+      tierId: coupon.tierId || null,
+      termsAndConditions: coupon.termsAndConditions || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.affiliateCoupons.set(newCoupon.id, newCoupon);
+    return newCoupon;
+  }
+
+  async updateAffiliateCoupon(id: number, updates: Partial<AffiliateCoupon>): Promise<AffiliateCoupon | undefined> {
+    const coupon = this.affiliateCoupons.get(id);
+    if (!coupon) return undefined;
+
+    const updatedCoupon = { ...coupon, ...updates, updatedAt: new Date() };
+    this.affiliateCoupons.set(id, updatedCoupon);
+    return updatedCoupon;
+  }
+
+  async incrementCouponUses(id: number): Promise<AffiliateCoupon | undefined> {
+    const coupon = this.affiliateCoupons.get(id);
+    if (!coupon) return undefined;
+
+    const currentUses = coupon.currentUses + 1;
+    const isActive = coupon.maxUses ? currentUses < coupon.maxUses : coupon.isActive;
+    
+    const updatedCoupon = {
+      ...coupon,
+      currentUses,
+      isActive,
+      updatedAt: new Date()
+    };
+    
+    this.affiliateCoupons.set(id, updatedCoupon);
+    return updatedCoupon;
+  }
+
+  // Affiliate Referral Methods
+  async getAffiliateReferrals(partnerId: number): Promise<AffiliateReferral[]> {
+    return Array.from(this.affiliateReferrals.values()).filter(referral => referral.partnerId === partnerId);
+  }
+
+  async getAffiliateReferral(id: number): Promise<AffiliateReferral | undefined> {
+    return this.affiliateReferrals.get(id);
+  }
+
+  async getAffiliateReferralByCode(code: string): Promise<AffiliateReferral | undefined> {
+    return Array.from(this.affiliateReferrals.values()).find(referral => referral.referralCode === code);
+  }
+
+  async createAffiliateReferral(referral: InsertAffiliateReferral): Promise<AffiliateReferral> {
+    const newReferral: AffiliateReferral = {
+      id: this.affiliateReferralId++,
+      partnerId: referral.partnerId,
+      userId: referral.userId,
+      referralCode: referral.referralCode,
+      referralUrl: referral.referralUrl,
+      clickCount: 0,
+      conversionCount: 0,
+      status: referral.status || "active",
+      couponId: referral.couponId || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.affiliateReferrals.set(newReferral.id, newReferral);
+    return newReferral;
+  }
+
+  async updateAffiliateReferral(id: number, updates: Partial<AffiliateReferral>): Promise<AffiliateReferral | undefined> {
+    const referral = this.affiliateReferrals.get(id);
+    if (!referral) return undefined;
+
+    const updatedReferral = { ...referral, ...updates, updatedAt: new Date() };
+    this.affiliateReferrals.set(id, updatedReferral);
+    return updatedReferral;
+  }
+
+  async incrementReferralClick(id: number): Promise<AffiliateReferral | undefined> {
+    const referral = this.affiliateReferrals.get(id);
+    if (!referral) return undefined;
+
+    const updatedReferral = {
+      ...referral,
+      clickCount: referral.clickCount + 1,
+      updatedAt: new Date()
+    };
+    this.affiliateReferrals.set(id, updatedReferral);
+    return updatedReferral;
+  }
+
+  async incrementReferralConversion(id: number): Promise<AffiliateReferral | undefined> {
+    const referral = this.affiliateReferrals.get(id);
+    if (!referral) return undefined;
+
+    const updatedReferral = {
+      ...referral,
+      conversionCount: referral.conversionCount + 1,
+      updatedAt: new Date()
+    };
+    this.affiliateReferrals.set(id, updatedReferral);
+    return updatedReferral;
+  }
+
+  // Affiliate Transaction Methods
+  async getAffiliateTransactions(partnerId: number): Promise<AffiliateTransaction[]> {
+    return Array.from(this.affiliateTransactions.values())
+      .filter(transaction => transaction.partnerId === partnerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getAffiliateTransaction(id: number): Promise<AffiliateTransaction | undefined> {
+    return this.affiliateTransactions.get(id);
+  }
+
+  async getAffiliateTransactionsByUser(userId: number): Promise<AffiliateTransaction[]> {
+    return Array.from(this.affiliateTransactions.values())
+      .filter(transaction => transaction.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createAffiliateTransaction(transaction: InsertAffiliateTransaction): Promise<AffiliateTransaction> {
+    const newTransaction: AffiliateTransaction = {
+      id: this.affiliateTransactionId++,
+      partnerId: transaction.partnerId,
+      userId: transaction.userId,
+      subscriptionId: transaction.subscriptionId,
+      amount: typeof transaction.amount === 'number' ? transaction.amount.toString() : transaction.amount,
+      commissionAmount: typeof transaction.commissionAmount === 'number' ? transaction.commissionAmount.toString() : transaction.commissionAmount,
+      currency: transaction.currency || "USD",
+      status: transaction.status,
+      transactionType: transaction.transactionType,
+      notes: transaction.notes || null,
+      couponId: transaction.couponId || null,
+      referralId: transaction.referralId || null,
+      paymentDate: transaction.paymentDate || null,
+      createdAt: new Date(),
+    };
+    this.affiliateTransactions.set(newTransaction.id, newTransaction);
+    return newTransaction;
+  }
+
+  async updateAffiliateTransactionStatus(id: number, status: string): Promise<AffiliateTransaction | undefined> {
+    const transaction = this.affiliateTransactions.get(id);
+    if (!transaction) return undefined;
+
+    const updatedTransaction = {
+      ...transaction,
+      status,
+      paymentDate: status === 'paid' ? new Date() : transaction.paymentDate
+    };
+    this.affiliateTransactions.set(id, updatedTransaction);
+    return updatedTransaction;
+  }
+
+  // Affiliate Payment Methods
+  async getAffiliatePayments(partnerId: number): Promise<AffiliatePayment[]> {
+    return Array.from(this.affiliatePayments.values())
+      .filter(payment => payment.partnerId === partnerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getAffiliatePayment(id: number): Promise<AffiliatePayment | undefined> {
+    return this.affiliatePayments.get(id);
+  }
+
+  async createAffiliatePayment(payment: InsertAffiliatePayment): Promise<AffiliatePayment> {
+    const newPayment: AffiliatePayment = {
+      id: this.affiliatePaymentId++,
+      partnerId: payment.partnerId,
+      amount: typeof payment.amount === 'number' ? payment.amount.toString() : payment.amount,
+      currency: payment.currency,
+      status: payment.status,
+      paymentMethod: payment.paymentMethod,
+      paymentDate: payment.paymentDate || null,
+      reference: payment.reference || null,
+      notes: payment.notes || null,
+      transactions: Array.isArray(payment.transactions) ? payment.transactions : null,
+      createdAt: new Date(),
+    };
+    this.affiliatePayments.set(newPayment.id, newPayment);
+    return newPayment;
+  }
+
+  async updateAffiliatePaymentStatus(id: number, status: string, reference?: string): Promise<AffiliatePayment | undefined> {
+    const payment = this.affiliatePayments.get(id);
+    if (!payment) return undefined;
+
+    const updatedPayment = {
+      ...payment,
+      status,
+      reference: reference || payment.reference,
+      paymentDate: status === 'completed' ? new Date() : payment.paymentDate
+    };
+    this.affiliatePayments.set(id, updatedPayment);
+    return updatedPayment;
+  }
+
+  // Initialize sample data for development
+  initializeSampleData() {
+    // Create sample users
+    const user1: User = {
+      id: 1,
+      username: "alex_demo",
+      password: "password123",
+      email: "alex@bondquest.demo",
+      displayName: "Alex",
+      avatar: null,
+      loveLanguage: "quality_time",
+      relationshipStatus: "dating",
+      anniversary: "2023-02-14",
+      createdAt: new Date(),
+      partnerCode: "BOND-ALEX123",
+      googleId: null,
+      instagramId: null,
+      lastLogin: new Date(),
+      profilePictureUrl: null,
+      isAdmin: false,
+    };
+
+    const user2: User = {
+      id: 2,
+      username: "james_demo",
+      password: "password123",
+      email: "james@bondquest.demo",
+      displayName: "James",
+      avatar: null,
+      loveLanguage: "physical_touch",
+      relationshipStatus: "dating",
+      anniversary: "2023-02-14",
+      createdAt: new Date(),
+      partnerCode: "BOND-JAMES456",
+      googleId: null,
+      instagramId: null,
+      lastLogin: new Date(),
+      profilePictureUrl: null,
+      isAdmin: false,
+    };
+
+    this.users.set(1, user1);
+    this.users.set(2, user2);
+
+    // Create sample couple
+    const couple: Couple = {
+      id: 1,
+      user1Id: 1,
+      user2Id: 2,
+      createdAt: new Date(),
+      anniversaryDate: new Date("2023-02-14"),
+      relationshipStatus: "dating",
+      xp: 1250,
+      level: 3,
+      streak: 7,
+      lastActivityDate: new Date(),
+    };
+
+    this.couples.set(1, couple);
+
+    // Create sample quizzes
+    const quiz1: Quiz = {
+      id: 1,
+      title: "How Well Do You Know Me?",
+      description: "Test your knowledge about your partner's preferences and habits",
+      type: "partner_knowledge",
+      category: "daily",
+      duration: 300,
+      points: 100,
+      image: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const quiz2: Quiz = {
+      id: 2,
+      title: "Relationship Milestones Quiz",
+      description: "Celebrate your journey together",
+      type: "milestones",
+      category: "special",
+      duration: 600,
+      points: 150,
+      image: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.quizzes.set(1, quiz1);
+    this.quizzes.set(2, quiz2);
+
+    // Create sample questions
+    const questions: Question[] = [
+      {
+        id: 1,
+        quizId: 1,
+        text: "What's my favorite color?",
+        options: ["Blue", "Red", "Green", "Purple"],
+        correctAnswer: "Blue",
+        points: 10,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 2,
+        quizId: 1,
+        text: "What's my favorite food?",
+        options: ["Pizza", "Sushi", "Pasta", "Burgers"],
+        correctAnswer: "Sushi",
+        points: 10,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    ];
+
+    questions.forEach(q => this.questions.set(q.id, q));
+
+    // Create sample bond assessments
+    const assessment1: BondAssessment = {
+      id: 1,
+      coupleId: 1,
+      dimensionId: "communication",
+      score: 8.5,
+      user1Score: 8,
+      user2Score: 9,
+      answeredAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const assessment2: BondAssessment = {
+      id: 2,
+      coupleId: 1,
+      dimensionId: "trust",
+      score: 7.2,
+      user1Score: 7,
+      user2Score: 7.4,
+      answeredAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.bondAssessments.set(1, assessment1);
+    this.bondAssessments.set(2, assessment2);
+
+    console.log("✅ Sample data initialized successfully!");
   }
 }
 

@@ -11,7 +11,7 @@ const isAffiliatePartner = async (req: Request, res: Response, next: Function) =
     return res.status(401).json({ message: 'Unauthorized: Not logged in as affiliate partner' });
   }
   
-  const partner = await storage.getAffiliatePartnerById(req.session.affiliateId);
+  const partner = await storage.getAffiliatePartner(req.session.affiliateId);
   if (!partner) {
     req.session.affiliateId = undefined;
     return res.status(401).json({ message: 'Unauthorized: Partner not found' });
@@ -372,7 +372,7 @@ router.get('/me', async (req: Request, res: Response) => {
   }
   
   try {
-    const partner = await storage.getAffiliatePartnerById(req.session.affiliateId);
+    const partner = await storage.getAffiliatePartner(req.session.affiliateId);
     
     if (!partner) {
       req.session.affiliateId = undefined;
@@ -688,6 +688,13 @@ declare global {
       id: number;
       isAdmin: boolean;
     }
+  }
+}
+
+declare module 'express-session' {
+  interface SessionData {
+    affiliateId?: number;
+    user?: any;
   }
 }
 
