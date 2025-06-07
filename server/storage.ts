@@ -197,6 +197,28 @@ export interface IStorage {
   getAffiliatePayment(id: number): Promise<AffiliatePayment | undefined>;
   createAffiliatePayment(payment: InsertAffiliatePayment): Promise<AffiliatePayment>;
   updateAffiliatePaymentStatus(id: number, status: string, reference?: string): Promise<AffiliatePayment | undefined>;
+  
+  // Conversation Session Methods
+  getConversationSessions(userId: number): Promise<ConversationSession[]>;
+  getConversationSession(id: number): Promise<ConversationSession | undefined>;
+  createConversationSession(session: InsertConversationSession): Promise<ConversationSession>;
+  updateConversationSession(id: number, updates: Partial<ConversationSession>): Promise<ConversationSession | undefined>;
+  
+  // Conversation Message Methods
+  getConversationMessages(sessionId: number): Promise<ConversationMessage[]>;
+  createConversationMessage(message: InsertConversationMessage): Promise<ConversationMessage>;
+  
+  // Voice Interaction Methods
+  getVoiceInteractions(sessionId: number): Promise<VoiceInteraction[]>;
+  createVoiceInteraction(interaction: InsertVoiceInteraction): Promise<VoiceInteraction>;
+  
+  // Profile Insight Methods
+  getProfileInsights(userId: number): Promise<ProfileInsight[]>;
+  createProfileInsight(insight: InsertProfileInsight): Promise<ProfileInsight>;
+  
+  // Relationship Context Methods
+  getRelationshipContexts(coupleId: number): Promise<RelationshipContext[]>;
+  createRelationshipContext(context: InsertRelationshipContext): Promise<RelationshipContext>;
 }
 
 export class MemStorage implements IStorage {

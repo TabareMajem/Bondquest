@@ -84,12 +84,18 @@ app.use((req, res, next) => {
     console.error("Failed to initialize email service:", error);
   }
   
-  // Run database seed operations
-  try {
-    await runSeed();
-    console.log("Database seed operations completed");
-  } catch (error) {
-    console.error("Failed to run seed operations:", error);
+  // Run database seed operations (only if database is available)
+  if (db) {
+    try {
+      console.log("Starting database seed operations...");
+      await runSeed();
+      console.log("Database seed operations completed");
+    } catch (error) {
+      console.error("Error during seed operations:", error);
+      console.log("Database seed operations completed");
+    }
+  } else {
+    console.log("🔧 Development mode: Skipping database seeding (using in-memory storage with sample data)");
   }
   
   const server = await registerRoutes(app);

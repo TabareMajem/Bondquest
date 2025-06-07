@@ -3,15 +3,27 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ContentBlock } from "@anthropic-ai/sdk/resources";
 import { aiCompanions, buildCompanionSystemPrompt } from "@shared/aiCompanions";
 
-// Initialize the OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize the OpenAI client (optional for development)
+let openai: OpenAI | null = null;
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  console.log('✅ OpenAI initialized for AI features');
+} else {
+  console.log('🔧 Development mode: OpenAI not configured (AI features disabled)');
+}
 
-// Initialize the Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "", // Fallback to OpenAI if no API key
-});
+// Initialize the Anthropic client (optional for development)
+let anthropic: Anthropic | null = null;
+if (process.env.ANTHROPIC_API_KEY) {
+  anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+  console.log('✅ Anthropic initialized for AI features');
+} else {
+  console.log('🔧 Development mode: Anthropic not configured');
+}
 
 /**
  * Generate a response from the AI assistant based on the user's message and selected assistant type
@@ -21,6 +33,10 @@ export async function generateAIResponse(
   assistantType: string = "casanova", 
   relationshipContext: Record<string, any> = {}
 ): Promise<string> {
+  if (!openai) {
+    return "AI features are not configured. To enable AI responses, set the OPENAI_API_KEY environment variable.";
+  }
+
   try {
     // Find the AI companion
     const companion = aiCompanions.find(c => c.id === assistantType) || aiCompanions[0];
@@ -70,6 +86,10 @@ export async function generateAIResponse(
  * Generate relationship insights based on quiz results
  */
 export async function generateRelationshipInsights(quizResponses: Record<string, string>, category: string): Promise<string> {
+  if (!openai) {
+    return "AI insights are not available. To enable this feature, configure the OPENAI_API_KEY environment variable.";
+  }
+
   try {
     // Get Aurora's personality and system prompt
     const aurora = aiCompanions.find(c => c.id === "aurora");
@@ -133,6 +153,26 @@ export async function generateQuiz(
   },
   isCompetitionQuiz: boolean = false
 ): Promise<any> {
+  // Check if any AI service is available
+  if (!anthropic && !openai) {
+    // Return a fallback quiz structure
+    return {
+      title: `${topic} Quiz`,
+      description: `A ${difficulty} quiz about ${topic} for couples to enjoy together.`,
+      category: category,
+      type: "multiplayer",
+      difficulty: difficulty,
+      duration: 10,
+      points: 100,
+      questions: [
+        {
+          text: "This is a sample question. AI quiz generation is not configured.",
+          options: ["Option A", "Option B", "Option C", "Option D"]
+        }
+      ]
+    };
+  }
+
   try {
     // For competition quizzes, we enforce certain standards to ensure fairness
     let enhancedInstructions = additionalInstructions || "";
@@ -153,7 +193,7 @@ Please ensure:
     }
     
     // Try to use Anthropic first, fall back to OpenAI if no API key
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (anthropic) {
       return await generateQuizWithAnthropic(
         topic, 
         category, 
@@ -162,7 +202,7 @@ Please ensure:
         enhancedInstructions, 
         coupleProfileData
       );
-    } else {
+    } else if (openai) {
       return await generateQuizWithOpenAI(
         topic, 
         category, 
@@ -194,6 +234,9 @@ async function generateQuizWithAnthropic(
     user2Responses?: any[]
   }
 ): Promise<any> {
+  if (!anthropic) {
+    throw new Error('Anthropic client not initialized');
+  }
   // Format any profile data to include in the prompt
   let coupleProfileInfo = '';
   if (coupleProfileData) {
@@ -328,6 +371,9 @@ async function generateQuizWithOpenAI(
     user2Responses?: any[]
   }
 ): Promise<any> {
+  if (!openai) {
+    throw new Error('OpenAI client not initialized');
+  }
   const systemMessage = `
   You are an expert in creating relationship quizzes for couples. Your task is to generate a complete quiz in JSON format.
   The quiz should be engaging, thoughtful, and help couples learn more about each other or strengthen their relationship.
@@ -494,6 +540,9 @@ async function generateCompetitionWithAnthropic(
   type: string,
   additionalInstructions?: string
 ): Promise<any> {
+  if (!anthropic) {
+    throw new Error('Anthropic client not initialized');
+  }
   const prompt = `
   You are an expert in creating relationship competitions and challenges for couples. I need you to generate a complete competition with the following details:
   - Name: ${name}
@@ -585,6 +634,9 @@ async function generateCompetitionWithOpenAI(
   type: string,
   additionalInstructions?: string
 ): Promise<any> {
+  if (!openai) {
+    throw new Error('OpenAI client not initialized');
+  }
   const systemMessage = `
   You are an expert in creating relationship competitions and challenges for couples. 
   Your task is to generate a complete competition in JSON format.

@@ -3,17 +3,26 @@ import { db } from './db';
 import { subscriptionTiers, userSubscriptions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-// Initialize Stripe
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+// Initialize Stripe (optional for development)
+let stripe: Stripe | null = null;
+
+if (process.env.STRIPE_SECRET_KEY) {
+  // Note: We're using a specific API version to ensure compatibility
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2022-11-15' as any,
+  });
+  console.log('✅ Stripe initialized for payments');
+} else {
+  console.log('🔧 Development mode: Stripe not configured (payments disabled)');
 }
 
-// Note: We're using a specific API version to ensure compatibility
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2022-11-15' as any,
-});
+export { stripe };
 
 export async function createPaymentIntent(amount: number, currency: string, metadata: Record<string, string>) {
+  if (!stripe) {
+    throw new Error('Stripe not configured. Set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
@@ -101,6 +110,10 @@ export async function getUserSubscription(userId: number) {
 }
 
 export async function createCustomer(email: string, name: string) {
+  if (!stripe) {
+    throw new Error('Stripe not configured. Set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const customer = await stripe.customers.create({
       email,
@@ -115,6 +128,10 @@ export async function createCustomer(email: string, name: string) {
 }
 
 export async function createSubscription(customerId: string, priceId: string) {
+  if (!stripe) {
+    throw new Error('Stripe not configured. Set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
@@ -135,6 +152,10 @@ export async function createSubscription(customerId: string, priceId: string) {
 }
 
 export async function cancelSubscription(subscriptionId: string) {
+  if (!stripe) {
+    throw new Error('Stripe not configured. Set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const subscription = await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
@@ -148,6 +169,10 @@ export async function cancelSubscription(subscriptionId: string) {
 }
 
 export async function reactivateSubscription(subscriptionId: string) {
+  if (!stripe) {
+    throw new Error('Stripe not configured. Set STRIPE_SECRET_KEY environment variable.');
+  }
+  
   try {
     const subscription = await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: false,
@@ -168,8 +193,8 @@ export async function updateUserSubscriptionStatus(userId: number, subscription:
       [userId]
     );
 
-    const currentPeriodStart = new Date(Number(subscription.current_period_start) * 1000);
-    const currentPeriodEnd = new Date(Number(subscription.current_period_end) * 1000);
+    const currentPeriodStart = new Date((subscription as any).current_period_start * 1000);
+    const currentPeriodEnd = new Date((subscription as any).current_period_end * 1000);
     const cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
 
     if (existingResult.rows.length > 0) {
@@ -312,8 +337,8 @@ export async function handleWebhookEvent(event: Stripe.Event) {
       case 'invoice.payment_succeeded':
         const invoice = event.data.object as Stripe.Invoice;
         console.log('Invoice payment succeeded:', invoice.id);
-        if (invoice.subscription) {
-          console.log(`Associated subscription: ${invoice.subscription}`);
+        if ((invoice as any).subscription) {
+          console.log(`Associated subscription: ${(invoice as any).subscription}`);
           // Could update subscription status or add payment history here
         }
         break;
@@ -321,8 +346,8 @@ export async function handleWebhookEvent(event: Stripe.Event) {
       case 'invoice.payment_failed':
         const failedInvoice = event.data.object as Stripe.Invoice;
         console.log('Invoice payment failed:', failedInvoice.id);
-        if (failedInvoice.subscription) {
-          console.log(`Failed payment for subscription: ${failedInvoice.subscription}`);
+        if ((failedInvoice as any).subscription) {
+          console.log(`Failed payment for subscription: ${(failedInvoice as any).subscription}`);
           // Could notify user or update subscription status here
         }
         break;
