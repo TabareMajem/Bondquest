@@ -42,25 +42,38 @@ export default function PageLayout({
   // Force a re-check on component mount and handle changes
   useEffect(() => {
     const checkForDesktop = () => {
-      // Directly access the matchMedia API for a reliable check
-      const isLargeScreen = window.matchMedia('(min-width: 1024px)').matches;
-      console.log('Screen size check - Desktop:', isLargeScreen, 'window.innerWidth:', window.innerWidth);
-      setIsDesktop(isLargeScreen);
+      // Check if window is available (client-side)
+      if (typeof window === 'undefined') return;
+      
+      try {
+        // Directly access the matchMedia API for a reliable check
+        const mediaQuery = window.matchMedia('(min-width: 1024px)');
+        const isLargeScreen = mediaQuery.matches;
+        console.log('Screen size check - Desktop:', isLargeScreen, 'window.innerWidth:', window.innerWidth);
+        setIsDesktop(isLargeScreen);
+      } catch (error) {
+        console.warn('matchMedia not supported, falling back to window width');
+        // Fallback for browsers that don't support matchMedia
+        const isLargeScreen = window.innerWidth >= 1024;
+        setIsDesktop(isLargeScreen);
+      }
     };
     
     // Check immediately
     checkForDesktop();
     
     // Add event listener for resize events
-    window.addEventListener('resize', checkForDesktop);
-    
-    // Check again after a delay to ensure window dimensions are properly measured
-    const timerId = setTimeout(checkForDesktop, 1000);
-    
-    return () => {
-      window.removeEventListener('resize', checkForDesktop);
-      clearTimeout(timerId);
-    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkForDesktop);
+      
+      // Check again after a delay to ensure window dimensions are properly measured
+      const timerId = setTimeout(checkForDesktop, 1000);
+      
+      return () => {
+        window.removeEventListener('resize', checkForDesktop);
+        clearTimeout(timerId);
+      };
+    }
   }, []);
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-900 via-purple-800 to-fuchsia-900">

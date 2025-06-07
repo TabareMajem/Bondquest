@@ -12,9 +12,16 @@ export default function InstallPrompt() {
   const [showHint, setShowHint] = useState(false);
 
   useEffect(() => {
+    // Check if window is available (client-side)
+    if (typeof window === 'undefined') return;
+
     // Check if the app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      return; // App is already installed, don't show the prompt
+    try {
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        return; // App is already installed, don't show the prompt
+      }
+    } catch (error) {
+      console.warn('matchMedia not supported for display-mode check');
     }
 
     // Show hint for iOS users after a delay
